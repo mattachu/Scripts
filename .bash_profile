@@ -76,6 +76,7 @@ alias server="ssh wangzhi@162.105.147.95"
 alias impact="run_with_log impact"
 alias impact-test="run_with_log impact-test"
 alias impact-multibunch='cp ImpactT.in ImpactT.txt; run_with_log impact-multibunch; rm ImpactT.txt'
+alias impact-mb='cp ImpactT.in ImpactT.txt; run_with_log impact-multibunch; rm ImpactT.txt'
 alias impact-pku="cp ImpactT.in ImpactT.txt; run_with_log impact-pku; rm ImpactT.txt"
 alias impact-official="run_with_log impact-official"
 alias rm-impact="rm ./fort.* ./*.log ./*.dst ./*.plt ./*.csv"
