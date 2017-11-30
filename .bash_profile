@@ -75,9 +75,9 @@ function run_with_log {
 alias server="ssh wangzhi@162.105.147.95"
 alias impact="run_with_log impact"
 alias impact-test="run_with_log impact-test"
-alias impact-multibunch='cp ImpactT.in ImpactT.txt; run_with_log impact-multibunch; rm ImpactT.txt'
-alias impact-mb='cp ImpactT.in ImpactT.txt; run_with_log impact-multibunch; rm ImpactT.txt'
-alias impact-pku="cp ImpactT.in ImpactT.txt; run_with_log impact-pku; rm ImpactT.txt"
+alias impact-multibunch="ln -s ImpactT.in ImpactT.txt; run_with_log impact-multibunch"
+alias impact-mb="ln -s ImpactT.in ImpactT.txt; run_with_log impact-multibunch"
+alias impact-pku="ln -s ImpactT.in ImpactT.txt; run_with_log impact-pku"
 alias impact-official="run_with_log impact-official"
 alias rm-impact="rm ./fort.* ./*.log ./*.dst ./*.plt ./*.csv"
 alias transfer="rsync --archive --update --delete --max-size=50M --verbose ~/Simulations/Current/ ~/Simulations/Transfer/"
