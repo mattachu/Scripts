@@ -11,3 +11,5 @@ alias impact-pku="ln -s ImpactT.in ImpactT.txt; run_with_log impact-pku"
 alias impact-official="run_with_log impact-official"
 
 alias rm-impact="rm ./fort.* ./*.log ./*.dst ./*.plt ./*.csv"
+
+alias run_tests='./run_tests.sh'
