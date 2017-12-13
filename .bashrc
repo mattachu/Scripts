@@ -61,21 +61,21 @@
 #
 # Uncomment to turn on programmable completion enhancements.
 # Any completions you add in ~/.bash_completion are sourced last.
-# [[ -f /etc/bash_completion ]] && . /etc/bash_completion
+[[ -f /etc/bash_completion ]] && . /etc/bash_completion
 
 # History Options
 #
 # Don't put duplicate lines in the history.
-# export HISTCONTROL=$HISTCONTROL${HISTCONTROL+,}ignoredups
+export HISTCONTROL=$HISTCONTROL${HISTCONTROL+,}ignoredups
 #
 # Ignore some controlling instructions
 # HISTIGNORE is a colon-delimited list of patterns which should be excluded.
 # The '&' is a special pattern which suppresses duplicate entries.
-# export HISTIGNORE=$'[ \t]*:&:[fb]g:exit'
+export HISTIGNORE=$'[ \t]*:&:[fb]g:exit'
 # export HISTIGNORE=$'[ \t]*:&:[fb]g:exit:ls' # Ignore the ls command as well
 #
 # Whenever displaying the prompt, write the previous line to disk
-# export PROMPT_COMMAND="history -a"
+export PROMPT_COMMAND="history -a"
 
 # Aliases
 #
@@ -132,10 +132,10 @@ alias ls='ls -h --color=tty'                 # classify files in colour
 # Some example functions:
 #
 # a) function settitle
-# settitle ()
-# {
-#   echo -ne "\e]2;$@\a\e]1;$@\a";
-# }
+settitle ()
+{
+    echo -ne "\e]2;$@\a\e]1;$@\a";
+}
 #
 # b) function cd_func
 # This function defines a 'cd' replacement function capable of keeping,
