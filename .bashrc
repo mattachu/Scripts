@@ -196,3 +196,11 @@ settitle ()
 # }
 #
 # alias cd=cd_func
+
+# Personal scripts
+if ! [ "${SCRIPTS}" ]; then
+    echo "Scripts folder not set; setting to default."
+    SCRIPTS="${HOME}/Code/Scripts/"
+fi
+source "${SCRIPTS}/run_scripts.sh"
+source "${SCRIPTS}/pku.sh"

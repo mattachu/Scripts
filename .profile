@@ -26,12 +26,18 @@
 # Set user-defined locale
 export LANG=$(locale -uU)
 
-# This file is not read by bash(1) if ~/.bash_profile or ~/.bash_login
-# exists.
-#
-# if running bash
-if [ -n "${BASH_VERSION}" ]; then
-  if [ -f "${HOME}/.bashrc" ]; then
-    source "${HOME}/.bashrc"
-  fi
+# Locations:
+#  - Scripts folder
+if [ -d "${HOME}/Code/Scripts/" ] ; then
+    SCRIPTS="${HOME}/Code/Scripts/"
+fi
+#  - User versions of bin, man, info
+if [ -d "${HOME}/bin" ] ; then
+    PATH="${HOME}/bin:${PATH}"
+fi
+if [ -d "${HOME}/man" ]; then
+    MANPATH="${HOME}/man:${MANPATH}"
+fi
+if [ -d "${HOME}/info" ]; then
+    INFOPATH="${HOME}/info:${INFOPATH}"
 fi
