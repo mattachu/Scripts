@@ -17,7 +17,7 @@ function time_taken {
 function run_with_timer {
     SECONDS=0
     $*
-    echo "Time taken: $SECONDS s"
+    time_taken
 }
 function run_with_log {
     rm -f $1.log
