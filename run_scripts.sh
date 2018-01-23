@@ -1,3 +1,4 @@
+#!/bin/bash
 # Functions for running programs
 
 function time_taken {

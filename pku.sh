@@ -1,3 +1,4 @@
+#!/bin/bash
 # Shortcuts for PKU work
 
 alias server="ssh wangzhi@162.105.147.95"
