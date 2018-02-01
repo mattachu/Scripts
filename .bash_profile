@@ -1,34 +1,14 @@
-# To the extent possible under law, the author(s) have dedicated all
-# copyright and related and neighboring rights to this software to the
-# public domain worldwide. This software is distributed without any warranty.
-# You should have received a copy of the CC0 Public Domain Dedication along
-# with this software.
-# If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+# .bash_profile: executed by bash for login shells.
+#  - anything bash-specific that is not in .bashrc goes here.
+#  - the rest is in .profile for all shells
+#  - based on content from Ubuntu and Cygwin .bash_profile files.
 
-# base-files version 4.2-4
-
-# ~/.bash_profile: executed by bash(1) for login shells.
-
-# The latest version as installed by the Cygwin Setup program can
-# always be found at /etc/defaults/etc/skel/.bash_profile
-
-# Modifying /etc/skel/.bash_profile directly will prevent
-# setup from updating it.
-
-# The copy in your home directory (~/.bash_profile) is yours, please
-# feel free to customise it to create a shell
-# environment to your liking.  If you feel a change
-# would be benifitial to all, please feel free to send
-# a patch to the cygwin mailing list.
-
-# User dependent .bash_profile file
-
-# Source the users profile if it exists
+# Source the user's profile if it exists
 if [ -f "${HOME}/.profile" ] ; then
     source "${HOME}/.profile"
 fi
 
-# Source the users bashrc if it exists
+# Source the user's bashrc if it exists
 if [ -f "${HOME}/.bashrc" ] ; then
     source "${HOME}/.bashrc"
 fi

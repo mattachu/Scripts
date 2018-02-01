@@ -1,27 +1,5 @@
-# To the extent possible under law, the author(s) have dedicated all
-# copyright and related and neighboring rights to this software to the
-# public domain worldwide. This software is distributed without any warranty.
-# You should have received a copy of the CC0 Public Domain Dedication along
-# with this software.
-# If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-
-# base-files version 4.2-4
-
-# ~/.bashrc: executed by bash(1) for interactive shells.
-
-# The latest version as installed by the Cygwin Setup program can
-# always be found at /etc/defaults/etc/skel/.bashrc
-
-# Modifying /etc/skel/.bashrc directly will prevent
-# setup from updating it.
-
-# The copy in your home directory (~/.bashrc) is yours, please
-# feel free to customise it to create a shell
-# environment to your liking.  If you feel a change
-# would be benifitial to all, please feel free to send
-# a patch to the cygwin mailing list.
-
-# User dependent .bashrc file
+# .bashrc: executed by bash for non-login shells.
+#  - based on content from Ubuntu and Cygwin .bashrc files.
 
 # If not running interactively, don't do anything
 [[ "$-" != *i* ]] && return
@@ -40,11 +18,15 @@
 # shopt -s nocaseglob
 #
 # Make bash append rather than overwrite the history on disk
-# shopt -s histappend
+shopt -s histappend
 #
 # When changing directory small typos can be ignored by bash
 # for example, cd /vr/lgo/apaache would find /var/log/apache
 # shopt -s cdspell
+#
+# Check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
 
 # Completion options
 #
@@ -61,7 +43,13 @@
 #
 # Uncomment to turn on programmable completion enhancements.
 # Any completions you add in ~/.bash_completion are sourced last.
-[[ -f /etc/bash_completion ]] && . /etc/bash_completion
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    source /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    source /etc/bash_completion
+  fi
+fi
 
 # History Options
 #
@@ -76,6 +64,72 @@ export HISTIGNORE=$'[ \t]*:&:[fb]g:exit'
 #
 # Whenever displaying the prompt, write the previous line to disk
 export PROMPT_COMMAND="history -a"
+#
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+export HISTSIZE=1000
+export HISTFILESIZE=2000
+
+# Prompt Options
+#
+# Set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+#
+# Set a fancy prompt (non-colour, unless we know we "want" colour)
+#
+# - first read the $TERM string to check for colour
+case "$TERM" in
+    xterm-color|*-256color) color_prompt=yes;;
+esac
+#
+# - can also force a colour/non-colour prompt by uncommenting the line below
+#force_color_prompt=yes
+#force_non_color_prompt=yes
+#
+# - code to set up prompt string
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+        # We have color support; assume it's compliant with Ecma-48
+        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+        # a case would tend to support setf rather than setaf.)
+        color_prompt=yes
+    else
+        color_prompt=
+    fi
+fi
+if [ -n "$force_non_color_prompt" ]; then
+    color_prompt=
+fi
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt force_color_prompt force_non_color_prompt
+#
+# - if this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+#
+# - enable color support of ls and grep
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls -h --color=auto'
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# Command-specific options
+#
+# less: more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
 # Aliases
 #
@@ -102,12 +156,9 @@ alias du='du -h'
 # Misc :)
 # alias less='less -r'                          # raw control characters
 # alias whence='type -a'                        # where, of a sort
-alias grep='grep --color'                     # show differences in colour
-alias egrep='egrep --color=auto'              # show differences in colour
-alias fgrep='fgrep --color=auto'              # show differences in colour
 #
 # Some shortcuts for different directory listings
-alias ls='ls -h --color=tty'                 # classify files in colour
+# alias ls='ls --color=auto'                    # classify files in colour
 # alias dir='ls --color=auto --format=vertical'
 # alias vdir='ls --color=auto --format=long'
 # alias ll='ls -l'                              # long list
@@ -196,6 +247,14 @@ settitle ()
 # }
 #
 # alias cd=cd_func
+
+# Load any aliases and functions from separate files
+if [ -f ~/.bash_aliases ]; then
+    source ~/.bash_aliases
+fi
+if [ -f ~/.bash_functions ]; then
+    source ~/.bash_functions
+fi
 
 # Personal scripts
 if ! [ "${SCRIPTS}" ]; then
