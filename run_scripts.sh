@@ -29,3 +29,10 @@ function run_with_log {
     time_taken > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     sleep 0.1
 }
+function show_progress {
+  runfolder="$*"
+  if [[ -z $runfolder ]]; then runfolder="."; fi
+  subfoldercount="$(ls -l $runfolder/ | grep -c ^d)"
+  logfilecount="$(ls -l $runfolder/*/*.log | grep -c log)"
+  echo "Found log files in $logfilecount out of $subfoldercount subfolders"
+}
