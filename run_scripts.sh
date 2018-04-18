@@ -36,3 +36,16 @@ function show_progress {
   logfilecount="$(ls -l $runfolder/*/*.log | grep -c log)"
   echo "Found log files in $logfilecount out of $subfoldercount subfolders"
 }
+function parameterise {
+  input_file="$1"
+  exe_name="impact-test"
+  parameter_name="PARAM1"
+  parameter_value="$2"
+  mkdir -p ./$parameter_value
+  cp *.in ./$parameter_value/
+  cd ./$parameter_value
+  ln -s ../*.data
+  ln -s ../$exe_name
+  cd ..
+  cat $input_file | sed "s/$parameter_name/$parameter_value/" > $parameter_value/$input_file
+}
