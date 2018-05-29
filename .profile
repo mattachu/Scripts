@@ -4,11 +4,16 @@
 
 # Locations:
 #  - Scripts folder
-if [ -d "${HOME}/Code/Scripts/" ] ; then
+if [ -d "${HOME}/Code/Scripts/" ]; then
     SCRIPTS="${HOME}/Code/Scripts/"
+else
+    if [ -d "${HOME}/Documents/Code/Scripts/" ]
+    then
+        SCRIPTS="${HOME}/Documents/Code/Scripts/"
+    fi
 fi
 #  - User versions of bin, man, info
-if [ -d "${HOME}/bin" ] ; then
+if [ -d "${HOME}/bin" ]; then
     PATH="${HOME}/bin:${PATH}"
 fi
 if [ -d "${HOME}/man" ]; then
@@ -18,7 +23,7 @@ if [ -d "${HOME}/info" ]; then
     INFOPATH="${HOME}/info:${INFOPATH}"
 fi
 #  - User .local versions of bin, man, info
-if [ -d "${HOME}/.local/bin" ] ; then
+if [ -d "${HOME}/.local/bin" ]; then
     PATH="${HOME}/.local/bin:${PATH}"
 fi
 if [ -d "${HOME}/.local/man" ]; then
