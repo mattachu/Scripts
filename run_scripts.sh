@@ -23,6 +23,7 @@ function run_with_timer {
 function run_with_log {
     rm -f $1.log
     echo "Current directory: " $(pwd -P) > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
+    echo "Current command: $*" > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     echo "Current time: " $(date) > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     SECONDS=0
     $* > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
