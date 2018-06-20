@@ -33,7 +33,7 @@ function run_with_log {
 function show_progress {
   runfolder="$*"
   if [[ -z $runfolder ]]; then runfolder="."; fi
-  subfoldercount="$(ls -l $runfolder/*/*-current 2>/dev/null | grep -c total)"
+  subfoldercount="$(ls -l $runfolder/*/*-current $runfolder/*/single 2>/dev/null | grep -c total)"
   if [ $subfoldercount == 0 ]; then subfoldercount="$(ls -l $runfolder/ 2>/dev/null | grep -c ^d)"; fi
   logfilecount="$(ls -l $runfolder/*/*.log $runfolder/*/*/*.log 2>/dev/null | grep -c log)"
   echo "Found log files in $logfilecount out of $subfoldercount subfolders"
