@@ -10,7 +10,7 @@ alias impact="run_with_log impact"
 alias impact-test="run_with_log impact-test"
 alias impact-pku="run_with_log impact-pku"
 alias impact-official="run_with_log impact-official"
-alias rm-impact="rm ./fort.* ./*.log ./*.dst ./*.plt ./*.csv"
+alias rm-impact="recursive_rm 'fort.*' '*.log' '*.plt' '*.dst' '*.csv'"
 
 # Settings for EPOCH
 export COMPILER=gfortran
