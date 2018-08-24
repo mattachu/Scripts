@@ -25,9 +25,7 @@ tmate-url() {
         TMATE_SOCKET="$TMATE_MAIN_SOCKET"
     fi
     url="$(tmate -S $TMATE_SOCKET display -p '#{tmate_ssh}')"
-    echo "$url" | tr -d '\n' | pbcopy
-    echo "Copied tmate url for $TMATE_SESSION session: "
-    echo "$url"
+    echo "tmate url for $TMATE_SESSION session: $url"
 }
 
 # Start a new tmate pair session if one doesn't already exist
