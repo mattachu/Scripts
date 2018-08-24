@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		C99545A8212FF654002A6566 /* tmate.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; lineEnding = 0; path = tmate.sh; sourceTree = "<group>"; };
 		C9DB51C7212FF047002573B1 /* pku.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = pku.sh; sourceTree = "<group>"; };
 		C9DB51C8212FF047002573B1 /* Matlab */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Matlab; sourceTree = "<group>"; };
 		C9DB51C9212FF047002573B1 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C9DB51CA212FF047002573B1 /* run_scripts.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = run_scripts.sh; sourceTree = "<group>"; };
-        C99545A8212FF654002A6566 /* tmate.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = tmate.sh; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
