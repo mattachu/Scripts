@@ -66,14 +66,22 @@ tmate-pair() {
 
 # Close the pair because security
 tmate-unpair() {
-    if [ -e "$TMATE_SOCKET_LOCATION" ]; then
+    if [ -n "$1" ]; then
+        TMATE_SESSION="$1"
+        TMATE_SOCKET="/tmp/tmate-$1.sock"
+    else
+        TMATE_SESSION="$TMATE_MAIN_SESSION"
+        TMATE_SOCKET="$TMATE_MAIN_SOCKET"
+    fi
+
+    if [ -e "$TMATE_SOCKET" ]; then
         if [ -e "$TMATE_TMUX_SESSION" ]; then
             tmux detach -s $(cat $TMATE_TMUX_SESSION)
             rm -f $TMATE_TMUX_SESSION
         fi
 
-        tmate -S "$TMATE_SOCKET_LOCATION" kill-session -t "$TMATE_PAIR_NAME"
-        echo "Killed session $TMATE_PAIR_NAME"
+        tmate -S "$TMATE_SOCKET" kill-session -t "$TMATE_SESSION"
+        echo "Killed session $TMATE_SESSION"
     else
         echo "Session already killed"
     fi
