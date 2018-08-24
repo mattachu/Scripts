@@ -30,12 +30,12 @@ tmate-url() {
 
 # Start a new tmate pair session if one doesn't already exist
 # Two arguments:
-#   1. TMUX session to connect to
-#   2. Session name for tmate
+#   1. Session name for tmate
+#   2. TMUX session to connect to
 tmate-pair() {
-    if [ -n "$2" ]; then
-        TMATE_SESSION="$2"
-        TMATE_SOCKET="/tmp/tmate-$2.sock"
+    if [ -n "$1" ]; then
+        TMATE_SESSION="$1"
+        TMATE_SOCKET="/tmp/tmate-$1.sock"
     else
         TMATE_SESSION="$TMATE_MAIN_SESSION"
         TMATE_SOCKET="$TMATE_MAIN_SOCKET"
@@ -54,9 +54,9 @@ tmate-pair() {
         sleep 1
 
         # Connect to existing TMUX session
-        if [ -n "$1" ]; then
-            echo $1 > $TMATE_TMUX_SESSION
-            tmate -S "$TMATE_SOCKET" send -t "$TMATE_SESSION" "TMUX='' tmux attach-session -t $1" ENTER
+        if [ -n "$2" ]; then
+            echo $2 > $TMATE_TMUX_SESSION
+            tmate -S "$TMATE_SOCKET" send -t "$TMATE_SESSION" "TMUX='' tmux attach-session -t $2" ENTER
         fi
     fi
 
