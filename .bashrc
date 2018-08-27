@@ -262,4 +262,5 @@ if ! [ "${SCRIPTS}" ]; then
     SCRIPTS="${HOME}/Code/Scripts/"
 fi
 source "${SCRIPTS}/run_scripts.sh"
+source "${SCRIPTS}/tmate.sh"
 source "${SCRIPTS}/pku.sh"
