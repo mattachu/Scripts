@@ -248,6 +248,9 @@ settitle ()
 #
 # alias cd=cd_func
 
+# Add environment variable for stow directory
+export STOW_DIR="/usr/local/stow"
+
 # Load any aliases and functions from separate files
 if [ -f ~/.bash_aliases ]; then
     source ~/.bash_aliases
