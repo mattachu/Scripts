@@ -28,6 +28,8 @@ function run-with-log {
     echo "Current directory: " $(pwd -P) > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     echo "Current command: $*" > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     echo "Current time: " $(date) > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
+    githash=$(git log -n1 --format=format:"%H" 2>/dev/null)
+    if [[ -n $githash ]]; then echo "Current commit: $githash" > >(tee -a $1.log) 2> >(tee -a $1.log >&2); fi
     SECONDS=0
     $* > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     time-taken > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
