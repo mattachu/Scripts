@@ -264,6 +264,6 @@ if ! [ "${SCRIPTS}" ]; then
     echo "Scripts folder not set; setting to default."
     SCRIPTS="${HOME}/Code/Scripts/"
 fi
-source "${SCRIPTS}/run_scripts.sh"
+source "${SCRIPTS}/run-scripts.sh"
 source "${SCRIPTS}/tmate.sh"
 source "${SCRIPTS}/pku.sh"
