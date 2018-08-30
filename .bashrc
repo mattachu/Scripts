@@ -248,6 +248,9 @@ settitle ()
 #
 # alias cd=cd_func
 
+# Add environment variable for stow directory
+export STOW_DIR="/usr/local/stow"
+
 # Load any aliases and functions from separate files
 if [ -f ~/.bash_aliases ]; then
     source ~/.bash_aliases
@@ -261,6 +264,6 @@ if ! [ "${SCRIPTS}" ]; then
     echo "Scripts folder not set; setting to default."
     SCRIPTS="${HOME}/Code/Scripts/"
 fi
-source "${SCRIPTS}/run_scripts.sh"
+source "${SCRIPTS}/run-scripts.sh"
 source "${SCRIPTS}/tmate.sh"
 source "${SCRIPTS}/pku.sh"

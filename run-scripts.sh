@@ -2,7 +2,7 @@
 # Functions for running programs
 
 # Report the time taken since $SECONDS was reset
-function time_taken {
+function time-taken {
     if (( $SECONDS > 3600 )) ; then
         let "hours=SECONDS/3600"
         let "minutes=(SECONDS%3600)/60"
@@ -17,24 +17,26 @@ function time_taken {
     fi
 }
 # Run the given command with a timer
-function run_with_timer {
+function run-with-timer {
     SECONDS=0
     $*
-    time_taken
+    time-taken
 }
 # Run the given command with a log file
-function run_with_log {
+function run-with-log {
     rm -f $1.log
     echo "Current directory: " $(pwd -P) > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     echo "Current command: $*" > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     echo "Current time: " $(date) > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
+    githash=$(git log -n1 --format=format:"%H" 2>/dev/null)
+    if [[ -n $githash ]]; then echo "Current commit: $githash" > >(tee -a $1.log) 2> >(tee -a $1.log >&2); fi
     SECONDS=0
     $* > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
-    time_taken > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
+    time-taken > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     sleep 0.1
 }
 # Show progress of a run through subfolders, based on count of log files
-function show_progress {
+function show-progress {
     runfolder="$*"
     if [[ -z $runfolder ]]; then runfolder="."; fi
     subfoldercount="$(ls -l $runfolder/*/*-current $runfolder/*/single 2>/dev/null | grep -c total)"
@@ -44,25 +46,25 @@ function show_progress {
 }
 # Create a subfolder for an Impact-T simulation with particular parameter value
 function parameterise {
-    input_file="$1"
-    exe_name="impact-test"
-    parameter_name="PARAM1"
-    parameter_value="$2"
-    mkdir -p ./$parameter_value
-    cp *.in ./$parameter_value/
-    cd ./$parameter_value
+    inputfile="$1"
+    exename="impact-test"
+    parametername="PARAM1"
+    parametervalue="$2"
+    mkdir -p ./$parametervalue
+    cp *.in ./$parametervalue/
+    cd ./$parametervalue
     ln -s ../*.data
-    ln -s ../$exe_name
+    ln -s ../$exename
     cd ..
-    cat $input_file | sed "s/$parameter_name/$parameter_value/" > $parameter_value/$input_file
+    cat $inputfile | sed "s/$parametername/$parametervalue/" > $parametervalue/$inputfile
 }
 # Recursive remove
-function recursive_rm {
-    find_command="find . -mindepth 0 -iname '$1'"
+function recursive-rm {
+    findcommand="find . -mindepth 0 -iname '$1'"
     for i in `seq 2 $#`; do
-        find_command="${find_command} -o -iname '${!i}'"
+        findcommand="${findcommand} -o -iname '${!i}'"
     done
-    for dir in `eval ${find_command}`; do
+    for dir in `eval ${findcommand}`; do
         echo "Deleting ${dir}"
         eval "rm -f ${dir}"
     done
