@@ -55,8 +55,8 @@ VERSION=$(glxinfo 2>/dev/null | grep -B0 -A0 -m1 --colour=never "OpenGL version"
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - OpenGL ${VERSION}${THISPATH}${NC}"
 ## Qt
-VERSION=$(find ${LIBRARIES} -name libQtCore.so.* 2>/dev/null | sed -e 's/.*libQtCore.so.//' | sort | tail -1)
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(find ${LIBRARIES} -name libQtCore.so.${VERSION} 2>/dev/null | head -1 | sed -e "s_/lib/libQtCore.so.${VERSION}__")${NC}\n  " || THISPATH=""
+VERSION=$(find ${LIBRARIES} -name libQt*Core.so.* 2>/dev/null | sed -e 's/.*libQt.*Core.so.//' | sort | tail -1)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(find ${LIBRARIES} -name libQt*Core.so.${VERSION} 2>/dev/null | head -1 | sed -e "s_/lib/libQt.*Core.so.${VERSION}__")${NC}\n  " || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - Qt ${VERSION}${THISPATH}${NC}\c"
 VERSION=$(qmake --version 2>&1 | grep -B0 -A0 -m1 --colour=never version | sed -e 's/.*version: //' -e 's/.*version //')
