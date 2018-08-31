@@ -16,7 +16,7 @@
 
 
 # Colour definitions
-source definecolours.sh
+source ${SCRIPTS}/definecolours.sh
 
 
 # Search path for libraries
