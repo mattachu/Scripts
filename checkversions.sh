@@ -73,10 +73,10 @@ VERSION=$(coin-config --version 2>/dev/null)
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which coin-config | sed -e 's_/bin/coin-config__')${NC}\n  " || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - Coin3D ${VERSION}${THISPATH}${NC}\c"
-VERSION=$(soxt-config --version 2>/dev/null)
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which soxt-config | sed -e 's_/bin/soxt-config__')${NC}" || THISPATH=""
+VERSION=$(soqt-config --version 2>/dev/null)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which soqt-config | sed -e 's_/bin/soqt-config__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan} - SoXt library ${VERSION}${THISPATH}${NC}"
+echo -e "${Cyan} - SoQt library ${VERSION}${THISPATH}${NC}"
 ## DAWN
 VERSION=$(dawn -h 2>&1 | grep -B0 -A0 -m1 --colour=never "ver " | sed -e 's/.*ver //' -e 's/ (.*//')
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which dawn | sed -e 's_/bin/dawn__')${NC}" || THISPATH=""
