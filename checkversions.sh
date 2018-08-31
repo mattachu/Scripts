@@ -111,6 +111,7 @@ echo -e "${Cyan}    - gMocren ${VERSION}${THISPATH}${NC}"
 
 # Physics tools
 ## ROOT
+source /opt/root/bin/thisroot.sh
 VERSION=$(root-config --version 2>/dev/null)
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which root-config | sed -e 's_/bin/root-config__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
