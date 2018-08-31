@@ -48,7 +48,7 @@ VERSION=$(cmake --version 2>/dev/null | head -n1 | cut -c15-)
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - CMake ${VERSION}${THISPATH}${NC}"
 
-# Graphics and visualisation
+# Graphics
 ## OpenGL
 VERSION=$(glxinfo 2>/dev/null | grep -B0 -A0 -m1 --colour=never "OpenGL version" | sed -e 's/.*string: //' -e 's/ (.*//')
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which glxinfo | sed -e 's_/bin/glxinfo__')${NC}" || THISPATH=""
@@ -63,51 +63,6 @@ VERSION=$(qmake --version 2>&1 | grep -B0 -A0 -m1 --colour=never version | sed -
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which qmake | sed -e 's_/bin/qmake__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - qmake ${VERSION}${THISPATH}${NC}"
-## Motif
-VERSION=$(find ${LIBRARIES} -name libXm.so.* 2>/dev/null | sed -e 's/.*libXm.so.//' | sort | tail -1)
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(find ${LIBRARIES} -name libXm.so.${VERSION} 2>/dev/null | head -1 | sed -e "s_/lib/libXm.so.${VERSION}__")${NC}" || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan} - Motif ${VERSION}${THISPATH}${NC}"
-## Coin3D
-VERSION=$(coin-config --version 2>/dev/null)
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which coin-config | sed -e 's_/bin/coin-config__')${NC}\n  " || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan} - Coin3D ${VERSION}${THISPATH}${NC}\c"
-VERSION=$(soqt-config --version 2>/dev/null)
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which soqt-config | sed -e 's_/bin/soqt-config__')${NC}" || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan} - SoQt library ${VERSION}${THISPATH}${NC}"
-## DAWN
-VERSION=$(dawn -h 2>&1 | grep -B0 -A0 -m1 --colour=never "ver " | sed -e 's/.*ver //' -e 's/ (.*//')
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which dawn | sed -e 's_/bin/dawn__')${NC}" || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan} - DAWN ${VERSION}${THISPATH}${NC}"
-## JAS3 for WIRED4
-VERSION=$(ls -l $(which -a jas3 2>/dev/null) 2>/dev/null | grep -B0 -A0 -m1 --colour=never "jas-assembly" | sed -e 's/.*jas-assembly-//' -e 's_/bin/jas3__')
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which jas3 | sed -e 's_/bin/jas3__')${NC}" || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan} - JAS3 for WIRED4 ${VERSION}${THISPATH}${NC}"
-
-# Geant4 and related tools
-## Geant4 itself
-VERSION=$(geant4-config --version 2>/dev/null)
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which geant4-config | sed -e 's_/bin/geant4-config__')${NC}" || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan} - GEANT4 ${VERSION}${THISPATH}${NC}"
-## Xerces-C++
-VERSION=$(find ${LIBRARIES} -name libxerces-c-* 2>/dev/null | sed -e 's/.*libxerces-c-//' -e 's/.so//' | sort | tail -1)
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(find ${LIBRARIES} -name libxerces-c-${VERSION}.so 2>/dev/null | head -1 | sed -e "s_/lib.*/libxerces-c-${VERSION}.so__")${NC}" || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan}    - Xerces-C++ ${VERSION}${THISPATH}${NC}"
-## HepRApp [hard-coded as incorrect version is reported by the Java jar-file manifest, and unlikely to change version]
-[[ $(which HepRApp.jar 2>/dev/null) ]] && VERSION="${Purple}v3.15.0${NC}" || VERSION="${BRed}not found${NC}"
-[[ ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which HepRApp.jar 2>/dev/null | sed -e 's_/bin/HepRApp.jar__')${NC}" || THISPATH=""
-echo -e "${Cyan}    - HepRApp ${VERSION}${THISPATH}${NC}"
-## gMocren
-VERSION=$(ls -l $(which -a gMocren4 2>/dev/null) 2>/dev/null | grep -B0 -A0 -m1 --colour=never "gMocren" | sed -e 's/.*gmocren-//' -e 's/.*gMocren-//' -e 's_/bin/gMocren4__')
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which gMocren4 | sed -e 's_/bin/gMocren4__')${NC}" || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan}    - gMocren ${VERSION}${THISPATH}${NC}"
 
 # Physics tools
 ## ROOT
@@ -121,3 +76,48 @@ VERSION=$(clhep-config --version 2>/dev/null | sed -e 's/CLHEP //')
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which clhep-config | sed -e 's_/bin/clhep-config__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - CLHEP ${VERSION}${THISPATH}${NC}"
+
+# Geant4 and related tools
+## Geant4 itself
+VERSION=$(geant4-config --version 2>/dev/null)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which geant4-config | sed -e 's_/bin/geant4-config__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan} - GEANT4 ${VERSION}${THISPATH}${NC}"
+## Xerces-C++
+VERSION=$(find ${LIBRARIES} -name libxerces-c-* 2>/dev/null | sed -e 's/.*libxerces-c-//' -e 's/.so//' | sort | tail -1)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(find ${LIBRARIES} -name libxerces-c-${VERSION}.so 2>/dev/null | head -1 | sed -e "s_/lib.*/libxerces-c-${VERSION}.so__")${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}    - Xerces-C++ ${VERSION}${THISPATH}${NC}"
+## Motif
+VERSION=$(find ${LIBRARIES} -name libXm.so.* 2>/dev/null | sed -e 's/.*libXm.so.//' | sort | tail -1)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(find ${LIBRARIES} -name libXm.so.${VERSION} 2>/dev/null | head -1 | sed -e "s_/lib/libXm.so.${VERSION}__")${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}    - Motif ${VERSION}${THISPATH}${NC}"
+## Coin3D
+VERSION=$(coin-config --version 2>/dev/null)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which coin-config | sed -e 's_/bin/coin-config__')${NC}\n  " || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}    - Coin3D ${VERSION}${THISPATH}${NC}\c"
+VERSION=$(soqt-config --version 2>/dev/null)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which soqt-config | sed -e 's_/bin/soqt-config__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan} - SoQt library ${VERSION}${THISPATH}${NC}"
+## DAWN
+VERSION=$(dawn -h 2>&1 | grep -B0 -A0 -m1 --colour=never "ver " | sed -e 's/.*ver //' -e 's/ (.*//')
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which dawn | sed -e 's_/bin/dawn__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}    - DAWN ${VERSION}${THISPATH}${NC}"
+## HepRApp [hard-coded as incorrect version is reported by the Java jar-file manifest, and unlikely to change version]
+[[ $(which HepRApp.jar 2>/dev/null) ]] && VERSION="${Purple}v3.15.4${NC}" || VERSION="${BRed}not found${NC}"
+[[ ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which HepRApp.jar 2>/dev/null | sed -e 's_/bin/HepRApp.jar__')${NC}" || THISPATH=""
+echo -e "${Cyan}    - HepRApp ${VERSION}${THISPATH}${NC}"
+## JAS3 for WIRED4
+VERSION=$(ls -l $(which -a jas3 2>/dev/null) 2>/dev/null | grep -B0 -A0 -m1 --colour=never "jas-assembly" | sed -e 's/.*jas-assembly-//' -e 's_/bin/jas3__')
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which jas3 | sed -e 's_/bin/jas3__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}    - JAS3 for WIRED4 ${VERSION}${THISPATH}${NC}"
+## gMocren
+VERSION=$(ls -l $(which -a gMocren4 2>/dev/null) 2>/dev/null | grep -B0 -A0 -m1 --colour=never "gMocren" | sed -e 's/.*gmocren-//' -e 's/.*gMocren-//' -e 's_/bin/gMocren4__')
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which gMocren4 | sed -e 's_/bin/gMocren4__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}    - gMocren ${VERSION}${THISPATH}${NC}"
