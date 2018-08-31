@@ -43,7 +43,7 @@ VERSION=$(gcc -dumpversion 2>/dev/null)
 VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - GCC ${VERSION}${THISPATH}${NC}"
 ## CMake
-VERSION=$(cmake --version 2>/dev/null | cut -c15-)
+VERSION=$(cmake --version 2>/dev/null | head -n1 | cut -c15-)
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which cmake | grep -v "alias" | sed -e 's/\t//' -e 's_/bin/cmake__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - CMake ${VERSION}${THISPATH}${NC}"
