@@ -28,7 +28,7 @@ LIBRARIES="${LIBRARIES} $(cat /etc/ld.so.conf.d/*.conf)"
 LIBRARIES="${LIBRARIES} $(echo $PATH | sed -e 's/:/\n/g' -e 's_/bin_/lib_g')"
 LIBRARIES="${LIBRARIES} $(echo $PATH | sed -e 's/:/\n/g' -e 's_/bin_/lib64_g')"
 ## Sort and keep unique paths
-LIBRARIES=$(echo $LIBRARIES | sed -e 's/ /\n/g' | sort -u)
+LIBRARIES=$(echo $LIBRARIES | sed -e 's/ /\n/g' | awk '!x[$0]++')
 
 
 # Bash version and settings
