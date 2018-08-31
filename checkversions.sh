@@ -21,12 +21,12 @@ source definecolours.sh
 
 # Search path for libraries
 ## Standard paths
-LIBRARIES="/usr/lib /usr/lib64"
+LIBRARIES="/usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64"
 ## Loader search paths
-LIBRARIES="${LIBRARIES} $(cat /etc/ld.so.conf.d/*.conf)"
-## Libraries relative to binary paths
-LIBRARIES="${LIBRARIES} $(echo $PATH | sed -e 's/:/\n/g' -e 's_/bin_/lib_g')"
-LIBRARIES="${LIBRARIES} $(echo $PATH | sed -e 's/:/\n/g' -e 's_/bin_/lib64_g')"
+LIBRARIES="${LIBRARIES} $(cat /etc/ld.so.conf.d/*.conf | grep -v ^\#)"
+## Libraries relative to binary paths (don't do this on WSL)
+#LIBRARIES="${LIBRARIES} $(echo $PATH | sed -e 's/:/\n/g' -e 's_/bin_/lib_g')"
+#LIBRARIES="${LIBRARIES} $(echo $PATH | sed -e 's/:/\n/g' -e 's_/bin_/lib64_g')"
 ## Sort and keep unique paths
 LIBRARIES=$(echo $LIBRARIES | sed -e 's/ /\n/g' | awk '!x[$0]++')
 
