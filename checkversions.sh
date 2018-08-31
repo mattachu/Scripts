@@ -116,8 +116,8 @@ VERSION=$(ls -l $(which -a jas3 2>/dev/null) 2>/dev/null | grep -B0 -A0 -m1 --co
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which jas3 | sed -e 's_/bin/jas3__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan}    - JAS3 for WIRED4 ${VERSION}${THISPATH}${NC}"
-## gMocren
-VERSION=$(ls -l $(which -a gMocren4 2>/dev/null) 2>/dev/null | grep -B0 -A0 -m1 --colour=never "gMocren" | sed -e 's/.*gmocren-//' -e 's/.*gMocren-//' -e 's_/bin/gMocren4__')
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which gMocren4 | sed -e 's_/bin/gMocren4__')${NC}" || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan}    - gMocren ${VERSION}${THISPATH}${NC}"
+## gMocren - not installed at PKU
+#VERSION=$(ls -l $(which -a gMocren4 2>/dev/null) 2>/dev/null | grep -B0 -A0 -m1 --colour=never "gMocren" | sed -e 's/.*gmocren-//' -e 's/.*gMocren-//' -e 's_/bin/gMocren4__')
+#[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which gMocren4 | sed -e 's_/bin/gMocren4__')${NC}" || THISPATH=""
+#[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+#echo -e "${Cyan}    - gMocren ${VERSION}${THISPATH}${NC}"
