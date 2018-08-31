@@ -105,3 +105,13 @@ tmate-connect() {
     # Connect to existing tmate session
     tmate -S "${TMATE_SOCKET}" attach-session -t "${TMATE_SESSION}"
 }
+
+# Start main and backup sessions and record urls
+tmate-start() {
+    tmate-unpair "${TMATE_MAIN_SESSION}"
+    tmate-unpair "${TMATE_BACKUP_SESSION}"
+    tmate-pair "${TMATE_MAIN_SESSION}"
+    tmate-pair "${TMATE_BACKUP_SESSION}"
+    tmate-url "${TMATE_MAIN_SESSION}" > ~/Filing/tmate.txt
+    tmate-url "${TMATE_BACKUP_SESSION}" >> ~/Filing/tmate.txt
+}
