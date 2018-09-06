@@ -5,6 +5,7 @@
 alias load-root="source /opt/root/bin/thisroot.sh"
 alias load-geant4="source /usr/local/bin/geant4.sh"
 alias load-opal="source /opt/OPAL-2.0.0rc2/etc/profile.d/opal.sh"
+alias load-bdsim="source ~/Code/Scripts/bdsim.sh"
 
 # Shortcuts for common actions
 alias server="ssh wangzhi@162.105.147.95"
