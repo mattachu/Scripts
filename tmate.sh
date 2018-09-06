@@ -13,12 +13,12 @@ TMATE_MAIN_SOCKET="${TMATE_FOLDER}/tmate-main.sock"         # main socket
 TMATE_BACKUP_SESSION="backup"                               # backup session name
 TMATE_BACKUP_SOCKET="${TMATE_FOLDER}/tmate-backup.sock"     # backup socket
 TMATE_TMUX_SESSION="${TMATE_FOLDER}/tmate-tmux-session"     # default TMUX location
-TMATE_URL_FILE="~/Filing/tmate.txt"                         # (synced) file with URLs
+TMATE_URL_FILE="/home/matt/Filing/tmate.txt"                # (synced) file with URLs
 
 # Get current tmate connection url.
 # If a session name is given as an argument, it looks for this session,
 #   otherwise the main session is used.
-tmate-url() {
+tmate_url() {
     if [ -n "$1" ]; then
         TMATE_SESSION="$1"
         TMATE_SOCKET="${TMATE_FOLDER}/tmate-$1.sock"
@@ -34,7 +34,7 @@ tmate-url() {
 # Two arguments:
 #   1. Session name for tmate
 #   2. TMUX session to connect to
-tmate-pair() {
+tmate_pair() {
     if [ -n "$1" ]; then
         TMATE_SESSION="$1"
         TMATE_SOCKET="${TMATE_FOLDER}/tmate-$1.sock"
@@ -50,7 +50,7 @@ tmate-pair() {
 
         # Get url
         tmate -S "${TMATE_SOCKET}" wait tmate-ready
-        tmate-url "${TMATE_SESSION}"
+        tmate_url "${TMATE_SESSION}"
         sleep 1
 
         # Connect to existing TMUX session
@@ -62,7 +62,7 @@ tmate-pair() {
 }
 
 # Close the pair because security
-tmate-unpair() {
+tmate_unpair() {
     if [ -n "$1" ]; then
         TMATE_SESSION="$1"
         TMATE_SOCKET="${TMATE_FOLDER}/tmate-$1.sock"
@@ -88,7 +88,7 @@ tmate-unpair() {
 # Two arguments:
 #   1. Session name for tmate [default: main]
 #   2. [optional] TMUX session to connect to
-tmate-connect() {
+tmate_connect() {
     if [ -n "$1" ]; then
         TMATE_SESSION="$1"
         TMATE_SOCKET="${TMATE_FOLDER}/tmate-$1.sock"
@@ -108,11 +108,11 @@ tmate-connect() {
 }
 
 # Start main and backup sessions and record urls
-tmate-start() {
-    tmate-unpair "${TMATE_MAIN_SESSION}"
-    tmate-unpair "${TMATE_BACKUP_SESSION}"
-    tmate-pair "${TMATE_MAIN_SESSION}"
-    tmate-pair "${TMATE_BACKUP_SESSION}"
-    tmate-url "${TMATE_MAIN_SESSION}" > "${TMATE_URL_FILE}"
-    tmate-url "${TMATE_BACKUP_SESSION}" >> "${TMATE_URL_FILE}"
+tmate_start() {
+    tmate_unpair "${TMATE_MAIN_SESSION}"; sleep 1
+    tmate_pair "${TMATE_MAIN_SESSION}"
+    tmate_url "${TMATE_MAIN_SESSION}" > "${TMATE_URL_FILE}"
+    tmate_unpair "${TMATE_BACKUP_SESSION}"; sleep 1
+    tmate_pair "${TMATE_BACKUP_SESSION}"
+    tmate_url "${TMATE_BACKUP_SESSION}" >> "${TMATE_URL_FILE}"
 }

@@ -2,6 +2,6 @@
 	email = github@matteaston.net
 	name = mattachu
 [core]
-	autocrlf = true
+	autocrlf = input
 [push]
 	default = simple
