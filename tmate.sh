@@ -74,10 +74,11 @@ tmate_unpair() {
     if [ -e "${TMATE_SOCKET}" ]; then
         if [ -e "${TMATE_TMUX_SESSION}" ]; then
             tmux detach -s $(cat ${TMATE_TMUX_SESSION})
-            rm -f ${TMATE_TMUX_SESSION}
+            rm -f "${TMATE_TMUX_SESSION}"
         fi
 
         tmate -S "${TMATE_SOCKET}" kill-session -t "${TMATE_SESSION}"
+        rm -f "${TMATE_SOCKET}"
         echo "Killed session ${TMATE_SESSION}"
     else
         echo "Session already killed"
