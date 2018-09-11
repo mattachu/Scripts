@@ -69,3 +69,13 @@ function recursive-rm {
         eval "rm -f ${dir}"
     done
 }
+# Archive simulation
+function archive {
+    archivefolder="$*"
+    if [[ -d $archivefolder ]]; then
+        cp -ai $(ls *.in *.gmad *.log fort.* *.dst *.plt *.root *.png *.eps *.txt *.data 2>/dev/null | grep -v 'simulations.log') "$archivefolder"
+        reproduce log -n1 > "$archivefolder/reproduce.log"
+    else
+        echo "Could not find archive folder $archivefolder"
+    fi
+}
