@@ -1,17 +1,31 @@
 #!/bin/bash
 # Shortcuts for PKU work
 
-# Load certain environments
-alias load-root="source /opt/root/bin/thisroot.sh"
-alias load-geant4="source /usr/local/bin/geant4.sh"
-alias load-opal="source /opt/OPAL-2.0.0rc2/etc/profile.d/opal.sh"
-alias load-bdsim="source ~/Code/Scripts/bdsim.sh"
-
 # Shortcuts for common actions
-alias reproduce="~/Code/reproducible/reproduce"
 alias server="ssh wangzhi@162.105.147.95"
 alias transfer="rsync --archive --update --delete --max-size=50M --verbose ~/Simulations/Current/ ~/Simulations/Transfer/"
 alias run-tests='./run-tests.sh'
+
+# Load certain environments (machine specific)
+computer_name=$(hostname)
+case ${computer_name} in
+"Matts-MacBook-Pro.local")
+    alias load-root="source /usr/local/bin/thisroot.sh"
+    alias load-geant4="source /usr/local/bin/geant4.sh"
+    alias load-opal="source /usr/local/etc/profile.d/opal.sh"
+    ;;
+"MJEaston")
+    alias load-root="source /opt/root/bin/thisroot.sh"
+    alias load-geant4="source /usr/local/bin/geant4.sh"
+    alias load-opal="source /opt/OPAL-2.0.0rc2/etc/profile.d/opal.sh"
+    ;;
+esac
+
+# Shortcuts for Reproducible
+alias reproduce="~/Code/Reproducible/reproduce"
+
+# Shortcuts for BDSIM
+alias load-bdsim="source ${SCRIPTS}/bdsim.sh"
 
 # Shortcuts for Impact-T
 alias impact="run-with-log mpirun -np 8 impact; mv mpirun.log impact.log"

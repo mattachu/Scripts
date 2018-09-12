@@ -7,21 +7,49 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		C99545A8212FF654002A6566 /* tmate.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; lineEnding = 0; path = tmate.sh; sourceTree = "<group>"; };
-		C9DB51C7212FF047002573B1 /* pku.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = pku.sh; sourceTree = "<group>"; };
+		C981F9E1214240CC0078224B /* .greeting */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .greeting; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.sh; };
+		C99545A8212FF654002A6566 /* tmate.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = tmate.sh; sourceTree = "<group>"; };
+		C9DB51C7212FF047002573B1 /* pku.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = pku.sh; sourceTree = "<group>"; };
 		C9DB51C8212FF047002573B1 /* Matlab */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Matlab; sourceTree = "<group>"; };
 		C9DB51C9212FF047002573B1 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C9DB51CA212FF047002573B1 /* run_scripts.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = run_scripts.sh; sourceTree = "<group>"; };
+		C9DB51CA212FF047002573B1 /* run-scripts.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = "run-scripts.sh"; sourceTree = "<group>"; };
+		C9FCA86D2141268F009B2324 /* checkversions.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = checkversions.sh; sourceTree = "<group>"; };
+		C9FCA86E2141268F009B2324 /* bdsim.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = bdsim.sh; sourceTree = "<group>"; };
+		C9FCA86F2141268F009B2324 /* definecolours.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = definecolours.sh; sourceTree = "<group>"; };
+		C9FCA8702141281A009B2324 /* .profile */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .profile; sourceTree = "<group>"; };
+		C9FCA8712141281A009B2324 /* .bashrc */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .bashrc; sourceTree = "<group>"; };
+		C9FCA8722141281A009B2324 /* .bash_profile */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .bash_profile; sourceTree = "<group>"; };
+		C9FCA8732141281A009B2324 /* .inputrc */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .inputrc; sourceTree = "<group>"; };
+		C9FCA8742141281A009B2324 /* .minttyrc */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .minttyrc; sourceTree = "<group>"; };
+		C9FCA8752141281A009B2324 /* .bash_logout */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .bash_logout; sourceTree = "<group>"; };
+		C9FCA8762141281A009B2324 /* .tmux.conf */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .tmux.conf; sourceTree = "<group>"; };
+		C9FCA8772141281A009B2324 /* .tmate.conf */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .tmate.conf; sourceTree = "<group>"; };
+		C9FCA8782141281A009B2324 /* .gitconfig */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .gitconfig; sourceTree = "<group>"; };
+		C9FCA8792141281A009B2324 /* .dircolors */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .dircolors; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		C9DB51C0212FF01E002573B1 = {
 			isa = PBXGroup;
 			children = (
+				C981F9E1214240CC0078224B /* .greeting */,
+				C9FCA8752141281A009B2324 /* .bash_logout */,
+				C9FCA8722141281A009B2324 /* .bash_profile */,
+				C9FCA8712141281A009B2324 /* .bashrc */,
+				C9FCA8792141281A009B2324 /* .dircolors */,
+				C9FCA8782141281A009B2324 /* .gitconfig */,
+				C9FCA8732141281A009B2324 /* .inputrc */,
+				C9FCA8742141281A009B2324 /* .minttyrc */,
+				C9FCA8702141281A009B2324 /* .profile */,
+				C9FCA8772141281A009B2324 /* .tmate.conf */,
+				C9FCA8762141281A009B2324 /* .tmux.conf */,
+				C9FCA86E2141268F009B2324 /* bdsim.sh */,
+				C9FCA86D2141268F009B2324 /* checkversions.sh */,
+				C9FCA86F2141268F009B2324 /* definecolours.sh */,
 				C9DB51C8212FF047002573B1 /* Matlab */,
 				C9DB51C7212FF047002573B1 /* pku.sh */,
 				C9DB51C9212FF047002573B1 /* README.md */,
-				C9DB51CA212FF047002573B1 /* run_scripts.sh */,
+				C9DB51CA212FF047002573B1 /* run-scripts.sh */,
 				C99545A8212FF654002A6566 /* tmate.sh */,
 			);
 			sourceTree = "<group>";

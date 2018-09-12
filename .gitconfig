@@ -1,7 +1,5 @@
 [user]
 	email = github@matteaston.net
 	name = mattachu
-[core]
-	autocrlf = input
 [push]
 	default = simple

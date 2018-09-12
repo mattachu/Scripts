@@ -1,0 +1,41 @@
+# File: .greeting
+# Created: 07/09/2018 by Matt Easton
+# Version: 0.2
+# Modified: 07/09/2018 by Matt Easton
+#
+# This script is called by other scripts to display a greeting.
+# The greeting is different depending on the environment.
+#
+# Actions taken by this script are:
+#  - define colours
+#  - find computer name
+#  - find OS type
+#  - show computer name, program versions and date/time
+
+
+# Define colours
+if [ -r "${SCRIPTS}/definecolours.sh" ]; then
+    source "${SCRIPTS}/definecolours.sh"
+fi
+
+# Get computer name
+computer_name=$(hostname)
+case ${computer_name} in
+"Matts-MacBook-Pro.local")
+    computer_name="Matt's MacBook Pro" ;;
+"MJEaston")
+    computer_name="MJEaston: Matt's Work PC" ;;
+esac
+
+# Show computer name
+echo -e "${Cyan}${computer_name}${NC}"
+
+# Show program versions
+echo -e "${Cyan} - BASH ${Yellow}v${BASH_VERSION%.*}${NC}"
+echo -e "${Cyan} - GCC ${Yellow}v$(gcc --version 2>/dev/null | head -n1 | sed -e 's/.*) //')${NC}"
+if [[ "$(uname)" == "Darwin" ]]; then
+    echo -e "${Cyan} - Clang ${Yellow}v$(clang --version | grep -A0 -B0 --color="never" "version" | sed -e 's/.*(clang-//' -e 's/).*//')${NC}\n"
+fi
+
+# Show date and time
+echo -e "${Cyan}$(date)${NC}\n"

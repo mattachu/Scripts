@@ -1,8 +1,56 @@
-# .bashrc: executed by bash for non-login shells.
-#  - based on content from Ubuntu and Cygwin .bashrc files.
+# File: .bashrc
+# Created: 25/06/2014 by Matt Easton
+# Version: 0.3
+# Modified: 07/09/2018 by Matt Easton
+#
+# This script is run whenever a new interactive bash session begins,
+#   unless it is a login session. I have modified .bash_profile to run
+#   this script (.bashrc) even when it is a login session.
+#
+# Actions taken by this script are:
+#  - check whether session is interactive
+#  - locate scripts folder
+#  - locate stow folder
+#  - set display options
+#  - define colours
+#  - set shell options
+#  - set history options
+#  - set shell prompt
+#  - set options for specific commands
+#  - define common aliases and functions
+#  - define user aliases and functions
+#    - source .bash_aliases and .bash_functions
+#    - source user scripts:
+#      - run-scripts.sh
+#      - tmate.sh
+#      - pku.sh
 
 # If not running interactively, don't do anything
 [[ "$-" != *i* ]] && return
+
+# Locate scripts folder
+if [ -d "${HOME}/Code/Scripts/" ]; then
+    SCRIPTS="${HOME}/Code/Scripts/"
+else
+    if [ -d "${HOME}/Documents/Code/Scripts/" ]; then
+        SCRIPTS="${HOME}/Documents/Code/Scripts/"
+    else
+        SCRIPTS="${HOME}/"
+    fi
+fi
+
+# Add environment variable for stow directory
+export STOW_DIR="/usr/local/stow"
+
+# Display settings (don't change in macOS)
+if [[ "$(uname)" != "Darwin" ]]; then
+    export DISPLAY=":0"
+fi
+
+# Define colours
+if [ -r "${SCRIPTS}/definecolours.sh" ]; then
+    source "${SCRIPTS}/definecolours.sh"
+fi
 
 # Shell Options
 #
@@ -116,8 +164,14 @@ xterm*|rxvt*)
 *)
     ;;
 esac
+
+# Command-specific options
+#
+# - less: more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 #
 # - enable color support of ls and grep
+export CLICOLOR=1
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls -h --color=auto'
@@ -125,11 +179,10 @@ if [ -x /usr/bin/dircolors ]; then
     alias fgrep='fgrep --color=auto'
     alias egrep='egrep --color=auto'
 fi
-
-# Command-specific options
 #
-# less: more friendly for non-text input files, see lesspipe(1)
-[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+# - set default editor to `nano`
+export EDITOR="nano"
+export VISUAL="nano"
 
 # Aliases
 #
@@ -248,12 +301,6 @@ settitle ()
 #
 # alias cd=cd_func
 
-# Add environment variable for stow directory
-export STOW_DIR="/usr/local/stow"
-
-# Display settings
-export DISPLAY=":0"
-
 # Load any aliases and functions from separate files
 if [ -f ~/.bash_aliases ]; then
     source ~/.bash_aliases
@@ -263,10 +310,6 @@ if [ -f ~/.bash_functions ]; then
 fi
 
 # Personal scripts
-if ! [ "${SCRIPTS}" ]; then
-    echo "Scripts folder not set; setting to default."
-    SCRIPTS="${HOME}/Code/Scripts/"
-fi
 source "${SCRIPTS}/run-scripts.sh"
 source "${SCRIPTS}/tmate.sh"
 source "${SCRIPTS}/pku.sh"

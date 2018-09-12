@@ -3,15 +3,6 @@
 #  - this file is not read by bash if .bash_profile or .bash_login exists.
 
 # Locations:
-#  - Scripts folder
-if [ -d "${HOME}/Code/Scripts/" ]; then
-    SCRIPTS="${HOME}/Code/Scripts/"
-else
-    if [ -d "${HOME}/Documents/Code/Scripts/" ]
-    then
-        SCRIPTS="${HOME}/Documents/Code/Scripts/"
-    fi
-fi
 #  - User versions of bin, man, info
 if [ -d "${HOME}/bin" ]; then
     PATH="${HOME}/bin:${PATH}"
