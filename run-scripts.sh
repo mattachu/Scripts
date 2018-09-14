@@ -70,12 +70,28 @@ function recursive-rm {
     done
 }
 # Archive simulation
+SIM_INPUT_FILES="*.in *.gmad *.data *.txt"
+SIM_OUTPUT_FILES="*.log fort.* *.dst *.plt" # Impact-T
+SIM_OUTPUT_FILES="${SIM_OUTPUT_FILES} *.root *.png *.eps" # BDSIM
+SIM_OUTPUT_FILES="${SIM_OUTPUT_FILES} *.h5 *.lbal *.stat *.dat data" # OPAL
 function archive {
     archivefolder="$*"
     if [[ -d $archivefolder ]]; then
-        cp -ai $(ls *.in *.gmad *.log fort.* *.dst *.plt *.root *.png *.eps *.txt *.data 2>/dev/null | grep -v 'simulations.log') "$archivefolder"
+        cp -ai $(ls -d ${SIM_INPUT_FILES} ${SIM_OUTPUT_FILES} 2>/dev/null | grep -v 'simulations.log') "$archivefolder"
         eval "reproduce log -n1 > \"$archivefolder/reproduce.log\""
     else
         echo "Could not find archive folder $archivefolder"
+    fi
+}
+function rm-output {
+    filelist=$(ls -d ${SIM_OUTPUT_FILES} 2>/dev/null | grep -v 'simulations.log')
+    if [[ -n $filelist ]]
+    then
+        if [[ "$1" == "--force" ]]
+        then
+            rm -rvf $filelist
+        else
+            rm -rvi $filelist
+        fi
     fi
 }
