@@ -1,8 +1,7 @@
 #!/bin/bash
 # File: checkversions.sh
 # Created: 02/07/2014 by Matt Easton
-# Version: 1.0.28
-# Modified: 10/10/2014 by Matt Easton
+# Modified: 17/09/2018 by Matt Easton
 #
 # Prints out the versions of a range of software programs and tools.
 # Originally part of pbt-dev.bashrc.
@@ -57,6 +56,11 @@ VERSION=$(cmake --version 2>/dev/null | head -n1 | cut -c15-)
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which cmake | grep -v "alias" | sed -e 's/\t//' -e 's_/bin/cmake__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - CMake ${VERSION}${THISPATH}${NC}"
+## OpenMPI
+VERSION=$(mpirun --version 2>/dev/null | head -n1 | sed -e 's/.*) //')
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which mpirun | grep -v "alias" | sed -e 's_/bin/mpirun__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan} - OpenMPI ${VERSION}${THISPATH}${NC}"
 
 # Graphics
 ## OpenGL
