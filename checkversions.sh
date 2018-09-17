@@ -173,3 +173,34 @@ VERSION=$(bdsim --version 2>/dev/null | head -n1 | cut -c 17-)
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which bdsim | sed -e 's_/bin/bdsim__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - BDSIM ${VERSION}${THISPATH}${NC}"
+## OPAL and related tools
+### OPAL itself
+VERSION=$(opal --version 2>/dev/null)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which opal | sed -e 's_/bin/opal__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan} - OPAL ${VERSION}${THISPATH}${NC}"
+### HDF5
+VERSION=$(h5pcc -showconfig 2>/dev/null | grep "HDF5 Version" | sed -e 's/.*HDF5 Version: //')
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which h5pcc | sed -e 's_/bin/h5pcc__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}   - HDF5 ${VERSION}${THISPATH}${NC}"
+### GNU Scientific Library
+VERSION=$(gsl-config --version 2>/dev/null)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which gsl-config | sed -e 's_/bin/gsl-config__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}   - GNU Scientific Library ${VERSION}${THISPATH}${NC}"
+## H5Hut
+VERSION=$(find ${LIBRARIES} -name libH5hut.*.so -or -name libH5hut.*.dylib 2>/dev/null | sed -e 's/.*libH5hut.//' -e 's/.dylib//' -e 's/.so//' | sort | tail -1)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(find ${LIBRARIES} -name libH5hut.${VERSION}.* 2>/dev/null | head -1 | sed -e "s_/lib.*/libH5hut.${VERSION}.*__")${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}   - H5Hut ${VERSION}${THISPATH}${NC}"
+## Boost
+VERSION=$(grep "#define BOOST_LIB_VERSION" "$(find ${LIBRARIES} -name libboost* 2>/dev/null | sed -e 's_/lib.*/libboost.*__' | head -n1)/include/boost/version.hpp" 2>/dev/null | sed -e 's/#define BOOST_LIB_VERSION "//' -e 's/_/./' -e 's/"//')
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(find ${LIBRARIES} -name libboost* 2>/dev/null | sed -e 's_/lib.*/libboost.*__' | head -n1)${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}   - Boost ${VERSION}${THISPATH}${NC}"
+## VTK
+VERSION=$(vtk --version 2>/dev/null)
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which vtk | sed -e 's_/bin/vtk__')${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan}   - VTK ${VERSION}${THISPATH}${NC}"
