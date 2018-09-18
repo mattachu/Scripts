@@ -19,7 +19,11 @@ if [ -r "${SCRIPTS}/definecolours.sh" ]; then
 fi
 
 # Get computer name
-computer_name=$(hostname)
+if [[ "$(uname)" == "Darwin" ]]; then
+    computer_name=$(scutil --get ComputerName)
+else
+    computer_name=$(hostname)
+fi
 case ${computer_name} in
 "Matts-MacBook-Pro.local")
     computer_name="Matt's MacBook Pro" ;;
