@@ -1,5 +1,5 @@
 #!/bin/bash
-# Shortcuts for PKU work
+# Shortcuts for various work-related programs and environments
 
 # Shortcuts for common actions
 alias server="ssh wangzhi@162.105.147.95"
@@ -7,9 +7,13 @@ alias transfer="rsync --archive --update --delete --max-size=50M --verbose ~/Sim
 alias run-tests='./run-tests.sh'
 
 # Load certain environments (machine specific)
-computer_name=$(hostname)
+if [[ "$(uname)" == "Darwin" ]]; then
+    computer_name=$(scutil --get ComputerName)
+else
+    computer_name=$(hostname)
+fi
 case ${computer_name} in
-"Matts-MacBook-Pro.local")
+"Matt’s MacBook Pro")
     alias load-root="source /usr/local/bin/thisroot.sh"
     alias load-geant4="source /usr/local/bin/geant4.sh"
     alias load-opal="source /usr/local/etc/profile.d/opal.sh"
