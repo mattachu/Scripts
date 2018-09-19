@@ -41,18 +41,20 @@ echo -e "${Cyan} - DISPLAY ${Purple}$DISPLAY${NC}"
 
 # Compiling
 ## GCC
-VERSION=$(gcc --version 2>/dev/null | head -n1 | sed -e 's/.*) //')
-[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which gcc | sed -e 's_/bin/gcc__' -e 's_/root/usr__')${NC}" || THISPATH=""
-[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" ||
-VERSION="${Purple}v${VERSION}${NC}"
-echo -e "${Cyan} - GCC ${VERSION}${THISPATH}${NC}"
+GCC_DESC="${Cyan} - GCC"
+for GCC in $(which -a gcc-9 gcc-8 gcc-7 gcc-6 gcc-5 gcc-4 gcc-3 gcc-2 gcc)
+do
+    VERSION=$(${GCC} --version 2>/dev/null | head -n1 | grep -v clang | sed -e 's/.*) //')
+    [[ ${VERSION} ]] && VERSION="${Purple}v${VERSION}${NC}"
+    [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH=" ${Yellow}$(echo ${GCC})${NC}" || THISPATH=""
+    [[ ${VERSION} ]] && GCC_DESC="${GCC_DESC} ${VERSION}${THISPATH}"
+done
+echo -e "${GCC_DESC}${NC}"
 ## Clang
-if [[ "$(uname)" == "Darwin" ]]; then
-    VERSION=$(clang --version 2>/dev/null | head -1 | sed -e 's/.*clang-//' -e 's/).*//')
-    [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which clang | sed -e 's_/bin/clang__')${NC}" || THISPATH=""
-    [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
-    echo -e "${Cyan} - Clang ${VERSION}${THISPATH}${NC}"
-fi
+VERSION=$(clang --version 2>/dev/null | head -1 | sed -e 's/.*clang-//' -e 's/).*//')
+[[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which clang)${NC}" || THISPATH=""
+[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
+echo -e "${Cyan} - Clang ${VERSION}${THISPATH}${NC}"
 ## CMake
 VERSION=$(cmake --version 2>/dev/null | head -n1 | cut -c15-)
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which cmake | grep -v "alias" | sed -e 's/\t//' -e 's_/bin/cmake__')${NC}" || THISPATH=""
