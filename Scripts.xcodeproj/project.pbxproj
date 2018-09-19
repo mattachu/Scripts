@@ -9,7 +9,7 @@
 /* Begin PBXFileReference section */
 		C981F9E1214240CC0078224B /* .greeting */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .greeting; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.sh; };
 		C99545A8212FF654002A6566 /* tmate.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = tmate.sh; sourceTree = "<group>"; };
-		C9DB51C7212FF047002573B1 /* pku.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = pku.sh; sourceTree = "<group>"; };
+		C9DB51C7212FF047002573B1 /* .bash_aliases */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .bash_aliases; sourceTree = "<group>"; };
 		C9DB51C8212FF047002573B1 /* Matlab */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Matlab; sourceTree = "<group>"; };
 		C9DB51C9212FF047002573B1 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C9DB51CA212FF047002573B1 /* run-scripts.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = "run-scripts.sh"; sourceTree = "<group>"; };
@@ -33,6 +33,7 @@
 			isa = PBXGroup;
 			children = (
 				C981F9E1214240CC0078224B /* .greeting */,
+                C9DB51C7212FF047002573B1 /* .bash_aliases */,
 				C9FCA8752141281A009B2324 /* .bash_logout */,
 				C9FCA8722141281A009B2324 /* .bash_profile */,
 				C9FCA8712141281A009B2324 /* .bashrc */,
@@ -47,7 +48,6 @@
 				C9FCA86D2141268F009B2324 /* checkversions.sh */,
 				C9FCA86F2141268F009B2324 /* definecolours.sh */,
 				C9DB51C8212FF047002573B1 /* Matlab */,
-				C9DB51C7212FF047002573B1 /* pku.sh */,
 				C9DB51C9212FF047002573B1 /* README.md */,
 				C9DB51CA212FF047002573B1 /* run-scripts.sh */,
 				C99545A8212FF654002A6566 /* tmate.sh */,
