@@ -1,7 +1,7 @@
 #!/bin/bash
 # File: checkversions.sh
 # Created: 02/07/2014 by Matt Easton
-# Modified: 17/09/2018 by Matt Easton
+# Modified: 19/09/2018 by Matt Easton
 #
 # Prints out the versions of a range of software programs and tools.
 # Originally part of pbt-dev.bashrc.
@@ -16,6 +16,8 @@
 # Colour definitions
 source ${SCRIPTS}/definecolours.sh
 
+# Alias definitions (for things like load-root, load-bdsim etc)
+source ${HOME}/.bash_aliases
 
 # Search path for libraries
 ## Standard paths
@@ -95,9 +97,7 @@ echo -e "${Cyan}   - qmake ${VERSION}${THISPATH}${NC}"
 
 # Physics tools
 ## ROOT
-if [ -r "/opt/root/bin/thisroot.sh" ] ; then
-    source "/opt/root/bin/thisroot.sh"
-fi
+load-root
 VERSION=$(root-config --version 2>/dev/null)
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which root-config | sed -e 's_/bin/root-config__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
@@ -109,11 +109,7 @@ VERSION=$(clhep-config --version 2>/dev/null | sed -e 's/CLHEP //')
 echo -e "${Cyan} - CLHEP ${VERSION}${THISPATH}${NC}"
 ## Geant4 and related tools
 ### Geant4 itself
-if [ -r "$(which geant4-config | sed -e 's_/geant4-config__')/geant4.sh" ] ; then
-    source "$(which geant4-config | sed -e 's_/geant4-config__')/geant4.sh"
-elif [ -r "/usr/local/bin/geant4.sh" ] ; then
-    source "/usr/local/bin/geant4.sh"
-fi
+load-geant4
 VERSION=$(geant4-config --version 2>/dev/null)
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which geant4-config | sed -e 's_/bin/geant4-config__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
@@ -166,16 +162,14 @@ echo -e "${Cyan}   - JAS3 for WIRED4 ${VERSION}${THISPATH}${NC}"
 #[[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 #echo -e "${Cyan}    - gMocren ${VERSION}${THISPATH}${NC}"
 ## BDSIM
-if [ -r "${SCRIPTS}/bdsim.sh" ] ; then
-    source "${SCRIPTS}/bdsim.sh"
-fi
+load-bdsim
 VERSION=$(bdsim --version 2>/dev/null | head -n1 | cut -c 17-)
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which bdsim | sed -e 's_/bin/bdsim__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - BDSIM ${VERSION}${THISPATH}${NC}"
 ## OPAL and related tools
 ### OPAL itself
-VERSION=$(opal --version 2>/dev/null)
+load-opal
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which opal | sed -e 's_/bin/opal__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - OPAL ${VERSION}${THISPATH}${NC}"
