@@ -16,7 +16,7 @@ case ${computer_name} in
 "Matt’s MacBook Pro")
     alias load-root="source /usr/local/bin/thisroot.sh"
     alias load-geant4="source /usr/local/bin/geant4.sh"
-    alias load-opal="source /usr/local/etc/profile.d/opal.sh"
+    alias load-opal="source /opt/OPAL-1.4.0-1/etc/profile.d/opal.sh"
     ;;
 "MJEaston")
     alias load-root="source /opt/root/bin/thisroot.sh"

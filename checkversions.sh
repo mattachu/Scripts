@@ -170,6 +170,7 @@ echo -e "${Cyan} - BDSIM ${VERSION}${THISPATH}${NC}"
 ## OPAL and related tools
 ### OPAL itself
 load-opal
+VERSION=$(opal --version 2>/dev/null | grep "OPAL.*Version" | sed -e 's/.*Version //')
 [[ ${VERSION} && ${SHOWPATHS} ]] && THISPATH="${Yellow} $(which opal | sed -e 's_/bin/opal__')${NC}" || THISPATH=""
 [[ ! ${VERSION} ]] && VERSION="${BRed}not found${NC}" || VERSION="${Purple}v${VERSION}${NC}"
 echo -e "${Cyan} - OPAL ${VERSION}${THISPATH}${NC}"
