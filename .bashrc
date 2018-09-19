@@ -23,7 +23,6 @@
 #    - source user scripts:
 #      - run-scripts.sh
 #      - tmate.sh
-#      - pku.sh
 
 # If not running interactively, don't do anything
 [[ "$-" != *i* ]] && return
@@ -312,4 +311,3 @@ fi
 # Personal scripts
 source "${SCRIPTS}/run-scripts.sh"
 source "${SCRIPTS}/tmate.sh"
-source "${SCRIPTS}/pku.sh"
