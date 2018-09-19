@@ -1,7 +1,6 @@
 # File: .greeting
 # Created: 07/09/2018 by Matt Easton
-# Version: 0.2
-# Modified: 07/09/2018 by Matt Easton
+# Modified: 19/09/2018 by Matt Easton
 #
 # This script is called by other scripts to display a greeting.
 # The greeting is different depending on the environment.
@@ -35,11 +34,9 @@ esac
 echo -e "${Cyan}${computer_name}${NC}"
 
 # Show program versions
+echo -e "${Cyan} - OS ${Yellow}$(uname -sr)${NC}"
 echo -e "${Cyan} - BASH ${Yellow}v${BASH_VERSION%.*}${NC}"
-echo -e "${Cyan} - GCC ${Yellow}v$(gcc --version 2>/dev/null | head -n1 | sed -e 's/.*) //')${NC}"
-if [[ "$(uname)" == "Darwin" ]]; then
-    echo -e "${Cyan} - Clang ${Yellow}v$(clang --version | grep -A0 -B0 --color="never" "version" | sed -e 's/.*(clang-//' -e 's/).*//')${NC}\n"
-fi
+echo -e "${Cyan} - Compiler ${Yellow}$(cc --version 2>/dev/null | head -n1)${NC}"
 
 # Show date and time
-echo -e "${Cyan}$(date)${NC}\n"
+echo -e "\n${Cyan}$(date)${NC}\n"
