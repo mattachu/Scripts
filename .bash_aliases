@@ -5,7 +5,7 @@
 alias server="ssh wangzhi@162.105.147.95"
 alias transfer="rsync --archive --update --delete --max-size=50M --verbose ~/Simulations/Current/ ~/Simulations/Transfer/"
 alias run-tests='./run-tests.sh'
-alias git-check="git remote -vv; git fetch --all; git branch -vv --all; git status"
+alias git-check='echo "Remotes:"; git remote -vv; git fetch --all; echo "Branches:"; git branch -vv --all; echo "Status:"; git status'
 
 # Load certain environments (machine specific)
 if [[ "$(uname)" == "Darwin" ]]; then
