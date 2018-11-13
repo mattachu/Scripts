@@ -1,5 +1,8 @@
 // Read in particle count data from `fort.11` (hard-coded to 4 bunches for now)
-void loadImpact(TTree *impact_data){
+TTree *loadImpact(){
+
+    // Create tree
+    TTree *impact_data = new TTree("Impact", "Impact-T simulation data");
 
     // Details of a single line in `fort.11`
     struct impact_step_t {
@@ -25,5 +28,8 @@ void loadImpact(TTree *impact_data){
 
     // Output data summary
     impact_data->Print();
+
+    // Return the tree
+    return impact_data;
 
 }
