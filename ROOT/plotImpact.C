@@ -1,5 +1,5 @@
 // Plot particle data loaded from `fort.11` (hard-coded to 4 bunches for now)
-void plotImpactParticles(TTree *impact_data){
+TCanvas * plotImpactParticles(TTree *impact_data){
 
     // Set canvas properties
     TCanvas *impact_canvas = new TCanvas("impact_canvas", "Impact-T plots");
@@ -17,5 +17,8 @@ void plotImpactParticles(TTree *impact_data){
     // Update canvas
     impact_canvas->Update();
     impact_canvas->Paint();
+
+    // Return canvas as result
+    return impact_canvas;
 
 }
