@@ -1,4 +1,4 @@
-// Function to make the current graph look pretty
+// Function to rename the current graph
 void renameCurrentGraph(TCanvas *impact_canvas, const char *name) {
 
     // Get the current graph
@@ -16,16 +16,18 @@ TCanvas * plotImpactParticles(TTree *impact_data){
     impact_canvas->SetWindowSize(800, 500);
 
     // Draw the first dataset (back layer, all four bunches)
-    impact_data->Draw("bunches.n1+bunches.n2+bunches.n3+bunches.n4:bunches.z", "", "");
+    impact_data->Draw("bunches.n1+bunches.n2+bunches.n3+bunches.n4:bunches.z",
+                      "", "", 4563, 0);
     renameCurrentGraph(impact_canvas, "graph4");
     // Draw the second dataset (next layer, without the fourth bunch)
-    impact_data->Draw("bunches.n1+bunches.n2+bunches.n3:bunches.z", "", "same");
+    impact_data->Draw("bunches.n1+bunches.n2+bunches.n3:bunches.z", "", "same",
+                      4563, 0);
     renameCurrentGraph(impact_canvas, "graph3");
     // Draw the third dataset (next layer, without the third and fourth bunches)
-    impact_data->Draw("bunches.n1+bunches.n2:bunches.z", "", "same");
+    impact_data->Draw("bunches.n1+bunches.n2:bunches.z", "", "same", 4563, 0);
     renameCurrentGraph(impact_canvas, "graph2");
     // Draw the fourth dataset (top layer, first bunch only)
-    impact_data->Draw("bunches.n1:bunches.z", "", "same");
+    impact_data->Draw("bunches.n1:bunches.z", "", "same", 4563, 0);
     renameCurrentGraph(impact_canvas, "graph1");
 
     // Update canvas
