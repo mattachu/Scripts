@@ -108,6 +108,9 @@ TCanvas * plotImpactParticles(TTree *impact_data){
     impact_canvas->Update();
     impact_canvas->Paint();
 
+    // Print to file
+    impact_canvas->Print("bunch-count.eps", "eps");
+
     // Return canvas as result
     return impact_canvas;
 
