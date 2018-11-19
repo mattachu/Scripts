@@ -49,10 +49,14 @@ function git-check-all() {
     for folder in $folderlist
     do
         echo
-        pause "Press the [Enter] key to check $folder"
-        echo
-        cd $folder
-        git-check
+        if [ -d $folder ]; then
+            pause "Press the [Enter] key to check $folder"
+            echo
+            cd $folder
+            git-check
+        else
+            echo "Folder $folder not found."
+        fi
     done
     cd $startfolder
 }
