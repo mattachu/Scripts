@@ -1,6 +1,9 @@
 #!/bin/bash
 # Shortcuts for various work-related programs and environments
 
+# Load machine-specific locations
+source "${HOME}/.bash_locations"
+
 # Shortcuts for common actions
 alias server="ssh wangzhi@162.105.147.95"
 alias transfer="rsync --archive --update --delete --max-size=50M --verbose ~/Simulations/Current/ ~/Simulations/Transfer/"
@@ -29,7 +32,7 @@ esac
 alias reproduce="~/Code/Reproducible/reproduce"
 
 # Shortcuts for BDSIM
-alias load-bdsim="source ${SCRIPTS}/bdsim.sh"
+alias load-bdsim="source ${SCRIPTS_FOLDER}/bdsim.sh"
 
 # Shortcuts for Impact-T
 alias impact="run-with-log mpirun -np 8 impact; mv mpirun.log impact.log"

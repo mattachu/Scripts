@@ -27,16 +27,8 @@
 # If not running interactively, don't do anything
 [[ "$-" != *i* ]] && return
 
-# Locate scripts folder
-if [ -d "${HOME}/Code/Scripts/" ]; then
-    SCRIPTS="${HOME}/Code/Scripts/"
-else
-    if [ -d "${HOME}/Documents/Code/Scripts/" ]; then
-        SCRIPTS="${HOME}/Documents/Code/Scripts/"
-    else
-        SCRIPTS="${HOME}/"
-    fi
-fi
+# Load machine-specific locations
+source "${HOME}/.bash_locations"
 
 # Add environment variable for stow directory
 export STOW_DIR="/usr/local/stow"
@@ -47,8 +39,8 @@ if [[ "$(uname)" != "Darwin" ]]; then
 fi
 
 # Define colours
-if [ -r "${SCRIPTS}/definecolours.sh" ]; then
-    source "${SCRIPTS}/definecolours.sh"
+if [ -r "${SCRIPTS_FOLDER}/definecolours.sh" ]; then
+    source "${SCRIPTS_FOLDER}/definecolours.sh"
 fi
 
 # Shell Options
@@ -309,5 +301,5 @@ if [ -f ~/.bash_functions ]; then
 fi
 
 # Personal scripts
-source "${SCRIPTS}/run-scripts.sh"
-source "${SCRIPTS}/tmate.sh"
+source "${SCRIPTS_FOLDER}/run-scripts.sh"
+source "${SCRIPTS_FOLDER}/tmate.sh"

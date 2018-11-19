@@ -13,8 +13,13 @@
 ## Show paths
 [[ "$1" == "--paths" ]] && SHOWPATHS=1 || unset SHOWPATHS
 
+# Load machine-specific locations
+source "${HOME}/.bash_locations"
+
 # Colour definitions
-source ${SCRIPTS}/definecolours.sh
+if [ -r "${SCRIPTS_FOLDER}/definecolours.sh" ]; then
+    source "${SCRIPTS_FOLDER}/definecolours.sh"
+fi
 
 # Search path for libraries
 ## Standard paths

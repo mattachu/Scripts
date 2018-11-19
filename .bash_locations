@@ -1,0 +1,23 @@
+#!/bin/bash
+# Locations used by variation scripts
+
+# Get the computer name
+if [[ "$(uname)" == "Darwin" ]]; then
+    export COMPUTER_NAME=$(scutil --get ComputerName)
+else
+    export COMPUTER_NAME=$(hostname)
+fi
+
+# Set the locations based on the computer name
+case ${COMPUTER_NAME} in
+    "Matt’s MacBook Pro"|"MacBook Pro")
+        export CODE_FOLDER="${HOME}/Code"
+        export SCRIPTS_FOLDER="${HOME}/Code/Scripts"
+        export PKU_FOLDER="${HOME}/OneDrive/Documents"
+        ;;
+    "MJEaston")
+        export CODE_FOLDER="${HOME}/Code"
+        export SCRIPTS_FOLDER="${HOME}/Code/Scripts"
+        export PKU_FOLDER="${HOME}"
+        ;;
+esac
