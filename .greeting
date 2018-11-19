@@ -11,27 +11,29 @@
 #  - find OS type
 #  - show computer name, program versions and date/time
 
+# Load machine-specific locations
+source "${HOME}/.bash_locations"
 
 # Define colours
-if [ -r "${SCRIPTS}/definecolours.sh" ]; then
-    source "${SCRIPTS}/definecolours.sh"
+if [ -r "${SCRIPTS_FOLDER}/definecolours.sh" ]; then
+    source "${SCRIPTS_FOLDER}/definecolours.sh"
 fi
 
 # Get computer name
 if [[ "$(uname)" == "Darwin" ]]; then
-    computer_name=$(scutil --get ComputerName)
+    export COMPUTER_NAME=$(scutil --get ComputerName)
 else
-    computer_name=$(hostname)
+    export COMPUTER_NAME=$(hostname)
 fi
-case ${computer_name} in
-"Matts-MacBook-Pro.local")
-    computer_name="Matt's MacBook Pro" ;;
-"MJEaston")
-    computer_name="MJEaston: Matt's Work PC" ;;
+case ${COMPUTER_NAME} in
+    "Matts-MacBook-Pro.local"|"Matt's MacBook Pro"|"MacBook Pro")
+        export COMPUTER_FULLNAME="Matt's MacBook Pro" ;;
+    "MJEaston")
+        export COMPUTER_FULLNAME="MJEaston: Matt's Work PC" ;;
 esac
 
 # Show computer name
-echo -e "${Cyan}${computer_name}${NC}"
+echo -e "${Cyan}${COMPUTER_FULLNAME}${NC}"
 
 # Show program versions
 echo -e "${Cyan} - OS ${Yellow}$(uname -sr)${NC}"
