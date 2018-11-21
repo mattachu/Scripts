@@ -1,6 +1,9 @@
 #!/bin/bash
 # Functions for running programs
 
+# Load machine-specific locations
+source "${HOME}/.bash_locations"
+
 # Report the time taken since $SECONDS was reset
 function time-taken {
     if (( $SECONDS > 3600 )) ; then
@@ -16,12 +19,14 @@ function time-taken {
         echo "Completed in $SECONDS seconds"
     fi
 }
+
 # Run the given command with a timer
 function run-with-timer {
     SECONDS=0
     $*
     time-taken
 }
+
 # Run the given command with a log file
 function run-with-log {
     rm -f $1.log
@@ -35,6 +40,13 @@ function run-with-log {
     time-taken > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
     sleep 0.1
 }
+
+# Run the given command reproducibly with a log file
+function reproduce-with-log {
+    run-with-log "${CODE_FOLDER}/Reproducible/reproduce" "$*"
+    mv "${CODE_FOLDER}/Reproducible/reproduce.log" .
+}
+
 # Show progress of a run through subfolders, based on count of log files
 function show-progress {
     runfolder="$*"
@@ -44,6 +56,7 @@ function show-progress {
     logfilecount="$(ls -l $runfolder/*/*.log $runfolder/*/*/*.log 2>/dev/null | grep -c log)"
     echo "Found log files in $logfilecount out of $subfoldercount subfolders"
 }
+
 # Create a subfolder for an Impact-T simulation with particular parameter value
 function parameterise {
     inputfile="$1"
@@ -58,6 +71,7 @@ function parameterise {
     cd ..
     cat $inputfile | sed "s/$parametername/$parametervalue/" > $parametervalue/$inputfile
 }
+
 # Recursive remove
 function recursive-rm {
     findcommand="find . -mindepth 0 -iname '$1'"
@@ -69,6 +83,7 @@ function recursive-rm {
         eval "rm -f ${dir}"
     done
 }
+
 # Archive simulation
 SIM_INPUT_FILES="*.in *.gmad *.data *.txt"
 SIM_OUTPUT_FILES="*.log fort.* *.dst *.plt" # Impact-T
@@ -78,11 +93,13 @@ function archive {
     archivefolder="$*"
     if [[ -d $archivefolder ]]; then
         cp -ai $(ls -d ${SIM_INPUT_FILES} ${SIM_OUTPUT_FILES} 2>/dev/null | grep -v 'simulations.log') "$archivefolder"
-        eval "reproduce log -n1 > \"$archivefolder/reproduce.log\""
+        eval "reproduce log -n1 > \"$archivefolder/simulations.log\""
     else
         echo "Could not find archive folder $archivefolder"
     fi
 }
+
+# Remove output files
 function rm-output {
     filelist=$(ls -d ${SIM_OUTPUT_FILES} 2>/dev/null | grep -v 'simulations.log')
     if [[ -n $filelist ]]
