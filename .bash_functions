@@ -34,6 +34,7 @@ function git-check() {
 function git-check-all() {
     startfolder=$(pwd)
     folderlist="${SCRIPTS_FOLDER}"
+    folderlist="$folderlist ${RUN_FOLDER}"
     folderlist="$folderlist ${CODE_FOLDER}/Impact"
     folderlist="$folderlist ${CODE_FOLDER}/runLORASR"
     folderlist="$folderlist ${CODE_FOLDER}/sweep"

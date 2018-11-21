@@ -14,10 +14,12 @@ case ${COMPUTER_NAME} in
         export CODE_FOLDER="${HOME}/Code"
         export SCRIPTS_FOLDER="${HOME}/Code/Scripts"
         export PKU_FOLDER="${HOME}/OneDrive/Documents"
+        export RUN_FOLDER="${HOME}/Code/CurrentSimulation"
         ;;
     "MJEaston")
         export CODE_FOLDER="${HOME}/Code"
         export SCRIPTS_FOLDER="${HOME}/Code/Scripts"
         export PKU_FOLDER="${HOME}"
+        export RUN_FOLDER="${HOME}/Simulations/Current"
         ;;
 esac
