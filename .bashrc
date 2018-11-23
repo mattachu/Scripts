@@ -293,13 +293,20 @@ settitle ()
 # alias cd=cd_func
 
 # Load any aliases and functions from separate files
-if [ -f ~/.bash_aliases ]; then
-    source ~/.bash_aliases
+if [ -r "${HOME}/.bash_aliases" ]; then
+    source "${HOME}/.bash_aliases"
 fi
-if [ -f ~/.bash_functions ]; then
-    source ~/.bash_functions
+if [ -r "${HOME}/.bash_functions" ]; then
+    source "${HOME}/.bash_functions"
 fi
 
 # Personal scripts
-source "${SCRIPTS_FOLDER}/run-scripts.sh"
-source "${SCRIPTS_FOLDER}/tmate.sh"
+if [ -r "${SCRIPTS_FOLDER}/run-scripts.sh" ]; then
+    source "${SCRIPTS_FOLDER}/run-scripts.sh"
+fi
+if [ -r "${SCRIPTS_FOLDER}/git.sh" ]; then
+    source "${SCRIPTS_FOLDER}/git.sh"
+fi
+if [ -r "${SCRIPTS_FOLDER}/tmate.sh" ]; then
+    source "${SCRIPTS_FOLDER}/tmate.sh"
+fi

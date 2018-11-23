@@ -1,3 +1,4 @@
+#!/bin/bash
 # File: .greeting
 # Created: 07/09/2018 by Matt Easton
 # Modified: 19/09/2018 by Matt Easton
@@ -12,7 +13,9 @@
 #  - show computer name, program versions and date/time
 
 # Load machine-specific locations
-source "${HOME}/.bash_locations"
+if [ -r "${HOME}/.bash_locations" ]; then
+    source "${HOME}/.bash_locations"
+fi
 
 # Define colours
 if [ -r "${SCRIPTS_FOLDER}/definecolours.sh" ]; then
