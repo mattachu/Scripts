@@ -1,13 +1,13 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 #  tmate.sh
 #  Scripts for working with tmate.io for remote connections
 #
 #  Created by Matt Easton on 2018.08.24.
+#  Note that this needs to run under `sh` for the `cron` job, so it cannot use
+#   any `bash` syntax nor any aliases or functions from the interactive scripts
+#   such as `.bash_locations` or `.bash_functions`
 #
-
-# Load machine-specific locations
-source "${HOME}/.bash_locations"
 
 # Variables
 TMATE_FOLDER="/tmp/tmate-1000"                              # holds temp tmate items
@@ -16,7 +16,7 @@ TMATE_MAIN_SOCKET="${TMATE_FOLDER}/tmate-main.sock"         # main socket
 TMATE_BACKUP_SESSION="backup"                               # backup session name
 TMATE_BACKUP_SOCKET="${TMATE_FOLDER}/tmate-backup.sock"     # backup socket
 TMATE_TMUX_SESSION="${TMATE_FOLDER}/tmate-tmux-session"     # default TMUX location
-TMATE_URL_FILE="${PKU_FOLDER}/Filing/tmate.txt"             # (synced) file with URLs
+TMATE_URL_FILE="${HOME}/Filing/tmate.txt"                   # (synced) file with URLs
 
 # Get current tmate connection url.
 # If a session name is given as an argument, it looks for this session,
