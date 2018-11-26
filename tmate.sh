@@ -4,6 +4,9 @@
 #  Scripts for working with tmate.io for remote connections
 #
 #  Created by Matt Easton on 2018.08.24.
+#  Note that this needs to run under `sh` for the `cron` job, so it cannot use
+#   any `bash` syntax nor any aliases or functions from the interactive scripts
+#   such as `.bash_locations` or `.bash_functions`
 #
 
 # Variables
