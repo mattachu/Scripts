@@ -2,39 +2,51 @@
 // written by Matt Easton November 2018
 
 // Functions to produce each different plot type
-TCanvas *plotImpactBunches(TTree *impact_data);
+TCanvas *plotImpactBunches(TTree *impact_data,
+                           Int_t bunchCount, Int_t lastSlice);
+void plotImpactBunchLayer(TCanvas *impact_canvas, TTree *impact_data,
+                          Int_t currentBunch, Int_t lastSlice,
+                          Bool_t isBackLayer);
 
 // Style functions to adjust formatting for different plot types
-void styleImpactBunches(TCanvas *impact_canvas);
+void styleImpactBunches(TCanvas *impact_canvas, Int_t bunchCount);
 
 // Other functions
 void renameCurrentGraph(TCanvas *canvas, const char *name);
+std::string buildCumulativePlotString(std::string branchName,
+                                      std::string prefix,
+                                      std::string xaxis,
+                                      Int_t variableCount);
 
 
-// Plot bunch count data loaded from `fort.11` (hard-coded to 4 bunches for now)
-TCanvas *plotImpactBunches(TTree *impact_data){
+// Plot bunch count data loaded from `fort.11`
+TCanvas *plotImpactBunches(TTree *impact_data,
+                           Int_t bunchCount, Int_t lastSlice) {
+
+    // Check bunch count
+    if (bunchCount < 1) {
+        throw std::invalid_argument("Must have at least one bunch.");
+    }
+    // Check last slice
+    if (lastSlice < 1) {
+        throw std::invalid_argument("Must have at least one data slice.");
+    }
+    if (lastSlice > impact_data->GetEntries() - 1) {
+        throw std::invalid_argument("Selected slice is beyond the last data point.");
+    }
 
     // Set canvas properties
     TCanvas *impact_canvas = new TCanvas("impact_canvas", "Impact-T plots");
     impact_canvas->SetWindowSize(800, 500);
 
-    // Draw the first dataset (back layer, all four bunches)
-    impact_data->Draw("bunches.n1+bunches.n2+bunches.n3+bunches.n4:bunches.z",
-                      "", "", 4563, 0);
-    renameCurrentGraph(impact_canvas, "graph4");
-    // Draw the second dataset (next layer, without the fourth bunch)
-    impact_data->Draw("bunches.n1+bunches.n2+bunches.n3:bunches.z", "", "same",
-                      4563, 0);
-    renameCurrentGraph(impact_canvas, "graph3");
-    // Draw the third dataset (next layer, without the third and fourth bunches)
-    impact_data->Draw("bunches.n1+bunches.n2:bunches.z", "", "same", 4563, 0);
-    renameCurrentGraph(impact_canvas, "graph2");
-    // Draw the fourth dataset (top layer, first bunch only)
-    impact_data->Draw("bunches.n1:bunches.z", "", "same", 4563, 0);
-    renameCurrentGraph(impact_canvas, "graph1");
+    // Draw the cumulative plots layer by layer, starting at the back
+    plotImpactBunchLayer(impact_canvas, impact_data, bunchCount, lastSlice, true);
+    for (Int_t i = bunchCount - 1; i > 0; i--) {
+        plotImpactBunchLayer(impact_canvas, impact_data, i, lastSlice, false);
+    }
 
     // Apply styles
-    styleImpactBunches(impact_canvas);
+    styleImpactBunches(impact_canvas, bunchCount);
 
     // Update canvas
     impact_canvas->Update();
@@ -48,34 +60,45 @@ TCanvas *plotImpactBunches(TTree *impact_data){
 
 }
 
+void plotImpactBunchLayer(TCanvas *impact_canvas, TTree *impact_data,
+                          Int_t currentBunch, Int_t lastSlice,
+                          Bool_t isBackLayer) {
+
+    // Build correct settings for current layer
+    std::string axesDefinition = buildCumulativePlotString("bunches", "n", "z",
+                                                           currentBunch);
+    std::string graphName = "graph" + std::to_string(currentBunch);
+    std::string plotLocation = "";
+    if (! isBackLayer) { plotLocation = "same"; }
+
+    // Draw graph
+    impact_data->Draw(axesDefinition.c_str(), "", plotLocation.c_str(),
+                      lastSlice, 0);
+
+    // Rename graph
+    renameCurrentGraph(impact_canvas, graphName.c_str());
+
+    // Return
+    return;
+
+}
+
 
 // Function to format the particle count plot
-void styleImpactBunches(TCanvas *impact_canvas) {
+void styleImpactBunches(TCanvas *impact_canvas, Int_t bunchCount) {
 
     // Get objects
     TFrame *impact_frame = impact_canvas->GetFrame();
     TPaveText *titleText = (TPaveText * ) impact_canvas->GetPrimitive("title");
     TH1 *impact_hist = (TH1 * ) impact_canvas->GetPrimitive("htemp");
-    TGraph *g1 = (TGraph * ) impact_canvas->GetPrimitive("graph1");
-    TGraph *g2 = (TGraph * ) impact_canvas->GetPrimitive("graph2");
-    TGraph *g3 = (TGraph * ) impact_canvas->GetPrimitive("graph3");
-    TGraph *g4 = (TGraph * ) impact_canvas->GetPrimitive("graph4");
+    std::string graphName = "";
+    TGraph *graph;
 
     // Set up background
     impact_frame->SetLineWidth(0);
     titleText->Clear();
     impact_canvas->SetGridx(false);
     impact_canvas->SetGridy(true);
-
-    // Set graph draw options
-    g1->SetDrawOption("B");
-    g2->SetDrawOption("B");
-    g3->SetDrawOption("B");
-    g4->SetDrawOption("B");
-    g1->SetFillColor(38);   // Blue
-    g2->SetFillColor(623);  // Salmon red
-    g3->SetFillColor(30);   // Green
-    g4->SetFillColor(42);   // Mustard
 
     // Set axes options
     // - font code 132 is Times New Roman, medium, regular, scalable
@@ -108,15 +131,40 @@ void styleImpactBunches(TCanvas *impact_canvas) {
     TLegend *impact_legend = new TLegend(0.540, 0.122, 0.841, 0.292);
     impact_legend->SetTextFont(132);
     impact_legend->SetTextSize(0.03);
-    impact_legend->AddEntry(g4, "Neutral atomic hydrogen", "f");
-    impact_legend->AddEntry(g3, "Neutral hydrogen molecules", "f");
-    impact_legend->AddEntry(g2, "Protons", "f");
-    impact_legend->AddEntry(g1, "Molecular hydrogen ions", "f");
-    impact_legend->Draw();
+
+    // Set graph draw options
+    for (Int_t i = 1; i <= bunchCount; i++) {
+        graphName = "graph" + std::to_string(i);
+        graph = (TGraph * ) impact_canvas->GetPrimitive(graphName.c_str());
+        graph->SetDrawOption("B");
+        // Colours and names are hard-coded for now
+        switch (i) {
+            case 1:
+                graph->SetFillColor(38);   // Blue
+                impact_legend->AddEntry(graph, "Molecular hydrogen ions", "f");
+                break;
+            case 2:
+                graph->SetFillColor(623);  // Salmon red
+                impact_legend->AddEntry(graph, "Protons", "f");
+                break;
+            case 3:
+                graph->SetFillColor(30);   // Green
+                impact_legend->AddEntry(graph, "Neutral hydrogen molecules", "f");
+                break;
+            case 4:
+                graph->SetFillColor(42);   // Mustard
+                impact_legend->AddEntry(graph, "Neutral atomic hydrogen", "f");
+                break;
+        }
+    }
 
     // Update canvas
+    impact_legend->Draw();
     impact_canvas->Update();
     impact_canvas->Paint();
+
+    // Return
+    return;
 
 }
 
@@ -129,4 +177,31 @@ void renameCurrentGraph(TCanvas *canvas, const char *name) {
 
     // Reset the graph name (to make it easier to find later)
     current_graph->SetName(name);
+
+    // Return
+    return;
+
+}
+
+// Function to create the plot string for a cumulative plot,
+//  where the cumulative data variables follow a consequetive naming pattern
+std::string buildCumulativePlotString(std::string branchName,
+                                      std::string prefix,
+                                      std::string xaxis,
+                                      Int_t variableCount) {
+
+    // First variable for y-axis
+    std::string plotString = branchName + "." + prefix + std::to_string(1);
+
+    // Subsequent variables for y-axis (cumulative)
+    for (Int_t i = 2; i <= variableCount; i++) {
+        plotString += "+" + branchName + "." + prefix + std::to_string(i);
+    }
+
+    // Single variable for x-axis
+    plotString += ":" + branchName + "." + xaxis;
+
+    // Return
+    return plotString;
+
 }
