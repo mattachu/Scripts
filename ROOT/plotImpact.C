@@ -2,17 +2,17 @@
 // written by Matt Easton November 2018
 
 // Functions to produce each different plot type
-TCanvas *plotImpactParticles(TTree *impact_data);
+TCanvas *plotImpactBunches(TTree *impact_data);
 
 // Style functions to adjust formatting for different plot types
-void styleImpactParticles(TCanvas *impact_canvas);
+void styleImpactBunches(TCanvas *impact_canvas);
 
 // Other functions
-void renameCurrentGraph(TCanvas *impact_canvas, const char *name);
+void renameCurrentGraph(TCanvas *canvas, const char *name);
 
 
 // Plot bunch count data loaded from `fort.11` (hard-coded to 4 bunches for now)
-TCanvas *plotImpactParticles(TTree *impact_data){
+TCanvas *plotImpactBunches(TTree *impact_data){
 
     // Set canvas properties
     TCanvas *impact_canvas = new TCanvas("impact_canvas", "Impact-T plots");
@@ -34,7 +34,7 @@ TCanvas *plotImpactParticles(TTree *impact_data){
     renameCurrentGraph(impact_canvas, "graph1");
 
     // Apply styles
-    styleImpactParticles(impact_canvas);
+    styleImpactBunches(impact_canvas);
 
     // Update canvas
     impact_canvas->Update();
@@ -50,7 +50,7 @@ TCanvas *plotImpactParticles(TTree *impact_data){
 
 
 // Function to format the particle count plot
-void styleImpactParticles(TCanvas *impact_canvas) {
+void styleImpactBunches(TCanvas *impact_canvas) {
 
     // Get objects
     TFrame *impact_frame = impact_canvas->GetFrame();
@@ -122,10 +122,10 @@ void styleImpactParticles(TCanvas *impact_canvas) {
 
 
 // Function to rename the current graph
-void renameCurrentGraph(TCanvas *impact_canvas, const char *name) {
+void renameCurrentGraph(TCanvas *canvas, const char *name) {
 
     // Get the current graph
-    TGraph *current_graph = (TGraph *) impact_canvas->GetPrimitive("Graph");
+    TGraph *current_graph = (TGraph *) canvas->GetPrimitive("Graph");
 
     // Reset the graph name (to make it easier to find later)
     current_graph->SetName(name);
