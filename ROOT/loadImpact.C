@@ -1,4 +1,14 @@
-// Read in particle count data from `fort.11`
+// Functions for loading Impact-T data into ROOT
+// written by Matt Easton November 2018
+
+// Wrapper function
+TTree *loadImpact(Int_t bunchCount);
+
+// Individual data types
+void loadImpactBunches(TTree *impact_data, Int_t bunchCount);
+
+
+// Wrapper function that loads all different types of data
 TTree *loadImpact(Int_t bunchCount){
 
     // Check bunch count
@@ -11,6 +21,20 @@ TTree *loadImpact(Int_t bunchCount){
 
     // Create tree
     TTree *impact_data = new TTree("Impact", "Impact-T simulation data");
+
+    // Load each data type
+    loadImpactBunches(impact_data, bunchCount);
+
+    // Output data summary
+    impact_data->Print();
+
+    // Return the tree
+    return impact_data;
+
+}
+
+// Read in particle count data from `fort.11`
+void loadImpactBunches(TTree *impact_data, Int_t bunchCount) {
 
     // Create structure to hold data
     struct impact_step_t {
@@ -47,10 +71,7 @@ TTree *loadImpact(Int_t bunchCount){
     }
     infile.close();
 
-    // Output data summary
-    impact_data->Print();
-
-    // Return the tree
-    return impact_data;
+    // Exit Function
+    return;
 
 }
