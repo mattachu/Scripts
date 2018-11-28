@@ -254,5 +254,10 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
         this->Fill();
     }
     infile.close();
+
+    // Set number of slices for the tree object
+    this->_sliceCount = this->GetBranch("bunches")->GetEntries();
+    this->_firstSlice = 1;
+    this->_lastSlice = this->_sliceCount;
 }
 
