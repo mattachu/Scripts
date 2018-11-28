@@ -1,21 +1,28 @@
 // Class for loading, plotting and manipulating Impact-T data in ROOT
 // written by Matt Easton (see http://matteaston.net/work), November 2018
 
+#include <vector>
 #include "TTree.h"
 #pragma once
 
 class TImpactTree : public TTree {
 
 public:
+    // Class definition
     ClassDef(TImpactTree, 1); // Data structure for Impact-T simulations
 
+    // Constructors and destructors
     TImpactTree();
-    TImpactTree(Int_t bunchCount, ...);
+    TImpactTree(Int_t bunchCount);
+    TImpactTree(Int_t bunchCount, std::vector<std::string> bunchNames);
     ~TImpactTree();
 
+    // Methods to access members
     Int_t BunchCount() const;
+    std::vector<std::string> BunchNames() const;
 
 protected:
-    Int_t _bunchCount; // Number of bunches in Impact-T simulation
+    Int_t                    _bunchCount; // Number of bunches in the simulation
+    std::vector<std::string> _bunchNames; // List of names for the bunches
 
-}
+};
