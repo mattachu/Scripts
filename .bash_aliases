@@ -16,16 +16,16 @@ else
     computer_name=$(hostname)
 fi
 case ${computer_name} in
-"Matt’s MacBook Pro")
-    alias load-root="source /usr/local/bin/thisroot.sh"
-    alias load-geant4="source /usr/local/bin/geant4.sh"
-    alias load-opal="source /opt/OPAL-1.4.0-1/etc/profile.d/opal.sh"
-    ;;
-"MJEaston")
-    alias load-root="source /opt/root/bin/thisroot.sh"
-    alias load-geant4="source /usr/local/bin/geant4.sh"
-    alias load-opal="source /opt/OPAL-2.0.0rc2/etc/profile.d/opal.sh"
-    ;;
+    "Matt’s MacBook Pro"|"MacBook Pro")
+        alias load-root="source /usr/local/bin/thisroot.sh"
+        alias load-geant4="source /usr/local/bin/geant4.sh"
+        alias load-opal="source /opt/OPAL-1.4.0-1/etc/profile.d/opal.sh"
+        ;;
+    "MJEaston")
+        alias load-root="source /opt/root/bin/thisroot.sh"
+        alias load-geant4="source /usr/local/bin/geant4.sh"
+        alias load-opal="source /opt/OPAL-2.0.0rc2/etc/profile.d/opal.sh"
+        ;;
 esac
 
 # Shortcuts for Reproducible
