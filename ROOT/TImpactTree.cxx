@@ -194,3 +194,65 @@ void TImpactTree::SetLastSlice(Int_t lastSlice)
 
     this->_lastSlice = lastSlice;
 }
+
+// Methods to load data from Impact-T output files
+// - publicly accessible method
+void TImpactTree::Load()
+{
+    this->_Load(this->_bunchCount);
+}
+
+// - wrapper method to load all data types
+void TImpactTree::_Load(Int_t bunchCount)
+{
+    // Check parameters
+    if (bunchCount < 1)
+    {
+        throw std::invalid_argument("Must have at least one bunch.");
+    }
+
+    // Load each data type from the relevant files
+    this->_LoadBunches(bunchCount);
+
+    // Output data summary
+    this->Print();
+}
+
+// - particle count data from `fort.11`
+void TImpactTree::_LoadBunches(Int_t bunchCount)
+{
+    // Create structure to hold data
+    struct impact_step_t {
+        Long_t i = 0;
+        Double_t t = 0.0, z = 0.0;
+        Int_t bunches = 0;
+        std::vector<Int_t> count;
+    };
+    impact_step_t step;
+    step.count.resize(bunchCount);
+    std::string leafDefinition = "i/L:t/D:z/D:bunches/I";
+    for (Int_t i = 1; i <= bunchCount; i++)
+    {
+        leafDefinition += ":n" + std::to_string(i) + "/I";
+    }
+
+    // Open the file for reading
+    ifstream infile("fort.11");
+
+    // Create a branch for the particle count data
+    this->Branch("bunches", &step, leafDefinition.c_str());
+
+    // Read in data from `fort.11`
+    while (1)
+    {
+        if(!infile.good()) break;
+        infile >> step.i >> step.t >> step.z >> step.bunches;
+        for (Int_t i = 0; i < bunchCount; i++)
+        {
+            infile >> step.count.at(i);
+        }
+        this->Fill();
+    }
+    infile.close();
+}
+

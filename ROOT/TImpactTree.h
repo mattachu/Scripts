@@ -24,14 +24,18 @@ public:
     Int_t SliceCount() const;
     Int_t GetFirstCell() const;
     Int_t GetFirstSlice() const;
-    Int_t GetLastCell() const;
+    Int_t GetLastCell() const;
     Int_t GetLastSlice() const;
     void SetFirstCell(Int_t firstCell);
     void SetFirstSlice(Int_t firstSlice);
     void SetLastCell(Int_t lastCell);
     void SetLastSlice(Int_t lastSlice);
 
+    // Methods to load and plot data
+    void Load();
+
 protected:
+    // Class members
     Int_t                    _bunchCount; // Number of bunches in the simulation
     std::vector<std::string> _bunchNames; // List of names for the bunches
     Int_t                    _cellCount;  // Number of RFQ cells
@@ -40,4 +44,8 @@ protected:
     Int_t                    _firstSlice; // FIrst time slice to plot
     Int_t                    _lastCell;   // Last RFQ cell number to plot
     Int_t                    _lastSlice;  // Last time slice to plot
+
+    // Methods to load data from different Impact-T output files
+    void _Load(Int_t bunchCount);
+    void _LoadBunches(Int_t bunchCount);
 };
