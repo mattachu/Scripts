@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "TTree.h"
+#include "TCanvas.h"
 #pragma once
 
 class TImpactTree : public TTree
@@ -35,6 +36,7 @@ public:
 
     // Methods to load and plot data
     void Load();
+    void PlotBunches();
 
 protected:
     // Class members
@@ -50,4 +52,42 @@ protected:
     // Methods to load data from different Impact-T output files
     void _Load(Int_t bunchCount);
     void _LoadBunches(Int_t bunchCount);
+
+    // Methods to produce different plot types
+    void _PlotBunches(
+        TCanvas *canvas,
+        Int_t bunchCount,
+        Int_t lastSlice,
+        std::vector<std::string> bunchNames,
+        Double_t xmin,
+        Double_t xmax,
+        Double_t ymin,
+        Double_t ymax
+    );
+    void _PlotBunchLayer(
+        TCanvas *canvas,
+        Int_t currentLayer,
+        Int_t lastSlice,
+        Bool_t isBackLayer
+    );
+
+    // Methods to apply styles for different plot types
+    void _StyleBunches(
+        TCanvas *canvas,
+        Int_t bunchCount,
+        std::vector<std::string> bunchNames,
+        Double_t xmin,
+        Double_t xmax,
+        Double_t ymin,
+        Double_t ymax
+    );
+
+    // Utility methods
+    void _RenameCurrentGraph(TCanvas *canvas, const char *name);
+    std::string _BuildCumulativePlotString(
+        std::string branchName,
+        std::string prefix,
+        std::string xaxis,
+        Int_t variableCount
+    );
 };

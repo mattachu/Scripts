@@ -234,3 +234,202 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
     this->_firstSlice = 1;
     this->_lastSlice = this->_sliceCount - 1;
 }
+
+// Methods to produce different plot types
+// - bunch count cumulative plot for data loaded from `fort.11`
+void TImpactTree::PlotBunches()
+{
+    TCanvas *canvas = new TCanvas(
+        "impact_bunch_count_plot",
+        "Impact-T bunch count plot"
+    );
+    this->_PlotBunches(
+        canvas,
+        this->_bunchCount,
+        this->_lastSlice,
+        this->_bunchNames,
+        0, 1.8,       // xmin, xmax
+        90000, 102000 // ymin, ymax
+    );
+}
+
+void TImpactTree::_PlotBunches(
+    TCanvas *canvas,
+    Int_t bunchCount,
+    Int_t lastSlice,
+    std::vector<std::string> bunchNames,
+    Double_t xmin,
+    Double_t xmax,
+    Double_t ymin,
+    Double_t ymax
+)
+{
+    // Check parameters
+    if (bunchCount < 1) {
+        throw std::invalid_argument("Must have at least one bunch.");
+    }
+    if (bunchCount > this->_bunchCount) {
+        throw std::invalid_argument("Trying to plot too many bunches.");
+    }
+    if (lastSlice < 1) {
+        throw std::invalid_argument("Must have at least one data slice.");
+    }
+    if (lastSlice > this->_lastSlice) {
+        throw std::invalid_argument("Trying to plot too many data slices.");
+    }
+
+    // Set canvas properties
+    canvas->SetWindowSize(800, 500);
+
+    // Draw the cumulative plots layer by layer, starting at the back
+    for (Int_t i = bunchCount; i > 0; i--) {
+        this->_PlotBunchLayer(canvas, i, lastSlice, (i==bunchCount));
+    }
+
+    // // Apply styles
+    this->_StyleBunches(canvas, bunchCount, bunchNames, xmin, xmax, ymin, ymax);
+
+    // Update canvas
+    canvas->Update();
+    canvas->Paint();
+
+    // Print to file
+    canvas->Print("bunch-count.eps", "eps");
+}
+
+void TImpactTree::_PlotBunchLayer(
+    TCanvas *canvas,
+    Int_t currentLayer,
+    Int_t lastSlice,
+    Bool_t isBackLayer
+)
+{
+    // Build correct settings for current layer
+    std::string axesDefinition =
+        this->_BuildCumulativePlotString("bunches", "n", "z", currentLayer);
+    std::string graphName = "graph" + std::to_string(currentLayer);
+    std::string plotLocation = "";
+    if (!isBackLayer) plotLocation = "same";
+
+    // Draw graph
+    canvas->Update();
+    this->Draw(axesDefinition.c_str(), "", plotLocation.c_str(), lastSlice, 0);
+
+    // Rename graph
+    this->_RenameCurrentGraph(canvas, graphName.c_str());
+}
+
+// Methods to apply styles for different plot types
+void TImpactTree::_StyleBunches(
+    TCanvas *canvas,
+    Int_t bunchCount,
+    std::vector<std::string> bunchNames,
+    Double_t xmin,
+    Double_t xmax,
+    Double_t ymin,
+    Double_t ymax
+)
+{
+    // Get objects
+    TFrame *frame = canvas->GetFrame();
+    TPaveText *titleText = (TPaveText *) canvas->GetPrimitive("title");
+    TH1 *hist = (TH1 *) canvas->GetPrimitive("htemp");
+    std::string graphName = "";
+    TGraph *graph;
+
+    // Set up background
+    frame->SetLineWidth(0);
+    titleText->Clear();
+    canvas->SetGridx(false);
+    canvas->SetGridy(true);
+
+    // Set axes options
+    // - font code 132 is Times New Roman, medium, regular, scalable
+    // x-axis
+    hist->GetXaxis()->SetTicks("-");
+    hist->GetXaxis()->SetTickSize(0.01);
+    hist->GetXaxis()->SetTitleOffset(-1.0);
+    hist->GetXaxis()->SetLabelOffset(-0.04);
+    hist->GetXaxis()->SetTitle("z-position (m)");
+    hist->GetXaxis()->SetTitleFont(132);
+    hist->GetXaxis()->SetTitleSize(0.045);
+    hist->GetXaxis()->SetLabelFont(132);
+    hist->GetXaxis()->SetLabelSize(0.03);
+    hist->GetXaxis()->SetLimits(xmin, xmax);
+    hist->GetXaxis()->SetRangeUser(xmin, xmin);
+    // y-axis
+    hist->GetYaxis()->SetTicks("+");
+    hist->GetYaxis()->SetTickSize(0.01);
+    hist->GetYaxis()->SetTitleOffset(-0.8);
+    hist->GetYaxis()->SetLabelOffset(-0.01);
+    hist->GetYaxis()->SetTitle("Total number of macro-particles");
+    hist->GetYaxis()->SetTitleFont(132);
+    hist->GetYaxis()->SetTitleSize(0.045);
+    hist->GetYaxis()->SetLabelFont(132);
+    hist->GetYaxis()->SetLabelSize(0.03);
+    hist->GetYaxis()->SetLimits(ymin, ymax);
+    hist->GetYaxis()->SetRangeUser(ymin, ymax);
+
+    // Add legend
+    TLegend *legend = new TLegend(0.540, 0.122, 0.841, 0.292);
+    legend->SetTextFont(132);
+    legend->SetTextSize(0.03);
+
+    // Set graph draw options
+    for (Int_t i = 1; i <= bunchCount; i++) {
+        graphName = "graph" + std::to_string(i);
+        graph = (TGraph *) canvas->GetPrimitive(graphName.c_str());
+        graph->SetDrawOption("B");
+        switch (i % 4) {
+        case 1:
+            graph->SetFillColor(38);   // Blue
+            break;
+        case 2:
+            graph->SetFillColor(623);  // Salmon red
+            break;
+        case 3:
+            graph->SetFillColor(30);   // Green
+            break;
+        case 0:
+            graph->SetFillColor(42);   // Mustard
+            break;
+        }
+        legend->AddEntry(graph, bunchNames.at(i-1).c_str(), "f");
+    }
+
+    // Update canvas
+    legend->Draw();
+    canvas->Update();
+    canvas->Paint();
+}
+
+// Utility methods
+// - rename the current graph
+void TImpactTree::_RenameCurrentGraph(TCanvas *canvas, const char *name)
+{
+    TGraph *current_graph = (TGraph *) canvas->GetPrimitive("Graph");
+    current_graph->SetName(name);
+}
+
+// - create the plot string for a cumulative plot
+std::string TImpactTree::_BuildCumulativePlotString(
+    std::string branchName,
+    std::string prefix,
+    std::string xaxis,
+    Int_t variableCount
+)
+{
+    // First variable for y-axis
+    std::string plotString = branchName + "." + prefix + std::to_string(1);
+
+    // Subsequent variables for y-axis (cumulative)
+    for (Int_t i = 2; i <= variableCount; i++) {
+        plotString += "+" + branchName + "." + prefix + std::to_string(i);
+    }
+
+    // Single variable for x-axis
+    plotString += ":" + branchName + "." + xaxis;
+
+    // Return
+    return plotString;
+}
