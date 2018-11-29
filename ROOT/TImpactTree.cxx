@@ -4,7 +4,11 @@
 #include <vector>
 #include "TImpactTree.h"
 
+// Implements class `TImpactTree`
 ClassImp(TImpactTree);
+
+// Parameters
+Int_t const _MAX_BUNCH_COUNT = 99; // Required for load method
 
 // Default constructor
 TImpactTree::TImpactTree():
@@ -189,9 +193,17 @@ void TImpactTree::Load()
 void TImpactTree::_Load(Int_t bunchCount)
 {
     // Check parameters
+    std::string errorString = "";
     if (bunchCount < 1)
     {
-        throw std::invalid_argument("Must have at least one bunch.");
+        errorString = "Must have at least one bunch.";
+        throw std::invalid_argument(errorString.c_str());
+    }
+    if (bunchCount > _MAX_BUNCH_COUNT)
+    {
+        errorString = "Cannot handle more than " +
+                      std::to_string(_MAX_BUNCH_COUNT) + " bunches.";
+        throw std::invalid_argument(errorString.c_str());
     }
 
     // Load each data type from the relevant files
@@ -209,10 +221,9 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
         Long_t i = 0;
         Double_t t = 0.0, z = 0.0;
         Int_t bunches = 0;
-        std::vector<Int_t> count;
+        Int_t count[_MAX_BUNCH_COUNT];
     };
     impact_step_t step;
-    step.count.resize(bunchCount);
     std::string leafDefinition = "i/L:t/D:z/D:bunches/I";
     for (Int_t i = 1; i <= bunchCount; i++)
     {
@@ -232,7 +243,7 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
         infile >> step.i >> step.t >> step.z >> step.bunches;
         for (Int_t i = 0; i < bunchCount; i++)
         {
-            infile >> step.count.at(i);
+            infile >> step.count[i];
         }
         this->Fill();
     }
