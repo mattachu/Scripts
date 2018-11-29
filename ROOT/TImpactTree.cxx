@@ -8,7 +8,20 @@
 ClassImp(TImpactTree);
 
 // Parameters
-Int_t const _MAX_BUNCH_COUNT = 99; // Required for load method
+// - limit for bunch count, required for load method
+Int_t    const _MAX_BUNCH_COUNT       = 99;
+// - settings for bunch count plot
+std::string    _BUNCHES_FILENAME      = "bunch-count.eps";
+std::string    _BUNCHES_CANVAS_NAME   = "impact_bunch_count_plot";
+std::string    _BUNCHES_CANVAS_TITLE  = "Impact-T bunch count plot";
+std::string    _BUNCHES_XAXIS_TITLE   = "z-position (m)";
+std::string    _BUNCHES_YAXIS_TITLE   = "Total number of macro-particles";
+Int_t    const _BUNCHES_CANVAS_WIDTH  =    800;
+Int_t    const _BUNCHES_CANVAS_HEIGHT =    500;
+Double_t const _BUNCHES_XMIN_DEFAULT  =    0.0;
+Double_t const _BUNCHES_XMAX_DEFAULT  =    1.8;
+Double_t const _BUNCHES_YMIN_DEFAULT  =  90000;
+Double_t const _BUNCHES_YMAX_DEFAULT  = 102000;
 
 // Default constructor
 TImpactTree::TImpactTree():
@@ -239,25 +252,19 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
 // - bunch count cumulative plot for data loaded from `fort.11`
 void TImpactTree::PlotBunches()
 {
-    TCanvas *canvas = new TCanvas(
-        "impact_bunch_count_plot",
-        "Impact-T bunch count plot"
-    );
-    this->_PlotBunches(
-        canvas,
-        this->_bunchCount,
-        this->_lastSlice,
-        this->_bunchNames,
-        0, 1.8,       // xmin, xmax
-        90000, 102000 // ymin, ymax
-    );
+    // Default values
+    Long_t firstSlice = 0;
+    Long_t lastSlice = this->_lastSlice;
+    Double_t xmin = _BUNCHES_XMIN_DEFAULT;
+    Double_t xmax = _BUNCHES_XMAX_DEFAULT;
+    Double_t ymin = _BUNCHES_YMIN_DEFAULT;
+    Double_t ymax = _BUNCHES_YMAX_DEFAULT;
+    this->PlotBunches(firstSlice, lastSlice, xmin, xmax, ymin, ymax);
 }
 
-void TImpactTree::_PlotBunches(
-    TCanvas *canvas,
-    Int_t bunchCount,
-    Int_t lastSlice,
-    std::vector<std::string> bunchNames,
+void TImpactTree::PlotBunches(
+    Long_t firstSlice,
+    Long_t lastSlice,
     Double_t xmin,
     Double_t xmax,
     Double_t ymin,
@@ -265,21 +272,27 @@ void TImpactTree::_PlotBunches(
 )
 {
     // Check parameters
-    if (bunchCount < 1) {
-        throw std::invalid_argument("Must have at least one bunch.");
+    if (firstSlice < 0) {
+        throw std::invalid_argument("Slice values cannot be negative.");
     }
-    if (bunchCount > this->_bunchCount) {
-        throw std::invalid_argument("Trying to plot too many bunches.");
+    if (firstSlice > this->_lastSlice) {
+        throw std::invalid_argument("First slice value too high.");
     }
-    if (lastSlice < 1) {
-        throw std::invalid_argument("Must have at least one data slice.");
+    if (lastSlice < 0) {
+        throw std::invalid_argument("Slice values cannot be negative.");
     }
     if (lastSlice > this->_lastSlice) {
-        throw std::invalid_argument("Trying to plot too many data slices.");
+        throw std::invalid_argument("Last slice value too high.");
     }
+    Int_t bunchCount = this->_bunchCount;
+    std::vector<std::string> bunchNames = this->_bunchNames;
 
-    // Set canvas properties
-    canvas->SetWindowSize(800, 500);
+    // Create canvas
+    TCanvas *canvas = new TCanvas(
+        _BUNCHES_CANVAS_NAME.c_str(),
+        _BUNCHES_CANVAS_TITLE.c_str()
+    );
+    canvas->SetWindowSize(_BUNCHES_CANVAS_WIDTH, _BUNCHES_CANVAS_HEIGHT);
 
     // Draw the cumulative plots layer by layer, starting at the back
     for (Int_t i = bunchCount; i > 0; i--) {
@@ -294,7 +307,7 @@ void TImpactTree::_PlotBunches(
     canvas->Paint();
 
     // Print to file
-    canvas->Print("bunch-count.eps", "eps");
+    canvas->Print(_BUNCHES_FILENAME.c_str(), "eps");
 }
 
 void TImpactTree::_PlotBunchLayer(
@@ -350,7 +363,7 @@ void TImpactTree::_StyleBunches(
     hist->GetXaxis()->SetTickSize(0.01);
     hist->GetXaxis()->SetTitleOffset(-1.0);
     hist->GetXaxis()->SetLabelOffset(-0.04);
-    hist->GetXaxis()->SetTitle("z-position (m)");
+    hist->GetXaxis()->SetTitle(_BUNCHES_XAXIS_TITLE.c_str());
     hist->GetXaxis()->SetTitleFont(132);
     hist->GetXaxis()->SetTitleSize(0.045);
     hist->GetXaxis()->SetLabelFont(132);
@@ -362,7 +375,7 @@ void TImpactTree::_StyleBunches(
     hist->GetYaxis()->SetTickSize(0.01);
     hist->GetYaxis()->SetTitleOffset(-0.8);
     hist->GetYaxis()->SetLabelOffset(-0.01);
-    hist->GetYaxis()->SetTitle("Total number of macro-particles");
+    hist->GetYaxis()->SetTitle(_BUNCHES_YAXIS_TITLE.c_str());
     hist->GetYaxis()->SetTitleFont(132);
     hist->GetYaxis()->SetTitleSize(0.045);
     hist->GetYaxis()->SetLabelFont(132);

@@ -37,6 +37,14 @@ public:
     // Methods to load and plot data
     void Load();
     void PlotBunches();
+    void PlotBunches(
+        Long_t firstSlice,
+        Long_t lastSlice,
+        Double_t xmin,
+        Double_t xmax,
+        Double_t ymin,
+        Double_t ymax
+    );
 
 protected:
     // Class members
@@ -54,16 +62,6 @@ protected:
     void _LoadBunches(Int_t bunchCount);
 
     // Methods to produce different plot types
-    void _PlotBunches(
-        TCanvas *canvas,
-        Int_t bunchCount,
-        Int_t lastSlice,
-        std::vector<std::string> bunchNames,
-        Double_t xmin,
-        Double_t xmax,
-        Double_t ymin,
-        Double_t ymax
-    );
     void _PlotBunchLayer(
         TCanvas *canvas,
         Int_t currentLayer,
