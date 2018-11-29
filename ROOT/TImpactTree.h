@@ -19,13 +19,15 @@ public:
 
     // Methods to access members
     Int_t BunchCount() const;
-    std::vector<std::string> BunchNames() const;
     Int_t CellCount() const;
     Int_t SliceCount() const;
+    std::vector<std::string> GetBunchNames() const;
     Int_t GetFirstCell() const;
     Int_t GetFirstSlice() const;
     Int_t GetLastCell() const;
     Int_t GetLastSlice() const;
+    void SetDefaultBunchNames();
+    void SetBunchNames(std::vector<std::string> bunchNames);
     void SetFirstCell(Int_t firstCell);
     void SetFirstSlice(Int_t firstSlice);
     void SetLastCell(Int_t lastCell);
@@ -36,7 +38,7 @@ public:
 
 protected:
     // Class members
-    Int_t                    _bunchCount; // Number of bunches in the simulation
+    const Int_t              _bunchCount; // Number of bunches in the simulation
     std::vector<std::string> _bunchNames; // List of names for the bunches
     Int_t                    _cellCount;  // Number of RFQ cells
     Int_t                    _sliceCount; // Number of RFQ cells

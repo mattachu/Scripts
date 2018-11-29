@@ -7,69 +7,27 @@
 ClassImp(TImpactTree);
 
 // Default constructor
-TImpactTree::TImpactTree()
+TImpactTree::TImpactTree():
+    _bunchCount(1), _cellCount(0), _sliceCount(0),
+    _firstCell(0), _firstSlice(0), _lastCell(0), _lastSlice(0)
 {
-    this->_bunchCount = 1;
-    this->_bunchNames = {"Bunch 1"};
-    this->_cellCount = 0;
-    this->_sliceCount = 0;
-    this->_firstCell = 0;
-    this->_firstSlice = 0;
-    this->_lastCell = 0;
-    this->_lastSlice = 0;
+    this->SetDefaultBunchNames();
 }
 
 // Constructor given bunch count only
-TImpactTree::TImpactTree(Int_t bunchCount)
+TImpactTree::TImpactTree(Int_t bunchCount):
+    _bunchCount(bunchCount), _cellCount(0), _sliceCount(0),
+    _firstCell(0), _firstSlice(0), _lastCell(0), _lastSlice(0)
 {
-    std::vector<std::string> bunchNames;
-
-    // Bunch count
-    this->_bunchCount = bunchCount;
-
-    // Default list of bunch names
-    for (Int_t i = 1; i <= bunchCount; i++)
-    {
-        bunchNames.push_back("Bunch " + std::to_string(i));
-    }
-    this->_bunchNames = bunchNames;
-
-    // Default cell and slice counts
-    this->_cellCount = 0;
-    this->_sliceCount = 0;
-    this->_firstCell = 0;
-    this->_firstSlice = 0;
-    this->_lastCell = 0;
-    this->_lastSlice = 0;
+    this->SetDefaultBunchNames();
 }
 
 // Constructor given bunch count and bunch names
-TImpactTree::TImpactTree(
-    Int_t bunchCount,
-    std::vector<std::string> bunchNames)
+TImpactTree::TImpactTree(Int_t bunchCount, std::vector<std::string> bunchNames):
+   _bunchCount(bunchCount), _cellCount(0), _sliceCount(0),
+   _firstCell(0), _firstSlice(0), _lastCell(0), _lastSlice(0)
 {
-
-    // Bunch count
-    this->_bunchCount = bunchCount;
-
-    // List of bunch names
-    if (bunchNames.size() < bunchCount)
-    {
-        for (Int_t i = bunchNames.size()+1; i <= bunchCount; i++)
-        {
-            bunchNames.push_back("Bunch " + std::to_string(i));
-        }
-    }
-    bunchNames.resize(bunchCount);
-    this->_bunchNames = bunchNames;
-
-    // Default cell and slice counts
-    this->_cellCount = 0;
-    this->_sliceCount = 0;
-    this->_firstCell = 0;
-    this->_firstSlice = 0;
-    this->_lastCell = 0;
-    this->_lastSlice = 0;
+    this->SetBunchNames(bunchNames);
 }
 
 // Default destructor
@@ -84,11 +42,6 @@ Int_t TImpactTree::BunchCount() const
     return this->_bunchCount;
 }
 
-std::vector<std::string> TImpactTree::BunchNames() const
-{
-    return this->_bunchNames;
-}
-
 Int_t TImpactTree::CellCount() const
 {
     return this->_cellCount;
@@ -97,6 +50,11 @@ Int_t TImpactTree::CellCount() const
 Int_t TImpactTree::SliceCount() const
 {
     return this->_sliceCount;
+}
+
+std::vector<std::string> TImpactTree::GetBunchNames() const
+{
+    return this->_bunchNames;
 }
 
 Int_t TImpactTree::GetFirstCell() const
@@ -117,6 +75,31 @@ Int_t TImpactTree::GetLastCell() const
 Int_t TImpactTree::GetLastSlice() const
 {
     return this->_lastSlice;
+}
+
+void TImpactTree::SetDefaultBunchNames()
+{
+    std::vector<std::string> bunchNames;
+    Int_t bunchCount = this->BunchCount();
+    for (Int_t i = 1; i <= bunchCount; i++)
+    {
+        bunchNames.push_back("Bunch " + std::to_string(i));
+    }
+    this->_bunchNames = bunchNames;
+}
+
+void TImpactTree::SetBunchNames(std::vector<std::string> bunchNames)
+{
+    Int_t bunchCount = this->BunchCount();
+    if (bunchNames.size() < bunchCount)
+    {
+        for (Int_t i = bunchNames.size()+1; i <= bunchCount; i++)
+        {
+            bunchNames.push_back("Bunch " + std::to_string(i));
+        }
+    }
+    bunchNames.resize(bunchCount);
+    this->_bunchNames = bunchNames;
 }
 
 void TImpactTree::SetFirstCell(Int_t firstCell)
@@ -260,4 +243,3 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
     this->_firstSlice = 1;
     this->_lastSlice = this->_sliceCount;
 }
-
