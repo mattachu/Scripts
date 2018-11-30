@@ -58,9 +58,11 @@ do
     if [[ ! -n $(sed -n '3p' "$currentDate.md" | grep -e '^#') ]]; then
         echo >> "$currentMonth.md"
         sed -e '1,2d' -e '/[.:!?]\s/q' -e '/[.:!?]$/q' "$currentDate.md" | \
-        tr '\n' ' ' | tr -d '\r' | sed -e 's/:/./' -e 's/`//g' | \
-        sed -e 's/\[[^]]*\]\[[^]]*\]//g' -e 's/\[[^]]*\]([^)]*)//g' | \
-        sed -e 's/^#.*$//' \
+        tr '\n' ' ' | tr -d '\r' | \
+        sed -e 's/:/./' -e 's/`//g' \
+            -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' \
+            -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
+            -e 's/^#.*$//' \
             >> "$currentMonth.md"
         echo >> "$currentMonth.md"
     fi
