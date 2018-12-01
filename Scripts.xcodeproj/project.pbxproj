@@ -11,6 +11,7 @@
 		C933220321B212AC00FA8CB0 /* TImpactTree.cxx */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TImpactTree.cxx; sourceTree = "<group>"; };
 		C933220621B2137A00FA8CB0 /* dstload.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = dstload.m; sourceTree = "<group>"; };
 		C933220721B2137A00FA8CB0 /* dstplot.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = dstplot.m; sourceTree = "<group>"; };
+		C933220821B2137F00FA8CB0 /* indexLogbook.sh */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = indexLogbook.sh; sourceTree = "<group>"; wrapsLines = 0; };
 		C981F9E1214240CC0078224B /* .greeting */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .greeting; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.sh; };
 		C987652521A28538007388D9 /* .bash_functions */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = .bash_functions; sourceTree = "<group>"; };
 		C987652C21A2894B007388D9 /* .bash_locations */ = {isa = PBXFileReference; explicitFileType = text.script.sh; fileEncoding = 4; lineEnding = 0; path = .bash_locations; sourceTree = "<group>"; };
@@ -52,9 +53,18 @@
 			path = Matlab;
 			sourceTree = "<group>";
 		};
+		C933220521B2132600FA8CB0 /* Notebooks */ = {
+			isa = PBXGroup;
+			children = (
+				C933220821B2137F00FA8CB0 /* indexLogbook.sh */,
+			);
+			path = Notebooks;
+			sourceTree = "<group>";
+		};
 		C9DB51C0212FF01E002573B1 = {
 			isa = PBXGroup;
 			children = (
+				C933220521B2132600FA8CB0 /* Notebooks */,
 				C933220421B2131E00FA8CB0 /* Matlab */,
 				C93321FF21B2123A00FA8CB0 /* ROOT */,
 				C981F9E1214240CC0078224B /* .greeting */,
