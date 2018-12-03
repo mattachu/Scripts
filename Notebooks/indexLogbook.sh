@@ -44,8 +44,18 @@ do
         lastMonth="$currentMonth"
     fi
     # Add forward, back and up links to logbooks
-    sed -i'' -e "1s/^\([^[]\)/\
-\1/" "$currentDate.md"
+    if [[ ! -n $(head -n1 "$currentDate.md" | \
+                 grep -E -e "^\[(< ){0,1}[0-9]{4}-[0-9]{2}") ]]; then
+        cat "$currentDate.md" > "temp.md"
+        if [[ "$(uname)" == "Darwin" ]]; then
+            echo > "$currentDate.md"
+            echo >> "$currentDate.md"
+        else
+            echo -e "\n" > "$currentDate.md"
+        fi
+        cat "temp.md" >> "$currentDate.md"
+        rm "temp.md"
+    fi
     if [[ -n "$lastDate" ]]; then
         sed -i'' -e "1s/^.*\$/[< $lastDate]($lastDate)/" "$currentDate.md"
     else
