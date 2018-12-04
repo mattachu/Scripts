@@ -14,6 +14,7 @@
 # - handling of new lines is tricky to match both systems
 
 # Parameters
+export pagePattern="./.*.md"
 export datePattern="./[0-9]{4}-[0-9]{2}-[0-9]{2}.md"
 export monthPattern="./[0-9]{4}-[0-9]{2}.md"
 export notebookContentsPage="Contents.md"
@@ -72,6 +73,77 @@ function convertSalaryTable()
         fi
     else
         echo "Cannot read file $inputFile"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Functions for processing notebooks and subfolders
+
+# Build contents page for the given folder
+function buildNotebookContents()
+{
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    local contentsPage="$notebookContentsPage"
+    local startFolder=$(pwd)
+    cd "$notebookFolder"
+    rm -f "$contentsPage"
+    pageList=$(getPageList)
+    for currentPage in $pageList
+    do
+        printPageHeading "$currentPage" "withLinks" >> $contentsPage
+        getPageSummary "$currentPage.md" >> $contentsPage
+    done
+    cd "$startFolder"
+}
+
+# Function to get list of pages in the current folder, excluding contents page
+function getPageList()
+{
+    local exclude=$(echo "$notebookContentsPage" | sed -e 's/\.md//')
+    getMatchingPageList "$pagePattern" | sed -e "s/[ ]*\($exclude\)[ ]*//g"
+}
+
+# Function to get list of pages matching the given pattern
+function getMatchingPageList()
+{
+    local matchingPattern="$1"
+    if [[ -n "$matchingPattern" ]]; then
+        echo $($findCommand -regex $matchingPattern | \
+               sort | \
+               sed -e 's|\./||' -e 's/\.md//')
+    fi
+}
+
+# Function to produce page heading (level 1) for given notebook page
+function printPageHeading()
+{
+    local thisPage="$1"
+    local style="$2"
+    if [[ -n "$thisPage" ]]; then
+        local pageTitle=$(echo "$thisPage" | sed -e 's/[_\-]/ /g')
+        case "$style" in
+        "withLinks")
+            echo -e "# [$pageTitle]($thisPage)\n" ;;
+        *)
+            echo -e "# $pageTitle\n" ;;
+        esac
+    fi
+}
+
+# Function to get the first full paragraph from a page
+function getPageSummary()
+{
+    local thisPage="$1"
+    if [[ -r "$thisPage" ]]; then
+        cat "$thisPage" | tr -d '\r' | \
+        sed -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' \
+            -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
+            -e '/^$/q' | \
+        tr '\n' ' ' | sed -e 's/  / /g' -e 's/  / /g' -e 's/[ ]*$//g'
+        printBlankLine
+    else
+        echo "Cannot read file $thisPage"
     fi
 }
 
@@ -171,17 +243,6 @@ function getLogbookDateList()
 function getLogbookMonthList()
 {
     getMatchingPageList "$monthPattern"
-}
-
-# Function to get list of pages matching the given pattern
-function getMatchingPageList()
-{
-    local matchingPattern="$1"
-    if [[ -n "$matchingPattern" ]]; then
-        echo $($findCommand -regex $matchingPattern | \
-               sort | \
-               sed -e 's|\./||' -e 's|\.md||')
-    fi
 }
 
 # Function to convert a numeric date (XXXX-XX-XX) to a full date
