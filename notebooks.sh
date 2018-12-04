@@ -41,6 +41,26 @@ function indexLogbook()
     cd "$startFolder"
 }
 
+# Convert salary data copied from Excel
+function convertSalaryTable()
+{
+    local inputFile="$1"
+    local outputFile="$2"
+    local tempFile=".tempSalaryTable.md"
+    if [[ -r "$inputFile" ]]; then
+        if [[ ! -n "$outputFile" ]]; then
+            outputFile="$tempFile"
+        fi
+        convertSalaryHeaders "$inputFile" > "$outputFile"
+        convertSalaryBody "$inputFile" >> "$outputFile"
+        if [[ "$outputFile" == "$tempFile" ]]; then
+            mv "$tempFile" "$inputFile"
+        fi
+    else
+        echo "Cannot read file $inputFile"
+    fi
+}
+
 # Function to summarise contents of a logbook page
 function summariseLogbookPage()
 {
@@ -289,5 +309,62 @@ function hasSummaryLine()
         fi
     else
         echo "Cannot read file $thisPage"
+    fi
+}
+
+# Function to process the headers for a salary table file copied from Excel
+function convertSalaryHeaders()
+{
+    local inputFile="$1"
+    if [[ -r "$inputFile" ]]; then
+        convertSalaryFirstLine "$inputFile"
+        createSalaryLineFormat "$inputFile"
+        convertSalarySecondLine "$inputFile"
+    else
+        echo "Cannot read file $inputFile"
+    fi
+}
+
+# Function to process the main header line for a salary table
+function convertSalaryFirstLine()
+{
+    local inputFile="$1"
+    if [[ -r "$inputFile" ]]; then
+        sed -n -e '1s/\t/ | /gp' "$inputFile"
+    else
+        echo "Cannot read file $inputFile"
+    fi
+}
+
+# Function to produce the line formatting for a salary table
+function createSalaryLineFormat()
+{
+    local inputFile="$1"
+    if [[ -r "$inputFile" ]]; then
+        sed -n -e '1s/\t/|/g' -e '1s/[^\|]*/---/gp' "$inputFile"
+    else
+        echo "Cannot read file $inputFile"
+    fi
+}
+
+# Function to process the secondary header line for a salary table
+function convertSalarySecondLine()
+{
+    local inputFile="$1"
+    if [[ -r "$inputFile" ]]; then
+        sed -n -e '2s/\t/ | /g' -e '2s/$/| /p' "$inputFile"
+    else
+        echo "Cannot read file $inputFile"
+    fi
+}
+
+# Function to process the body for a salary table file copied from Excel
+function convertSalaryBody()
+{
+    local inputFile="$1"
+    if [[ -r "$inputFile" ]]; then
+        sed -e '1,3d' -e '/^\t/d' -e '/^$/d' -e 's/\t/ | /g' "$inputFile"
+    else
+        echo "Cannot read file $inputFile"
     fi
 }
