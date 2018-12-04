@@ -1,6 +1,14 @@
 #!/bin/bash
 # Functions for working with notebook Markdown files
 #
+# Main user functions:
+# - indexLogbook([logbookFolder])
+#    Adds internal links and creates monthly summaries for logbooks.
+# - convertSalaryTable(inputFile, [outputFile])
+#    Takes a file with values copied from the Excel export from the PKU portal
+#    and converts it to a Markdown table. If `outputFile` is not given, file is
+#    modified in place.
+#
 # General notes:
 # - `sed -i''` works on both macOS (FreeBSD sed) and Ubuntu (GNU sed)
 # - handling of new lines is tricky to match both systems
@@ -13,6 +21,9 @@ if [[ "$(uname)" == "Darwin" ]]; then
 else
     export findCommand="find . -regextype posix-egrep"
 fi
+
+# ------------------------------------------------------------------------------
+# Main user functions for working with notebooks
 
 # Build a set of monthly summaries from single notebook files
 function indexLogbook()
@@ -60,6 +71,9 @@ function convertSalaryTable()
         echo "Cannot read file $inputFile"
     fi
 }
+
+# ------------------------------------------------------------------------------
+# Functions for processing logbook entries
 
 # Function to summarise contents of a logbook page
 function summariseLogbookPage()
@@ -311,6 +325,9 @@ function hasSummaryLine()
         echo "Cannot read file $thisPage"
     fi
 }
+
+# ------------------------------------------------------------------------------
+# Functions for processing salary tables
 
 # Function to process the headers for a salary table file copied from Excel
 function convertSalaryHeaders()
