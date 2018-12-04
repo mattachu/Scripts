@@ -36,11 +36,11 @@ function indexLogbook()
 
     cd "$logbookFolder"
     deleteMonthlySummaries
-    getLogbookDateList "dateList"
+    dateList=$(getLogbookDateList)
 
     for currentDate in $dateList
     do
-        getMonthFromDate "$currentDate" "currentMonth"
+        currentMonth=$(getMonthFromDate "$currentDate")
         if [[ ! -e "$currentMonth.md" ]]; then
             createMonthlySummary "$currentMonth" "$lastMonth"
             lastMonth="$currentMonth"
@@ -131,15 +131,9 @@ function getHeadingsSummary()
 # Function to get list of dates from a logbook folder
 function getLogbookDateList()
 {
-    local __resultvar="$1"
-    local myresult=$($findCommand -regex $datePattern | \
-                     sort | \
-                     sed -e 's|\./||' -e 's|\.md||')
-    if [[ "$__resultvar" ]]; then
-        eval $__resultvar="'$myresult'"
-    else
-        echo "$myresult"
-    fi
+    echo $($findCommand -regex $datePattern | \
+           sort | \
+           sed -e 's|\./||' -e 's|\.md||')
 }
 
 # Function to delete existing monthly summary files
@@ -235,7 +229,7 @@ function addThisMonthLink()
 {
     local thisDate="$1"
     if [[ -n "$thisDate" && -w "$thisDate.md" ]]; then
-        getMonthFromDate "$thisDate" "thisMonth"
+        thisMonth=$(getMonthFromDate "$thisDate")
         sed -i'' "1s/\$/ | [$thisMonth]($thisMonth)/" "$thisDate.md"
     fi
 }
@@ -284,13 +278,7 @@ function removeLeadingPipe()
 function getMonthFromDate()
 {
     local mydate="$1"
-    local __resultvar="$2"
-    local myresult=$(echo "$mydate" | cut -c -7)
-    if [[ "$__resultvar" ]]; then
-        eval $__resultvar="'$myresult'"
-    else
-        echo "$myresult"
-    fi
+    echo "$mydate" | cut -c -7
 }
 
 # Function to check whether given page already has a date link
