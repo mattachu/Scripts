@@ -124,7 +124,7 @@ function printPageHeading()
     local thisPage="$1"
     local style="$2"
     if [[ -n "$thisPage" ]]; then
-        local pageTitle=$(echo "$thisPage" | sed -e 's/[_\-]/ /g')
+        local pageTitle=$(getPageTitle "$thisPage")
         case "$style" in
         "withLinks")
             echo -e "# [$pageTitle]($thisPage)\n" | sed -e 's/\.md//' ;;
@@ -134,15 +134,36 @@ function printPageHeading()
     fi
 }
 
+# Function to get a page's title (from the first line or the file name)
+function getPageTitle()
+{
+    local thisPage="$1"
+    local pageTitle=""
+    if [[ -r "$thisPage" ]]; then
+        pageTitle=$(sed -n '1s/^# //p' "$thisPage")
+        if [[ ! -n "$pageTitle" ]]; then
+            pageTitle=$(echo "$thisPage" | sed -e 's/[_\-]/ /g' -e 's/\.md//')
+        fi
+        echo $pageTitle
+    else
+        echo "Cannot read file $thisPage"
+    fi
+}
+
 # Function to get the first full paragraph from a page
 function getPageSummary()
 {
     local thisPage="$1"
+    local thisSummary=""
     if [[ -r "$thisPage" ]]; then
-        cat "$thisPage" | tr -d '\r' | \
+        if [[ -n $(sed -n '1s/^# //p' "$thisPage") ]]; then
+            thisSummary=$(sed -e '1,2d' "$thisPage" | tr -d '\r'| sed -e '/^$/q')
+        else
+            thisSummary=$(cat "$thisPage" | tr -d '\r'| sed -e '/^$/q')
+        fi
+        echo "$thisSummary" | \
         sed -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' \
-            -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
-            -e '/^$/q' | \
+            -e 's/\[\([^]]*\)\]([^)]*)/\1/g' | \
         tr '\n' ' ' | sed -e 's/  / /g' -e 's/  / /g' -e 's/[ ]*$//g'
         printBlankLine
     else
