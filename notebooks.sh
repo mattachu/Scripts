@@ -18,6 +18,7 @@ export pagePattern="./.*.md"
 export datePattern="./[0-9]{4}-[0-9]{2}-[0-9]{2}.md"
 export monthPattern="./[0-9]{4}-[0-9]{2}.md"
 export notebookContentsPage="Contents.md"
+export notebookReadmePage="Readme.md"
 if [[ "$(uname)" == "Darwin" ]]; then
     export findCommand="find -E . -maxdepth 1"
 else
@@ -88,6 +89,7 @@ function buildNotebookContents()
     local startFolder=$(pwd)
     cd "$notebookFolder"
     rm -f "$contentsPage"
+    getFolderSummary >> $contentsPage
     pageList=$(getPageList)
     for currentPage in $pageList
     do
@@ -97,11 +99,12 @@ function buildNotebookContents()
     cd "$startFolder"
 }
 
-# Function to get list of pages in the current folder, excluding contents page
+# Function to get list of pages in the current folder, excluding special pages
 function getPageList()
 {
-    local exclude=$(echo "$notebookContentsPage" | sed -e 's/\.md//')
-    getMatchingPageList "$pagePattern" | sed -e "s/[ ]*\($exclude\)[ ]*//g"
+    getMatchingPageList "$pagePattern" | \
+        sed -e "s/\b\($notebookContentsPage\|$notebookReadmePage\)\b//g" \
+            -e 's/^[ ]*//'
 }
 
 # Function to get list of pages matching the given pattern
@@ -144,6 +147,20 @@ function getPageSummary()
         printBlankLine
     else
         echo "Cannot read file $thisPage"
+    fi
+}
+
+# Function to get the folder summary from the Readme file
+function getFolderSummary()
+{
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    local readmePage="$notebookReadmePage"
+    if [[ -r "$notebookFolder/$readmePage" ]]; then
+        cat "$readmePage"
+        printBlankLine
+    else
+        echo "Cannot read file $readmePage"
     fi
 }
 
