@@ -92,7 +92,7 @@ function buildNotebookContents()
     for currentPage in $pageList
     do
         printPageHeading "$currentPage" "withLinks" >> $contentsPage
-        getPageSummary "$currentPage.md" >> $contentsPage
+        getPageSummary "$currentPage" >> $contentsPage
     done
     cd "$startFolder"
 }
@@ -111,7 +111,7 @@ function getMatchingPageList()
     if [[ -n "$matchingPattern" ]]; then
         echo $($findCommand -regex $matchingPattern | \
                sort | \
-               sed -e 's|\./||' -e 's/\.md//')
+               sed -e 's|\./||')
     fi
 }
 
@@ -124,7 +124,7 @@ function printPageHeading()
         local pageTitle=$(echo "$thisPage" | sed -e 's/[_\-]/ /g')
         case "$style" in
         "withLinks")
-            echo -e "# [$pageTitle]($thisPage)\n" ;;
+            echo -e "# [$pageTitle]($thisPage)\n" | sed -e 's/\.md//' ;;
         *)
             echo -e "# $pageTitle\n" ;;
         esac
@@ -236,13 +236,13 @@ function getPageContent()
 # Function to get list of dates from a logbook folder
 function getLogbookDateList()
 {
-    getMatchingPageList "$datePattern"
+    getMatchingPageList "$datePattern" | sed -e 's/\.md//g'
 }
 
 # Function to get list of months from a logbook folder
 function getLogbookMonthList()
 {
-    getMatchingPageList "$monthPattern"
+    getMatchingPageList "$monthPattern" | sed -e 's/\.md//g'
 }
 
 # Function to convert a numeric date (XXXX-XX-XX) to a full date
