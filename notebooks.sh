@@ -19,9 +19,9 @@ export datePattern="./[0-9]{4}-[0-9]{2}-[0-9]{2}.md"
 export monthPattern="./[0-9]{4}-[0-9]{2}.md"
 export notebookContentsPage="Contents.md"
 if [[ "$(uname)" == "Darwin" ]]; then
-    export findCommand="find -E ."
+    export findCommand="find -E . -maxdepth 1"
 else
-    export findCommand="find . -regextype posix-egrep"
+    export findCommand="find . -maxdepth 1 -regextype posix-egrep"
 fi
 
 # ------------------------------------------------------------------------------
