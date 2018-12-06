@@ -14,16 +14,52 @@
 # - handling of new lines is tricky to match both systems
 
 # Parameters
+export pagePattern="./.*.md"
 export datePattern="./[0-9]{4}-[0-9]{2}-[0-9]{2}.md"
 export monthPattern="./[0-9]{4}-[0-9]{2}.md"
+export notebookContentsPage="Contents.md"
+export notebookReadmePage="Readme.md"
+export notebookAttachmentsFolder="Attachments"
+export notebookLogbookFolder="Logbook"
 if [[ "$(uname)" == "Darwin" ]]; then
-    export findCommand="find -E ."
+    export findCommand="find -E . -maxdepth 1"
 else
-    export findCommand="find . -regextype posix-egrep"
+    export findCommand="find . -maxdepth 1 -regextype posix-egrep"
 fi
 
 # ------------------------------------------------------------------------------
 # Main user functions for working with notebooks
+
+# Build contents page for the given folder
+function buildNotebookContents()
+{
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    local contentsPage="$notebookContentsPage"
+    local startFolder=$(pwd)
+    cd "$notebookFolder"
+    rm -f "$contentsPage"
+    getFolderSummary >> $contentsPage
+    local folderList=$(getFolderList)
+    if [[ -n "$folderList" ]]; then
+        echo -e "# Folders\n" >> $contentsPage
+        for currentFolder in $folderList
+        do
+            printFolderHeading "$currentFolder" "withLinks" >> $contentsPage
+            getFolderSummary "$currentFolder" >> $contentsPage
+        done
+    fi
+    local pageList=$(getPageList)
+    if [[ -n "$pageList" ]]; then
+        echo -e "# Pages\n" >> $contentsPage
+        for currentPage in $pageList
+        do
+            printPageHeading "$currentPage" "withLinks" >> $contentsPage
+            getPageSummary "$currentPage" >> $contentsPage
+        done
+    fi
+    cd "$startFolder"
+}
 
 # Build a set of monthly summaries from single notebook files
 function indexLogbook()
@@ -33,14 +69,12 @@ function indexLogbook()
     local startFolder=$(pwd)
     local lastDate=""
     local lastMonth=""
-
     cd "$logbookFolder"
     deleteMonthlySummaries
-    getLogbookDateList "dateList"
-
+    dateList=$(getLogbookDateList)
     for currentDate in $dateList
     do
-        getMonthFromDate "$currentDate" "currentMonth"
+        currentMonth=$(getMonthFromDate "$currentDate")
         if [[ ! -e "$currentMonth.md" ]]; then
             createMonthlySummary "$currentMonth" "$lastMonth"
             lastMonth="$currentMonth"
@@ -49,6 +83,7 @@ function indexLogbook()
         summariseLogbookPage "$currentDate" >> "$currentMonth.md"
         lastDate="$currentDate"
     done
+    buildLogbookContents
     cd "$startFolder"
 }
 
@@ -73,7 +108,132 @@ function convertSalaryTable()
 }
 
 # ------------------------------------------------------------------------------
+# Functions for processing notebooks and subfolders
+
+# Function to get list of pages in the current folder, excluding special pages
+function getPageList()
+{
+    getMatchingPageList "$pagePattern" | \
+        sed -e "s/\b\($notebookContentsPage\|$notebookReadmePage\)\b//g" \
+            -e 's/^[ ]*//'
+}
+
+# Function to get list of pages matching the given pattern
+function getMatchingPageList()
+{
+    local matchingPattern="$1"
+    if [[ -n "$matchingPattern" ]]; then
+        echo $($findCommand -regex $matchingPattern | \
+               sort | \
+               sed -e 's|\./||')
+    fi
+}
+
+# Function to get list of subfolders, excluding special folders
+function getFolderList()
+{
+    ls -d */ 2> /dev/null | \
+    sed -e 's|/| |g' \
+        -e "s|\b\($notebookAttachmentsFolder\)||" \
+        -e 's| $||'
+}
+
+# Function to produce page heading (level 2) for given notebook page
+function printPageHeading()
+{
+    local thisPage="$1"
+    local style="$2"
+    if [[ -n "$thisPage" ]]; then
+        local pageTitle=$(getPageTitle "$thisPage")
+        case "$style" in
+        "withLinks")
+            echo -e "## [$pageTitle]($thisPage)\n" | sed -e 's/\.md//' ;;
+        *)
+            echo -e "## $pageTitle\n" ;;
+        esac
+    fi
+}
+
+# Function to produce folder heading (level 2) for given notebook subfolder
+function printFolderHeading()
+{
+    local thisFolder="$1"
+    local style="$2"
+    local contentsPage=$(echo "$notebookContentsPage" | sed -e 's/\.md//')
+    if [[ -d "$thisFolder" ]]; then
+        case "$style" in
+        "withLinks")
+            echo -e "## [$thisFolder]($thisFolder/$contentsPage)\n" ;;
+        *)
+            echo -e "## $thisFolder\n" ;;
+        esac
+    fi
+}
+
+# Function to get a page's title (from the first line or the file name)
+function getPageTitle()
+{
+    local thisPage="$1"
+    local pageTitle=""
+    if [[ -r "$thisPage" ]]; then
+        pageTitle=$(sed -n '1s/^# //p' "$thisPage")
+        if [[ ! -n "$pageTitle" ]]; then
+            pageTitle=$(echo "$thisPage" | sed -e 's/[_\-]/ /g' -e 's/\.md//')
+        fi
+        echo $pageTitle
+    else
+        echo "Cannot read file $thisPage"
+    fi
+}
+
+# Function to get the first full paragraph from a page
+function getPageSummary()
+{
+    local thisPage="$1"
+    local thisSummary=""
+    if [[ -r "$thisPage" ]]; then
+        if [[ -n $(sed -n '1s/^# //p' "$thisPage") ]]; then
+            thisSummary=$(sed -e '1,2d' "$thisPage" | tr -d '\r'| sed -e '/^$/q')
+        else
+            thisSummary=$(cat "$thisPage" | tr -d '\r'| sed -e '/^$/q')
+        fi
+        echo "$thisSummary" | \
+        sed -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' \
+            -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
+            -e 's/  / /g' -e 's/  / /g' -e 's/[ ]*$//g' -e 's/:$/./g'
+        endLine
+    else
+        echo "Cannot read file $thisPage"
+    fi
+}
+
+# Function to get the folder summary from the Readme file
+function getFolderSummary()
+{
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    local readmePage="$notebookReadmePage"
+    if [[ -r "$notebookFolder/$readmePage" ]]; then
+        cat "$notebookFolder/$readmePage"
+        printBlankLine
+    fi
+}
+
+# ------------------------------------------------------------------------------
 # Functions for processing logbook entries
+
+# Function to build a contents page from existing monthly summary pages
+function buildLogbookContents()
+{
+    local contentsPage="$notebookContentsPage"
+    rm -f "$contentsPage"
+    monthList=$(getLogbookMonthList)
+    for currentMonth in $monthList
+    do
+        printMonthHeading "$currentMonth" "full+links" >> $contentsPage
+        getPageContent "$currentMonth.md" >> $contentsPage
+    done
+}
 
 # Function to summarise contents of a logbook page
 function summariseLogbookPage()
@@ -128,17 +288,69 @@ function getHeadingsSummary()
     fi
 }
 
+# Function to get page content without the first four lines
+# (line 1: date links, 3: title, 2 & 4: blank)
+function getPageContent()
+{
+    local thisPage="$1"
+    if [[ -r $thisPage ]]; then
+        sed -e '1,4d' "$thisPage"
+    else
+        echo "Cannot read page $thisPage"
+    fi
+}
+
 # Function to get list of dates from a logbook folder
 function getLogbookDateList()
 {
-    local __resultvar="$1"
-    local myresult=$($findCommand -regex $datePattern | \
-                     sort | \
-                     sed -e 's|\./||' -e 's|\.md||')
-    if [[ "$__resultvar" ]]; then
-        eval $__resultvar="'$myresult'"
-    else
-        echo "$myresult"
+    getMatchingPageList "$datePattern" | sed -e 's/\.md//g'
+}
+
+# Function to get list of months from a logbook folder
+function getLogbookMonthList()
+{
+    getMatchingPageList "$monthPattern" | sed -e 's/\.md//g'
+}
+
+# Function to convert a numeric date (XXXX-XX-XX) to a full date
+function getFullDate()
+{
+    local thisDate="$1"
+    if [[ -n "$thisDate" ]]; then
+        local thisYear=$(echo "$thisDate" | cut -c -4)
+        local thisMonth=$(echo "$thisDate" | cut -c 6-7)
+        local thisDay=$(echo "$thisDate" | cut -c 9-10 | sed -e 's/^0//')
+        case "$thisMonth" in
+        "01")
+            thisMonth="January" ;;
+        "02")
+            thisMonth="February" ;;
+        "03")
+            thisMonth="March" ;;
+        "04")
+            thisMonth="April" ;;
+        "05")
+            thisMonth="May" ;;
+        "06")
+            thisMonth="June" ;;
+        "07")
+            thisMonth="July" ;;
+        "08")
+            thisMonth="August" ;;
+        "09")
+            thisMonth="September" ;;
+        "10")
+            thisMonth="October" ;;
+        "11")
+            thisMonth="November" ;;
+        "12")
+            thisMonth="December" ;;
+        esac
+        if [[ -n "$thisDay" ]]; then
+            echo "$thisDay $thisMonth $thisYear"
+        else
+            echo "$thisMonth $thisYear"
+        fi
     fi
 }
 
@@ -195,8 +407,18 @@ function blankFirstLine()
 function printMonthHeading()
 {
     local thisMonth="$1"
+    local style="$2"
     if [[ -n "$thisMonth" ]]; then
-        echo -e "# $thisMonth\n"
+        case "$style" in
+        "withLinks")
+            echo -e "# [$thisMonth]($thisMonth)\n" ;;
+        "full")
+            echo -e "# $(getFullDate $thisMonth)\n" ;;
+        "full+links")
+            echo -e "# [$(getFullDate $thisMonth)]($thisMonth)\n" ;;
+        *)
+            echo -e "# $thisMonth\n" ;;
+        esac
     fi
 }
 
@@ -235,7 +457,7 @@ function addThisMonthLink()
 {
     local thisDate="$1"
     if [[ -n "$thisDate" && -w "$thisDate.md" ]]; then
-        getMonthFromDate "$thisDate" "thisMonth"
+        thisMonth=$(getMonthFromDate "$thisDate")
         sed -i'' "1s/\$/ | [$thisMonth]($thisMonth)/" "$thisDate.md"
     fi
 }
@@ -284,13 +506,7 @@ function removeLeadingPipe()
 function getMonthFromDate()
 {
     local mydate="$1"
-    local __resultvar="$2"
-    local myresult=$(echo "$mydate" | cut -c -7)
-    if [[ "$__resultvar" ]]; then
-        eval $__resultvar="'$myresult'"
-    else
-        echo "$myresult"
-    fi
+    echo "$mydate" | cut -c -7
 }
 
 # Function to check whether given page already has a date link
