@@ -30,6 +30,37 @@ fi
 # ------------------------------------------------------------------------------
 # Main user functions for working with notebooks
 
+# Build contents page for the given folder
+function buildNotebookContents()
+{
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    local contentsPage="$notebookContentsPage"
+    local startFolder=$(pwd)
+    cd "$notebookFolder"
+    rm -f "$contentsPage"
+    getFolderSummary >> $contentsPage
+    local folderList=$(getFolderList)
+    if [[ -n "$folderList" ]]; then
+        echo -e "# Folders\n" >> $contentsPage
+        for currentFolder in $folderList
+        do
+            printFolderHeading "$currentFolder" "withLinks" >> $contentsPage
+            getFolderSummary "$currentFolder" >> $contentsPage
+        done
+    fi
+    local pageList=$(getPageList)
+    if [[ -n "$pageList" ]]; then
+        echo -e "# Pages\n" >> $contentsPage
+        for currentPage in $pageList
+        do
+            printPageHeading "$currentPage" "withLinks" >> $contentsPage
+            getPageSummary "$currentPage" >> $contentsPage
+        done
+    fi
+    cd "$startFolder"
+}
+
 # Build a set of monthly summaries from single notebook files
 function indexLogbook()
 {
@@ -81,37 +112,6 @@ function convertSalaryTable()
 
 # ------------------------------------------------------------------------------
 # Functions for processing notebooks and subfolders
-
-# Build contents page for the given folder
-function buildNotebookContents()
-{
-    local notebookFolder="$*"
-    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
-    local contentsPage="$notebookContentsPage"
-    local startFolder=$(pwd)
-    cd "$notebookFolder"
-    rm -f "$contentsPage"
-    getFolderSummary >> $contentsPage
-    local folderList=$(getFolderList)
-    if [[ -n "$folderList" ]]; then
-        echo -e "# Folders\n" >> $contentsPage
-        for currentFolder in $folderList
-        do
-            printFolderHeading "$currentFolder" "withLinks" >> $contentsPage
-            getFolderSummary "$currentFolder" >> $contentsPage
-        done
-    fi
-    local pageList=$(getPageList)
-    if [[ -n "$pageList" ]]; then
-        echo -e "# Pages\n" >> $contentsPage
-        for currentPage in $pageList
-        do
-            printPageHeading "$currentPage" "withLinks" >> $contentsPage
-            getPageSummary "$currentPage" >> $contentsPage
-        done
-    fi
-    cd "$startFolder"
-}
 
 # Function to get list of pages in the current folder, excluding special pages
 function getPageList()
