@@ -69,11 +69,9 @@ function indexLogbook()
     local startFolder=$(pwd)
     local lastDate=""
     local lastMonth=""
-
     cd "$logbookFolder"
     deleteMonthlySummaries
     dateList=$(getLogbookDateList)
-
     for currentDate in $dateList
     do
         currentMonth=$(getMonthFromDate "$currentDate")
@@ -85,8 +83,7 @@ function indexLogbook()
         summariseLogbookPage "$currentDate" >> "$currentMonth.md"
         lastDate="$currentDate"
     done
-
-    buildLogbookContents "$logbookFolder"
+    buildLogbookContents
     cd "$startFolder"
 }
 
@@ -228,11 +225,7 @@ function getFolderSummary()
 # Function to build a contents page from existing monthly summary pages
 function buildLogbookContents()
 {
-    local logbookFolder="$*"
-    if [[ -z $logbookFolder ]]; then logbookFolder="."; fi
     local contentsPage="$notebookContentsPage"
-    local startFolder=$(pwd)
-    cd "$logbookFolder"
     rm -f "$contentsPage"
     monthList=$(getLogbookMonthList)
     for currentMonth in $monthList
@@ -240,7 +233,6 @@ function buildLogbookContents()
         printMonthHeading "$currentMonth" "full+links" >> $contentsPage
         getPageContent "$currentMonth.md" >> $contentsPage
     done
-    cd "$startFolder"
 }
 
 # Function to summarise contents of a logbook page
