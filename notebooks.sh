@@ -202,9 +202,9 @@ function getPageSummary()
         fi
         echo "$thisSummary" | \
         sed -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' \
-            -e 's/\[\([^]]*\)\]([^)]*)/\1/g' | \
-        tr '\n' ' ' | sed -e 's/  / /g' -e 's/  / /g' -e 's/[ ]*$//g'
-        printBlankLine
+            -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
+            -e 's/  / /g' -e 's/  / /g' -e 's/[ ]*$//g' -e 's/:$/./g'
+        endLine
     else
         echo "Cannot read file $thisPage"
     fi
