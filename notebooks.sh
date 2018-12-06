@@ -19,6 +19,8 @@ export datePattern="./[0-9]{4}-[0-9]{2}-[0-9]{2}.md"
 export monthPattern="./[0-9]{4}-[0-9]{2}.md"
 export notebookContentsPage="Contents.md"
 export notebookReadmePage="Readme.md"
+export notebookAttachmentsFolder="Attachments"
+export notebookLogbookFolder="Logbook"
 if [[ "$(uname)" == "Darwin" ]]; then
     export findCommand="find -E . -maxdepth 1"
 else
@@ -90,12 +92,24 @@ function buildNotebookContents()
     cd "$notebookFolder"
     rm -f "$contentsPage"
     getFolderSummary >> $contentsPage
-    pageList=$(getPageList)
-    for currentPage in $pageList
-    do
-        printPageHeading "$currentPage" "withLinks" >> $contentsPage
-        getPageSummary "$currentPage" >> $contentsPage
-    done
+    local folderList=$(getFolderList)
+    if [[ -n "$folderList" ]]; then
+        echo -e "# Folders\n" >> $contentsPage
+        for currentFolder in $folderList
+        do
+            printFolderHeading "$currentFolder" "withLinks" >> $contentsPage
+            getFolderSummary "$currentFolder" >> $contentsPage
+        done
+    fi
+    local pageList=$(getPageList)
+    if [[ -n "$pageList" ]]; then
+        echo -e "# Pages\n" >> $contentsPage
+        for currentPage in $pageList
+        do
+            printPageHeading "$currentPage" "withLinks" >> $contentsPage
+            getPageSummary "$currentPage" >> $contentsPage
+        done
+    fi
     cd "$startFolder"
 }
 
@@ -118,7 +132,16 @@ function getMatchingPageList()
     fi
 }
 
-# Function to produce page heading (level 1) for given notebook page
+# Function to get list of subfolders, excluding special folders
+function getFolderList()
+{
+    ls -d */ | \
+    sed -e 's|/| |g' \
+        -e "s|\b\($notebookAttachmentsFolder\)||" \
+        -e 's| $||'
+}
+
+# Function to produce page heading (level 2) for given notebook page
 function printPageHeading()
 {
     local thisPage="$1"
@@ -127,9 +150,25 @@ function printPageHeading()
         local pageTitle=$(getPageTitle "$thisPage")
         case "$style" in
         "withLinks")
-            echo -e "# [$pageTitle]($thisPage)\n" | sed -e 's/\.md//' ;;
+            echo -e "## [$pageTitle]($thisPage)\n" | sed -e 's/\.md//' ;;
         *)
-            echo -e "# $pageTitle\n" ;;
+            echo -e "## $pageTitle\n" ;;
+        esac
+    fi
+}
+
+# Function to produce folder heading (level 2) for given notebook subfolder
+function printFolderHeading()
+{
+    local thisFolder="$1"
+    local style="$2"
+    local contentsPage=$(echo "$notebookContentsPage" | sed -e 's/\.md//')
+    if [[ -d "$thisFolder" ]]; then
+        case "$style" in
+        "withLinks")
+            echo -e "## [$thisFolder]($thisFolder/$contentsPage)\n" ;;
+        *)
+            echo -e "## $thisFolder\n" ;;
         esac
     fi
 }
@@ -178,10 +217,8 @@ function getFolderSummary()
     if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
     local readmePage="$notebookReadmePage"
     if [[ -r "$notebookFolder/$readmePage" ]]; then
-        cat "$readmePage"
+        cat "$notebookFolder/$readmePage"
         printBlankLine
-    else
-        echo "Cannot read file $readmePage"
     fi
 }
 
