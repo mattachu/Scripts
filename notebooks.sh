@@ -132,7 +132,7 @@ function getMatchingPageList()
 # Function to get list of subfolders, excluding special folders
 function getFolderList()
 {
-    ls -d */ | \
+    ls -d */ 2> /dev/null | \
     sed -e 's|/| |g' \
         -e "s|\b\($notebookAttachmentsFolder\)||" \
         -e 's| $||'
