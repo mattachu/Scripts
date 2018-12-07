@@ -5,6 +5,7 @@
 source "${HOME}/.bash_locations"
 
 # Shortcuts for common actions
+alias beep="echo -e '\a'"
 alias server="ssh wangzhi@162.105.147.95"
 alias transfer="rsync --archive --update --delete --max-size=50M --verbose ~/Simulations/Current/ ~/Simulations/Transfer/"
 alias run-tests='./run-tests.sh'
