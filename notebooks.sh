@@ -17,6 +17,7 @@
 export pagePattern="./.*.md"
 export datePattern="./[0-9]{4}-[0-9]{2}-[0-9]{2}.md"
 export monthPattern="./[0-9]{4}-[0-9]{2}.md"
+export notebookContentsText="Contents"
 export notebookContentsPage="Contents.md"
 export notebookReadmePage="Readme.md"
 export notebookAttachmentsFolder="Attachments"
@@ -370,6 +371,7 @@ function createMonthlySummary()
         linkNextDate "$thisMonth" "$lastMonth.md"
         linkLastDate "$lastMonth" "$thisMonth.md"
     fi
+    addContentsLink "$thisMonth.md"
     printMonthHeading "$thisMonth" >> "$thisMonth.md"
 }
 
@@ -449,6 +451,17 @@ function linkNextDate()
     if [[ -n "$nextDate" && -w "$thisPage" ]]; then
         sed -i'' -e "1s/\$/ | [$nextDate >]($nextDate)/" "$thisPage"
         removeLeadingPipe "$thisPage"
+    fi
+}
+
+# Function to add the link for the contents page
+function addContentsLink()
+{
+    local thisPage="$1"
+    local contentsPage="$(echo $notebookContentsPage | sed -e 's/\.md//')"
+    local contentsText="$notebookContentsText"
+    if [[ -w "$thisPage" ]]; then
+        sed -i'' "1s/\$/ | [$contentsText]($contentsPage)/" "$thisPage"
     fi
 }
 
