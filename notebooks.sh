@@ -31,6 +31,27 @@ fi
 # ------------------------------------------------------------------------------
 # Main user functions for working with notebooks
 
+# Process entire notebook tree
+function processNotebooks()
+{
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    local folderList=$(getFolderList "$notebookFolder")
+    local currentFolder=""
+    if [[ -n "$folderList" ]]; then
+        for currentFolder in $folderList
+        do
+            processNotebooks $currentFolder
+            echo "Processing folder $currentFolder..."
+            if [[ "$(isLogbookFolder "$currentFolder")" == "true" ]]; then
+                indexLogbook "$currentFolder"
+            else
+                buildNotebookContents "$currentFolder"
+            fi
+        done
+    fi
+}
+
 # Build contents page for the given folder
 function buildNotebookContents()
 {
@@ -133,10 +154,11 @@ function getMatchingPageList()
 # Function to get list of subfolders, excluding special folders
 function getFolderList()
 {
-    ls -d */ 2> /dev/null | \
-    sed -e 's|/| |g' \
-        -e "s|\b\($notebookAttachmentsFolder\)||" \
-        -e 's| $||'
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    ls -d $notebookFolder/*/ 2> /dev/null | \
+    sed -e "s|\($notebookFolder/$notebookAttachmentsFolder/\)||g" \
+        -e 's|\./||g' -e 's|/ | |g' -e 's|/$||g' -e 's| $||g'
 }
 
 # Function to produce page heading (level 2) for given notebook page
@@ -217,6 +239,21 @@ function getFolderSummary()
     if [[ -r "$notebookFolder/$readmePage" ]]; then
         cat "$notebookFolder/$readmePage"
         printBlankLine
+    fi
+}
+
+# Function to check whether a given folder is a logbook
+function isLogbookFolder()
+{
+    local notebookFolder="$*"
+    local logbookFolder="$notebookLogbookFolder"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    notebookFolder="$(echo "$notebookFolder" | \
+                      sed -e 's|/$||' -e 's|[^/]*/||g')"
+    if [[ "$notebookFolder" == "$logbookFolder" ]]; then
+        echo "true"
+    else
+        echo "false"
     fi
 }
 
