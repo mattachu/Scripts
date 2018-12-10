@@ -17,10 +17,14 @@
 export pagePattern="./.*.md"
 export datePattern="./[0-9]{4}-[0-9]{2}-[0-9]{2}.md"
 export monthPattern="./[0-9]{4}-[0-9]{2}.md"
+export notebookContentsText="Contents"
 export notebookContentsPage="Contents.md"
+export notebookHomeText="Home"
+export notebookHomePage="Home.md"
 export notebookReadmePage="Readme.md"
 export notebookAttachmentsFolder="Attachments"
 export notebookLogbookFolder="Logbook"
+export notebookRootFolder="Notebooks"
 if [[ "$(uname)" == "Darwin" ]]; then
     export findCommand="find -E . -maxdepth 1"
 else
@@ -29,6 +33,27 @@ fi
 
 # ------------------------------------------------------------------------------
 # Main user functions for working with notebooks
+
+# Process entire notebook tree
+function processNotebooks()
+{
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    local folderList=$(getFolderList "$notebookFolder")
+    local currentFolder=""
+    if [[ -n "$folderList" ]]; then
+        for currentFolder in $folderList
+        do
+            processNotebooks $currentFolder
+            echo "Processing folder $currentFolder..."
+            if [[ "$(isLogbookFolder "$currentFolder")" == "true" ]]; then
+                indexLogbook "$currentFolder"
+            else
+                buildNotebookContents "$currentFolder"
+            fi
+        done
+    fi
+}
 
 # Build contents page for the given folder
 function buildNotebookContents()
@@ -39,23 +64,26 @@ function buildNotebookContents()
     local startFolder=$(pwd)
     cd "$notebookFolder"
     rm -f "$contentsPage"
-    getFolderSummary >> $contentsPage
+    getNotebookNavigation >> "$contentsPage"
+    printBlankLine >> "$contentsPage"
+    getFolderSummary >> "$contentsPage"
     local folderList=$(getFolderList)
     if [[ -n "$folderList" ]]; then
-        echo -e "# Folders\n" >> $contentsPage
+        echo -e "# Folders\n" >> "$contentsPage"
         for currentFolder in $folderList
         do
-            printFolderHeading "$currentFolder" "withLinks" >> $contentsPage
-            getFolderSummary "$currentFolder" >> $contentsPage
+            printFolderHeading "$currentFolder" "withLinks" >> "$contentsPage"
+            getFolderSummary "$currentFolder" >> "$contentsPage"
         done
     fi
-    local pageList=$(getPageList)
+    local pageList="$(getPageList)"
     if [[ -n "$pageList" ]]; then
-        echo -e "# Pages\n" >> $contentsPage
+        echo -e "# Pages\n" >> "$contentsPage"
         for currentPage in $pageList
         do
-            printPageHeading "$currentPage" "withLinks" >> $contentsPage
-            getPageSummary "$currentPage" >> $contentsPage
+            addNotebookNavigation "$currentPage"
+            printPageHeading "$currentPage" "withLinks" >> "$contentsPage"
+            getPageSummary "$currentPage" >> "$contentsPage"
         done
     fi
     cd "$startFolder"
@@ -81,6 +109,7 @@ function indexLogbook()
         fi
         addDateLinks "$currentDate" "$lastDate"
         summariseLogbookPage "$currentDate" >> "$currentMonth.md"
+        printBlankLine >> "$currentMonth.md"
         lastDate="$currentDate"
     done
     buildLogbookContents
@@ -129,13 +158,62 @@ function getMatchingPageList()
     fi
 }
 
+# Function to get path relative to the notebook root folder
+function getRelativeNotebookPath()
+{
+    local thisFolder="$*"
+    if [[ -z $thisFolder ]]; then thisFolder="$(pwd)"; fi
+    local rootFolder="$notebookRootFolder"
+    echo "$thisFolder" | sed -e "s|.*/$rootFolder/||"
+}
+
 # Function to get list of subfolders, excluding special folders
 function getFolderList()
 {
-    ls -d */ 2> /dev/null | \
-    sed -e 's|/| |g' \
-        -e "s|\b\($notebookAttachmentsFolder\)||" \
-        -e 's| $||'
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    ls -d $notebookFolder/*/ 2> /dev/null | \
+    sed -e "s|\($notebookFolder/$notebookAttachmentsFolder/\)||g" \
+        -e 's|\./||g' -e 's|/ | |g' -e 's|/$||g' -e 's| $||g'
+}
+
+# Function to get navigation links for notebook pages in the current folder
+function getNotebookNavigation()
+{
+    local thisFolder="$(getRelativeNotebookPath)"
+    local contentsPage="$(echo $notebookContentsPage | sed -e 's/\.md//')"
+    local homeText="$notebookHomeText"
+    local homePage="$(echo $notebookHomePage | sed -e 's/\.md//')"
+    local homeLink=""
+    local navLinks=""
+    local currentLevel=""
+    local currentLink=""
+    local currentTitle=""
+    local remainingPath="$thisFolder"
+    while [[ -n "$remainingPath" ]]
+    do
+        currentLink="$currentLevel$contentsPage"
+        currentTitle="$(echo "$remainingPath" | \
+                        sed -e 's|/$||' -e 's|.*/\([^/]*\)$|\1|')"
+        navLinks=" > [$currentTitle]($currentLink)$navLinks"
+        remainingPath="$(echo "$remainingPath" | \
+                         sed -e 's|/$||' -e 's|[^/]*$||')"
+        currentLevel="../$currentLevel"
+    done
+    homeLink="$currentLevel$homePage"
+    navLinks="[$homeText]($homeLink)$navLinks"
+    echo "$navLinks"
+}
+
+# Function to add navigation links to notebook pages
+function addNotebookNavigation()
+{
+    local thisPage="$1"
+    local navLinks="$(getNotebookNavigation)"
+    if [[ -w "$thisPage" ]]; then
+        blankFirstLine "$thisPage"
+        sed -i'' -e "1s|^.*\$|$navLinks|" "$thisPage"
+    fi
 }
 
 # Function to produce page heading (level 2) for given notebook page
@@ -170,14 +248,21 @@ function printFolderHeading()
     fi
 }
 
-# Function to get a page's title (from the first line or the file name)
+# Function to get a page's title (from the title line or the file name)
 function getPageTitle()
 {
     local thisPage="$1"
     local pageTitle=""
     if [[ -r "$thisPage" ]]; then
-        pageTitle=$(sed -n '1s/^# //p' "$thisPage")
-        if [[ ! -n "$pageTitle" ]]; then
+        local i="1"
+        while [[ "$(getNotebookLineType "$thisPage" "$i")" == "Navigation line" \
+              || "$(getNotebookLineType "$thisPage" "$i")" == "Blank line" ]]
+        do
+            i=$(($i + 1))
+        done
+        if [[ "$(getNotebookLineType "$thisPage" "$i")" == "Title line" ]]; then
+            pageTitle="$(getNotebookLine "$thisPage" "$i" | sed -e 's/^# //')"
+        else
             pageTitle=$(echo "$thisPage" | sed -e 's/[_\-]/ /g' -e 's/\.md//')
         fi
         echo $pageTitle
@@ -186,22 +271,64 @@ function getPageTitle()
     fi
 }
 
+# Function to get the content of a page, ignoring navigation links and titles
+function getPageContent()
+{
+    local thisPage="$1"
+    if [[ -r "$thisPage" ]]; then
+        local i="1"
+        until [[ "$(getNotebookLineType "$thisPage" "$i")" == "Content line" ]]
+        do
+            i=$(($i + 1))
+        done
+        sed -e "1,$(($i-1))d" "$thisPage"
+    else
+        echo "Cannot read page $thisPage"
+    fi
+}
+
+# Function to check what type of information is on a given line on a page
+function getNotebookLineType()
+{
+    local thisPage="$1"
+    local thisLineNumber="$2"
+    local thisLine=""
+    local thisLineType=""
+    if [[ -r "$thisPage" ]]; then
+        thisLine="$(getNotebookLine "$thisPage" "$thisLineNumber")"
+        thisLineType="$(echo "$thisLine" | \
+                        sed -n -e 's|^# .*$|Title line|p' \
+                               -e 's|^\[[^]]*\]([^)]*).*$|Navigation line|p' \
+                               -e 's|^$|Blank line|p' )"
+        if [[ ! -n "$thisLineType" ]]; then thisLineType="Content line"; fi
+        echo "$thisLineType"
+    else
+        echo "Cannot read page $thisPage"
+    fi
+}
+
+# Function to print a given line from a page
+function getNotebookLine()
+{
+    local thisPage="$1"
+    local thisLineNumber="$2"
+    if [[ -r "$thisPage" ]]; then
+        sed -n -e "${thisLineNumber}p" "$thisPage"
+    else
+        echo "Cannot read page $thisPage"
+    fi
+}
+
 # Function to get the first full paragraph from a page
 function getPageSummary()
 {
     local thisPage="$1"
-    local thisSummary=""
     if [[ -r "$thisPage" ]]; then
-        if [[ -n $(sed -n '1s/^# //p' "$thisPage") ]]; then
-            thisSummary=$(sed -e '1,2d' "$thisPage" | tr -d '\r'| sed -e '/^$/q')
-        else
-            thisSummary=$(cat "$thisPage" | tr -d '\r'| sed -e '/^$/q')
-        fi
-        echo "$thisSummary" | \
+        getPageContent "$thisPage" | \
+        tr -d '\r' | sed -e '/^$/q' | \
         sed -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' \
             -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
             -e 's/  / /g' -e 's/  / /g' -e 's/[ ]*$//g' -e 's/:$/./g'
-        endLine
     else
         echo "Cannot read file $thisPage"
     fi
@@ -216,6 +343,87 @@ function getFolderSummary()
     if [[ -r "$notebookFolder/$readmePage" ]]; then
         cat "$notebookFolder/$readmePage"
         printBlankLine
+    fi
+}
+
+# Function to blank the first line of the given page
+# - if the first line has navigation links, these are removed
+# - if the first line has other content, this is moved down
+function blankFirstLine()
+{
+    local thisPage="$1"
+    if [[ -w "$thisPage" ]]; then
+        if [[ $(hasNotebookNavigation "$thisPage") == "true" ]]; then
+            sed -i'' -e "1s/^.*\$//" "$thisPage"
+        else
+            addBlankLineAtStart "$thisPage"
+        fi
+    fi
+}
+
+# Function to print a blank line, using different methods on macOS and Linux
+function printBlankLine()
+{
+    if [[ "$(uname)" == "Darwin" ]]; then
+        echo
+        echo
+    else
+        echo -ne "\n"
+    fi
+}
+
+# Function to add a blank line at the start of a page
+function addBlankLineAtStart()
+{
+    local thisPage="$1"
+    if [[ -r $thisPage ]]; then
+        cat "$thisPage" > ".tempLogbookPage.md"
+        printBlankLine > "$thisPage"
+        printBlankLine >> "$thisPage"
+        cat ".tempLogbookPage.md" >> "$thisPage"
+        rm ".tempLogbookPage.md"
+    else
+        echo "Cannot read file $thisPage"
+    fi
+}
+
+# Function to remove unnecessary pipe characters at the start of a page
+function removeLeadingPipe()
+{
+    local thisPage="$1"
+    if [[ -w "$thisPage" ]]; then
+        sed -i'' -e '1s/^ | //' "$thisPage"
+    fi
+}
+
+# Function to check whether given page already has navigation links
+function hasNotebookNavigation()
+{
+    local thisPage="$1"
+    if [[ -r "$thisPage" ]]; then
+        if [[ -n $(head -n1 "$thisPage" | grep -E -e "^\[[^]]*\]([^)]*)") ]]
+        then
+            echo "true"
+        else
+            echo "false"
+        fi
+    else
+        echo "Cannot read file $thisPage"
+    fi
+}
+
+# Function to check whether a given folder is a logbook
+function isLogbookFolder()
+{
+    local notebookFolder="$*"
+    local logbookFolder="$notebookLogbookFolder"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    notebookFolder="$(echo "$notebookFolder" | \
+                      sed -e 's|/$||' -e 's|[^/]*/||g')"
+    if [[ "$notebookFolder" == "$logbookFolder" ]]; then
+        echo "true"
+    else
+        echo "false"
     fi
 }
 
@@ -243,6 +451,7 @@ function summariseLogbookPage()
         printDateHeading "$thisDate"
         if [[ $(hasSummaryLine "$thisDate.md") == "true" ]]; then
             getSummaryLine "$thisDate.md"
+            printBlankLine
         fi
         getHeadingsSummary "$thisDate.md"
     else
@@ -285,18 +494,6 @@ function getHeadingsSummary()
         printBlankLine
     else
         echo "Cannot read file $thisPage"
-    fi
-}
-
-# Function to get page content without the first four lines
-# (line 1: date links, 3: title, 2 & 4: blank)
-function getPageContent()
-{
-    local thisPage="$1"
-    if [[ -r $thisPage ]]; then
-        sed -e '1,4d' "$thisPage"
-    else
-        echo "Cannot read page $thisPage"
     fi
 }
 
@@ -366,10 +563,12 @@ function createMonthlySummary()
     local thisMonth="$1"
     local lastMonth="$2"
     printBlankLine > "$thisMonth.md"
+    printBlankLine >> "$thisMonth.md"
     if [[ -n "$lastMonth" ]]; then
         linkNextDate "$thisMonth" "$lastMonth.md"
         linkLastDate "$lastMonth" "$thisMonth.md"
     fi
+    addContentsLink "$thisMonth.md"
     printMonthHeading "$thisMonth" >> "$thisMonth.md"
 }
 
@@ -385,21 +584,6 @@ function addDateLinks()
             linkLastDate "$lastDate" "$thisDate.md"
         fi
         addThisMonthLink "$thisDate"
-    fi
-}
-
-# Function to blank the first line of the given page
-# - if the first line has date links, these are removed
-# - if the first line has other content, this is moved down
-function blankFirstLine()
-{
-    local thisPage="$1"
-    if [[ -w "$thisPage" ]]; then
-        if [[ $(hasDateLink "$thisPage") == "true" ]]; then
-            sed -i'' -e "1s/^.*\$//" "$thisPage"
-        else
-            addBlankLineAtStart "$thisPage"
-        fi
     fi
 }
 
@@ -452,6 +636,17 @@ function linkNextDate()
     fi
 }
 
+# Function to add the link for the contents page
+function addContentsLink()
+{
+    local thisPage="$1"
+    local contentsPage="$(echo $notebookContentsPage | sed -e 's/\.md//')"
+    local contentsText="$notebookContentsText"
+    if [[ -w "$thisPage" ]]; then
+        sed -i'' "1s/\$/ | [$contentsText]($contentsPage)/" "$thisPage"
+    fi
+}
+
 # Function to add the link for the current month
 function addThisMonthLink()
 {
@@ -462,68 +657,11 @@ function addThisMonthLink()
     fi
 }
 
-# Function to print a blank line, using different methods on macOS and Linux
-function printBlankLine()
-{
-    if [[ "$(uname)" == "Darwin" ]]; then
-        echo
-        echo
-    else
-        echo -e "\n"
-    fi
-}
-
-# Function to add a blank line at the start of a page
-function addBlankLineAtStart()
-{
-    local thisPage="$1"
-    if [[ -r $thisPage ]]; then
-        cat "$thisPage" > ".tempLogbookPage.md"
-        printBlankLine > "$thisPage"
-        cat ".tempLogbookPage.md" >> "$thisPage"
-        rm ".tempLogbookPage.md"
-    else
-        echo "Cannot read file $thisPage"
-    fi
-}
-
-# Function to end the current line being written
-function endLine()
-{
-    echo
-}
-
-# Function to remove unnecessary pipe characters at the start of a page
-function removeLeadingPipe()
-{
-    local thisPage="$1"
-    if [[ -w "$thisPage" ]]; then
-        sed -i'' -e '1s/^ | //' "$thisPage"
-    fi
-}
-
 # Function to work out month
 function getMonthFromDate()
 {
     local mydate="$1"
     echo "$mydate" | cut -c -7
-}
-
-# Function to check whether given page already has a date link
-function hasDateLink()
-{
-    local thisPage="$1"
-    if [[ -r "$thisPage" ]]; then
-        if [[ -n $(head -n1 "$thisPage" | \
-                   grep -E -e "^\[(< ){0,1}[0-9]{4}-[0-9]{2}") ]]
-        then
-            echo "true"
-        else
-            echo "false"
-        fi
-    else
-        echo "Cannot read file $thisPage"
-    fi
 }
 
 # Function to check whether given page has a summary before the first heading
