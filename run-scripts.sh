@@ -31,22 +31,24 @@ function run-with-timer {
 
 # Run the given command with a log file
 function run-with-log {
-    rm -f $1.log
-    echo "Current directory: " $(pwd -P) > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
-    echo "Current command: $*" > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
-    echo "Current time: " $(date) > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
-    githash=$(git log -n1 --format=format:"%H" 2>/dev/null)
-    if [[ -n $githash ]]; then echo "Current commit: $githash" > >(tee -a $1.log) 2> >(tee -a $1.log >&2); fi
+    local logFile="$(echo "$1" | sed -e 's|.*/\([^/]*\)$|\1.log|' )"
+    rm -f $logFile
+    echo "Current directory: " $(pwd -P) > >(tee -a $logFile) 2> >(tee -a $logFile >&2)
+    echo "Current command: $*" > >(tee -a $logFile) 2> >(tee -a $logFile >&2)
+    echo "Current time: " $(date) > >(tee -a $logFile) 2> >(tee -a $logFile >&2)
+    local githash=$(git log -n1 --format=format:"%H" 2>/dev/null)
+    if [[ -n $githash ]]; then
+        echo "Current commit: $githash" > >(tee -a $logFile) 2> >(tee -a $logFile >&2);
+    fi
     SECONDS=0
-    $* > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
-    time-taken > >(tee -a $1.log) 2> >(tee -a $1.log >&2)
+    $* > >(tee -a $logFile) 2> >(tee -a $logFile >&2)
+    time-taken > >(tee -a $logFile) 2> >(tee -a $logFile >&2)
     sleep 0.1
 }
 
 # Run the given command reproducibly with a log file
 function reproduce-with-log {
     run-with-log "${CODE_FOLDER}/Reproducible/reproduce" "$*"
-    mv "${CODE_FOLDER}/Reproducible/reproduce.log" .
 }
 
 # Show progress of a run through subfolders, based on count of log files
