@@ -60,6 +60,12 @@ protected:
     // Methods to load data from different Impact-T output files
     void _Load(Int_t bunchCount);
     void _LoadBunches(Int_t bunchCount);
+    void _LoadEndSlice(Int_t bunchCount);
+    void _LoadDSTParticleData(
+        std::string filename,
+        std::string branchname
+    );
+    Int_t _GetDSTParticleCount(std::string filename);
 
     // Methods to produce different plot types
     void _PlotBunchLayer(
@@ -88,4 +94,5 @@ protected:
         std::string xaxis,
         Int_t variableCount
     );
+    void _UpdateParticleCount(Long_t newCount);
 };
