@@ -116,3 +116,49 @@ function rm-output {
         fi
     fi
 }
+
+# Run a simulation for a list of parameter values
+# - only one parameter can be swept
+# - uses _Git_ branches `run` and `log` and uses tags for each parameter value
+#    - these need to be set up before the start
+# - syntax: `run-list "list" "command" "hash" "parameters" "template" "archive"`
+# - parameters:
+#    - `list` is the list of parameter values, e.g. "100 200 300 400"
+#    - `command` is the command to run (after the `--` in `reproduce` command)
+#    - `hash` is the run hash to base the simulation on (i.e. previous run)
+#    - `parameters` is the parameter list, with the parameter you want to vary
+#       left blank at the end, e.g. "I:50.0e-3,interact:0,Np:"
+#    - `template` is the input file to be modified by `reproduce`
+#    - `archive` is the root folder for archiving; separate subfolders will be
+#       created for each run
+function run-list
+{
+    local runList="$1"
+    local runCommand="$2"
+    local runHash="$3"
+    local runParameters="$4"
+    local templateFile="$5"
+    local archiveFolder="$6"
+    local gitRun="run"
+    local gitLog="log"
+    for currentRun in $runList
+    do
+        git checkout $gitRun
+        git reset --hard $currentRun
+        git cherry-pick -n $gitLog
+        reproduce-with-log run --hash $runHash \
+                               -p $runParameters:$currentRun \
+                               --template="$templateFile" \
+                               --list-parameters --show \
+                               -- "$runCommand"
+        echo "Archiving $currentRun..."
+        mkdir -p "$archiveFolder/$currentRun"
+        rm -rf "$archiveFolder/$currentRun/*"
+        archive "$archiveFolder/$currentRun"
+        rm-output --force
+        git add simulations.log
+        git commit -m "Run log"
+        git checkout $gitLog
+        git reset --hard $gitRun
+    done
+}
