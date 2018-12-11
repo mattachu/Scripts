@@ -345,7 +345,7 @@ void TImpactTree::PlotBunches(
         this->_PlotBunchLayer(canvas, i, lastSlice, (i==bunchCount));
     }
 
-    // // Apply styles
+    // Apply styles
     this->_StyleBunches(canvas, bunchCount, bunchNames, xmin, xmax, ymin, ymax);
 
     // Update canvas
