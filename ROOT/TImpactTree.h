@@ -45,6 +45,7 @@ public:
         Double_t ymin,
         Double_t ymax
     );
+    void PlotFinalEnergy(TCanvas *canvas);
 
 protected:
     // Class members

@@ -22,6 +22,16 @@ Double_t const _BUNCHES_XMIN_DEFAULT  =    0.0;
 Double_t const _BUNCHES_XMAX_DEFAULT  =    1.8;
 Double_t const _BUNCHES_YMIN_DEFAULT  =  90000;
 Double_t const _BUNCHES_YMAX_DEFAULT  = 102000;
+// - settings for final energy plot
+std::string    _ENERGY_FILENAME      = "energy.eps";
+std::string    _ENERGY_CANVAS_NAME   = "impact_final_energy_plot";
+std::string    _ENERGY_CANVAS_TITLE  = "Impact-T final energy plot";
+std::string    _ENERGY_XAXIS_TITLE   = "Final energy (MeV)";
+std::string    _ENERGY_YAXIS_TITLE   = "Number density";
+Int_t    const _ENERGY_CANVAS_WIDTH  =    800;
+Int_t    const _ENERGY_CANVAS_HEIGHT =    500;
+Double_t const _ENERGY_XMIN_DEFAULT  =    0.0;
+Double_t const _ENERGY_XMAX_DEFAULT  =    1.1;
 
 // Default constructor
 TImpactTree::TImpactTree():
@@ -376,6 +386,38 @@ void TImpactTree::_PlotBunchLayer(
 
     // Rename graph
     this->_RenameCurrentGraph(canvas, graphName.c_str());
+}
+
+// - final energy histograms
+void TImpactTree::PlotFinalEnergy(TCanvas *canvas)
+{
+    Int_t bunchCount = this->_bunchCount;
+    std::string plotString = "";
+    std::string plotOptions = "";
+
+    // Set up canvas
+    canvas->SetName(_ENERGY_CANVAS_NAME.c_str());
+    canvas->SetTitle(_ENERGY_CANVAS_TITLE.c_str());
+    canvas->SetWindowSize(_ENERGY_CANVAS_WIDTH, _ENERGY_CANVAS_HEIGHT);
+
+    // Plot each histogram as a separate layer
+    for (Int_t i = 1; i <= bunchCount; i++) {
+        plotString = "endslice.bunch" + std::to_string(i) + ".W";
+        if (i==1) {
+            plotOptions = "BAR";
+        }
+        else {
+            plotOptions = "BAR same";
+        }
+        this->Draw(plotString.c_str(), "", plotOptions.c_str());
+    }
+
+    // Update canvas
+    canvas->Update();
+    canvas->Paint();
+
+    // Print to file
+    canvas->Print(_ENERGY_FILENAME.c_str(), "eps");
 }
 
 // Methods to apply styles for different plot types
