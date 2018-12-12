@@ -1,3 +1,8 @@
+// Macro for plotting Impact-T data in ROOT
+// written by Matt Easton (see http://matteaston.net/work), December 2018
+
+#include "TImpactTree.h"
+
 void plotEnergyHistogram(TCanvas *canvas, TImpactTree *impact)
 {
     canvas->SetName("impact_energy_hist");
