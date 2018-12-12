@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "TImpactTree.h"
+#include "Style_mje.C"
 
 // Implements class `TImpactTree`
 ClassImp(TImpactTree);
@@ -377,12 +378,12 @@ void TImpactTree::_PlotBunchLayer(
     std::string axesDefinition =
         this->_BuildCumulativePlotString("bunches", "n", "z", currentLayer);
     std::string graphName = "graph" + std::to_string(currentLayer);
-    std::string plotLocation = "";
-    if (!isBackLayer) plotLocation = "same";
+    std::string plotOptions = "";
+    if (!isBackLayer) plotOptions = "same";
 
     // Draw graph
     canvas->Update();
-    this->Draw(axesDefinition.c_str(), "", plotLocation.c_str(), lastSlice, 0);
+    this->Draw(axesDefinition.c_str(), "", plotOptions.c_str(), lastSlice, 0);
 
     // Rename graph
     this->_RenameCurrentGraph(canvas, graphName.c_str());
@@ -431,6 +432,10 @@ void TImpactTree::_StyleBunches(
     Double_t ymax
 )
 {
+    // Apply my style settings
+    apply_style_mje();
+    gROOT->SetStyle("mje");
+
     // Get objects
     TFrame *frame = canvas->GetFrame();
     TPaveText *titleText = (TPaveText *) canvas->GetPrimitive("title");
@@ -453,9 +458,10 @@ void TImpactTree::_StyleBunches(
     hist->GetXaxis()->SetLabelOffset(-0.04);
     hist->GetXaxis()->SetTitle(_BUNCHES_XAXIS_TITLE.c_str());
     hist->GetXaxis()->SetTitleFont(132);
-    hist->GetXaxis()->SetTitleSize(0.045);
+    hist->GetXaxis()->SetTitleSize(0.05);
+    hist->GetXaxis()->CenterTitle(kTRUE);
     hist->GetXaxis()->SetLabelFont(132);
-    hist->GetXaxis()->SetLabelSize(0.03);
+    hist->GetXaxis()->SetLabelSize(0.035);
     hist->GetXaxis()->SetLimits(xmin, xmax);
     hist->GetXaxis()->SetRangeUser(xmin, xmin);
     // y-axis
@@ -465,9 +471,10 @@ void TImpactTree::_StyleBunches(
     hist->GetYaxis()->SetLabelOffset(-0.01);
     hist->GetYaxis()->SetTitle(_BUNCHES_YAXIS_TITLE.c_str());
     hist->GetYaxis()->SetTitleFont(132);
-    hist->GetYaxis()->SetTitleSize(0.045);
+    hist->GetYaxis()->SetTitleSize(0.05);
+    hist->GetYaxis()->CenterTitle(kTRUE);
     hist->GetYaxis()->SetLabelFont(132);
-    hist->GetYaxis()->SetLabelSize(0.03);
+    hist->GetYaxis()->SetLabelSize(0.035);
     hist->GetYaxis()->SetLimits(ymin, ymax);
     hist->GetYaxis()->SetRangeUser(ymin, ymax);
 
@@ -475,6 +482,9 @@ void TImpactTree::_StyleBunches(
     TLegend *legend = new TLegend(0.540, 0.122, 0.841, 0.292);
     legend->SetTextFont(132);
     legend->SetTextSize(0.03);
+    legend->SetLineColor(17);
+    legend->SetLineStyle(1);
+    legend->SetLineWidth(1);
 
     // Set graph draw options
     for (Int_t i = 1; i <= bunchCount; i++) {
@@ -495,8 +505,14 @@ void TImpactTree::_StyleBunches(
             graph->SetFillColor(42);   // Mustard
             break;
         }
+        graph->SetLineWidth(0);
+        graph->SetLineStyle(0);
         legend->AddEntry(graph, bunchNames.at(i-1).c_str(), "f");
     }
+
+    // Axes on top
+    hist->GetXaxis()->Pop();
+    hist->GetYaxis()->Pop();
 
     // Update canvas
     legend->Draw();
