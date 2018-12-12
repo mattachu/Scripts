@@ -136,29 +136,33 @@ function run-list
     local runList="$1"
     local runCommand="$2"
     local runHash="$3"
-    local runParameters="$4"
+    local runParameters="$(echo "$4" | sed -e 's|:$||')"
     local templateFile="$5"
-    local archiveFolder="$6"
+    local archiveFolder="$(echo "$6" | sed -e 's|/$||')"
     local gitRun="run"
     local gitLog="log"
     for currentRun in $runList
     do
+        echo "Starting run $currentRun..."
         git checkout $gitRun
         git reset --hard $currentRun
         git cherry-pick -n $gitLog
         reproduce-with-log run --hash $runHash \
-                               -p $runParameters:$currentRun \
+                               -p "$runParameters:$currentRun" \
                                --template="$templateFile" \
                                --list-parameters --show \
                                -- "$runCommand"
-        echo "Archiving $currentRun..."
+        echo "Archiving run $currentRun..."
         mkdir -p "$archiveFolder/$currentRun"
-        rm -rf "$archiveFolder/$currentRun/*"
+        rm -rf "\"$archiveFolder/$currentRun\"/*"
         archive "$archiveFolder/$currentRun"
         rm-output --force
         git add simulations.log
         git commit -m "Run log"
         git checkout $gitLog
         git reset --hard $gitRun
+        echo "Run $currentRun complete."
+        beep
     done
+    echo "Parametric run complete."
 }
