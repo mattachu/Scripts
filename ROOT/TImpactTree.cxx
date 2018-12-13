@@ -206,6 +206,7 @@ void TImpactTree::_Load(Int_t bunchCount)
 
     // Load each data type from the relevant files
     this->_LoadBunches(bunchCount);
+    this->_LoadEndSlice(bunchCount);
 
     // Output data summary
     this->Print();
@@ -238,7 +239,7 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
         for (Int_t i = 0; i < bunchCount; i++) {
             infile >> step.count[i];
         }
-        this->Fill();
+        this->GetBranch("bunches")->Fill();
     }
     infile.close();
 
@@ -247,6 +248,51 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
     this->_firstSlice = 1;
     this->_lastSlice = this->_sliceCount - 1;
 }
+
+// - end slice data from `rfq1.dst` etc.
+void TImpactTree::_LoadEndSlice(Int_t bunchCount)
+{
+    std::string filename = "";
+    std::string branchname = "";
+    for (Int_t i = 1; i <= bunchCount; i++){
+        filename = "rfq" + std::to_string(i) + ".dst";
+        branchname = "endslice.bunch" + std::to_string(i);
+        this->_LoadDSTParticleData(filename, branchname);
+    }
+}
+
+// - load particle data from a `.dst` file into a given branch
+void TImpactTree::_LoadDSTParticleData(
+    std::string filename,
+    std::string branchname
+)
+{
+    Int_t Npt = _GetDSTParticleCount(filename);
+    Double_t slice[6];
+    std::string leafDefinition = "x/D:xp/D:y/D:yp/D:phi/D:W/D";
+    this->Branch(branchname.c_str(), &slice, leafDefinition.c_str());
+    ifstream infile(filename, std::ios::in | std::ios::binary);
+    infile.seekg(23); // skip headers
+    for (Int_t i = 1; i <= Npt; i++) {
+        if (!infile.good()) break;
+        infile.read((char *)&slice, 48);
+        this->GetBranch(branchname.c_str())->Fill();
+    }
+    infile.close();
+}
+
+// - read the number of particles from a given `.dst` file
+Int_t TImpactTree::_GetDSTParticleCount(std::string filename)
+{
+    Int_t Npt = 0;
+    ifstream infile(filename, std::ios::in | std::ios::binary);
+    infile.seekg(2);
+    infile.read((char *)&Npt, 4);
+    infile.close();
+    this->_UpdateParticleCount(Npt);
+    return Npt;
+}
+
 
 // Methods to produce different plot types
 // - bunch count cumulative plot for data loaded from `fort.11`
@@ -299,7 +345,7 @@ void TImpactTree::PlotBunches(
         this->_PlotBunchLayer(canvas, i, lastSlice, (i==bunchCount));
     }
 
-    // // Apply styles
+    // Apply styles
     this->_StyleBunches(canvas, bunchCount, bunchNames, xmin, xmax, ymin, ymax);
 
     // Update canvas
@@ -445,4 +491,13 @@ std::string TImpactTree::_BuildCumulativePlotString(
 
     // Return
     return plotString;
+}
+
+// - update the number of entries in the tree
+void TImpactTree::_UpdateParticleCount(Long_t newCount)
+{
+    Long_t currentCount = this->GetEntries();
+    if (newCount > currentCount) {
+        this->SetEntries(newCount);
+    }
 }
