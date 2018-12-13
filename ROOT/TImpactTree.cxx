@@ -433,7 +433,7 @@ void TImpactTree::_StyleBunches(
 )
 {
     // Apply my style settings
-    apply_style_mje();
+    load_style_mje();
     gROOT->SetStyle("mje");
 
     // Get objects

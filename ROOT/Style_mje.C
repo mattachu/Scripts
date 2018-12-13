@@ -9,7 +9,7 @@
 
 #endif
 
-void apply_style_mje()
+void load_style_mje()
 {
    // Add the saved style to the current ROOT session.
 
