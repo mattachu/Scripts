@@ -435,6 +435,8 @@ function buildLogbookContents()
 {
     local contentsPage="$notebookContentsPage"
     rm -f "$contentsPage"
+    getNotebookNavigation >> "$contentsPage"
+    printBlankLine >> "$contentsPage"
     monthList=$(getLogbookMonthList)
     for currentMonth in $monthList
     do
