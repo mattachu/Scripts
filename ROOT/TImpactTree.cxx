@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "TImpactTree.h"
+#include "Style_mje.C"
 
 // Implements class `TImpactTree`
 ClassImp(TImpactTree);
@@ -206,6 +207,7 @@ void TImpactTree::_Load(Int_t bunchCount)
 
     // Load each data type from the relevant files
     this->_LoadBunches(bunchCount);
+    this->_LoadEndSlice(bunchCount);
 
     // Output data summary
     this->Print();
@@ -238,7 +240,7 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
         for (Int_t i = 0; i < bunchCount; i++) {
             infile >> step.count[i];
         }
-        this->Fill();
+        this->GetBranch("bunches")->Fill();
     }
     infile.close();
 
@@ -247,6 +249,51 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
     this->_firstSlice = 1;
     this->_lastSlice = this->_sliceCount - 1;
 }
+
+// - end slice data from `rfq1.dst` etc.
+void TImpactTree::_LoadEndSlice(Int_t bunchCount)
+{
+    std::string filename = "";
+    std::string branchname = "";
+    for (Int_t i = 1; i <= bunchCount; i++){
+        filename = "rfq" + std::to_string(i) + ".dst";
+        branchname = "endslice.bunch" + std::to_string(i);
+        this->_LoadDSTParticleData(filename, branchname);
+    }
+}
+
+// - load particle data from a `.dst` file into a given branch
+void TImpactTree::_LoadDSTParticleData(
+    std::string filename,
+    std::string branchname
+)
+{
+    Int_t Npt = _GetDSTParticleCount(filename);
+    Double_t slice[6];
+    std::string leafDefinition = "x/D:xp/D:y/D:yp/D:phi/D:W/D";
+    this->Branch(branchname.c_str(), &slice, leafDefinition.c_str());
+    ifstream infile(filename, std::ios::in | std::ios::binary);
+    infile.seekg(23); // skip headers
+    for (Int_t i = 1; i <= Npt; i++) {
+        if (!infile.good()) break;
+        infile.read((char *)&slice, 48);
+        this->GetBranch(branchname.c_str())->Fill();
+    }
+    infile.close();
+}
+
+// - read the number of particles from a given `.dst` file
+Int_t TImpactTree::_GetDSTParticleCount(std::string filename)
+{
+    Int_t Npt = 0;
+    ifstream infile(filename, std::ios::in | std::ios::binary);
+    infile.seekg(2);
+    infile.read((char *)&Npt, 4);
+    infile.close();
+    this->_UpdateParticleCount(Npt);
+    return Npt;
+}
+
 
 // Methods to produce different plot types
 // - bunch count cumulative plot for data loaded from `fort.11`
@@ -299,7 +346,7 @@ void TImpactTree::PlotBunches(
         this->_PlotBunchLayer(canvas, i, lastSlice, (i==bunchCount));
     }
 
-    // // Apply styles
+    // Apply styles
     this->_StyleBunches(canvas, bunchCount, bunchNames, xmin, xmax, ymin, ymax);
 
     // Update canvas
@@ -321,12 +368,12 @@ void TImpactTree::_PlotBunchLayer(
     std::string axesDefinition =
         this->_BuildCumulativePlotString("bunches", "n", "z", currentLayer);
     std::string graphName = "graph" + std::to_string(currentLayer);
-    std::string plotLocation = "";
-    if (!isBackLayer) plotLocation = "same";
+    std::string plotOptions = "";
+    if (!isBackLayer) plotOptions = "same";
 
     // Draw graph
     canvas->Update();
-    this->Draw(axesDefinition.c_str(), "", plotLocation.c_str(), lastSlice, 0);
+    this->Draw(axesDefinition.c_str(), "", plotOptions.c_str(), lastSlice, 0);
 
     // Rename graph
     this->_RenameCurrentGraph(canvas, graphName.c_str());
@@ -343,6 +390,10 @@ void TImpactTree::_StyleBunches(
     Double_t ymax
 )
 {
+    // Apply my style settings
+    load_style_mje();
+    gROOT->SetStyle("mje");
+
     // Get objects
     TFrame *frame = canvas->GetFrame();
     TPaveText *titleText = (TPaveText *) canvas->GetPrimitive("title");
@@ -365,9 +416,10 @@ void TImpactTree::_StyleBunches(
     hist->GetXaxis()->SetLabelOffset(-0.04);
     hist->GetXaxis()->SetTitle(_BUNCHES_XAXIS_TITLE.c_str());
     hist->GetXaxis()->SetTitleFont(132);
-    hist->GetXaxis()->SetTitleSize(0.045);
+    hist->GetXaxis()->SetTitleSize(0.05);
+    hist->GetXaxis()->CenterTitle(kTRUE);
     hist->GetXaxis()->SetLabelFont(132);
-    hist->GetXaxis()->SetLabelSize(0.03);
+    hist->GetXaxis()->SetLabelSize(0.035);
     hist->GetXaxis()->SetLimits(xmin, xmax);
     hist->GetXaxis()->SetRangeUser(xmin, xmin);
     // y-axis
@@ -377,9 +429,10 @@ void TImpactTree::_StyleBunches(
     hist->GetYaxis()->SetLabelOffset(-0.01);
     hist->GetYaxis()->SetTitle(_BUNCHES_YAXIS_TITLE.c_str());
     hist->GetYaxis()->SetTitleFont(132);
-    hist->GetYaxis()->SetTitleSize(0.045);
+    hist->GetYaxis()->SetTitleSize(0.05);
+    hist->GetYaxis()->CenterTitle(kTRUE);
     hist->GetYaxis()->SetLabelFont(132);
-    hist->GetYaxis()->SetLabelSize(0.03);
+    hist->GetYaxis()->SetLabelSize(0.035);
     hist->GetYaxis()->SetLimits(ymin, ymax);
     hist->GetYaxis()->SetRangeUser(ymin, ymax);
 
@@ -387,6 +440,9 @@ void TImpactTree::_StyleBunches(
     TLegend *legend = new TLegend(0.540, 0.122, 0.841, 0.292);
     legend->SetTextFont(132);
     legend->SetTextSize(0.03);
+    legend->SetLineColor(17);
+    legend->SetLineStyle(1);
+    legend->SetLineWidth(1);
 
     // Set graph draw options
     for (Int_t i = 1; i <= bunchCount; i++) {
@@ -407,8 +463,14 @@ void TImpactTree::_StyleBunches(
             graph->SetFillColor(42);   // Mustard
             break;
         }
+        graph->SetLineWidth(0);
+        graph->SetLineStyle(0);
         legend->AddEntry(graph, bunchNames.at(i-1).c_str(), "f");
     }
+
+    // Axes on top
+    hist->GetXaxis()->Pop();
+    hist->GetYaxis()->Pop();
 
     // Update canvas
     legend->Draw();
@@ -445,4 +507,13 @@ std::string TImpactTree::_BuildCumulativePlotString(
 
     // Return
     return plotString;
+}
+
+// - update the number of entries in the tree
+void TImpactTree::_UpdateParticleCount(Long_t newCount)
+{
+    Long_t currentCount = this->GetEntries();
+    if (newCount > currentCount) {
+        this->SetEntries(newCount);
+    }
 }
