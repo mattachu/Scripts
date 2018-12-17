@@ -41,7 +41,6 @@ function git-check-all() {
     folderlist="$folderlist ${PKU_FOLDER}/Presentations"
     folderlist="$folderlist ${PKU_FOLDER}/Editing"
     folderlist="$folderlist ${PKU_FOLDER}/Notebooks"
-    folderlist="$folderlist ${PKU_FOLDER}/Manuscripts/Hydrogen"
     folderlist="$folderlist ${PKU_FOLDER}/Manuscripts"
     for folder in $folderlist
     do
