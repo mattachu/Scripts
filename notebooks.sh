@@ -484,7 +484,7 @@ function getHeadingsSummary()
 {
     local thisPage="$1"
     if [[ -r "$thisPage" ]]; then
-        sed -e '/Logbook:/d' -e '/^\[.*]:/d' -e '/^$/d' \
+        sed -e '/Logbook:/d' -e '/Notes:/d' -e '/^\[.*]:/d' -e '/^$/d' \
             -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
             "$thisPage" | \
         pcregrep -Mo -e '^#{1,2} [^.:!?#]*[.:!?#]' | \
