@@ -468,7 +468,7 @@ function getSummaryLine()
     if [[ -r "$thisPage" ]]; then
         sed -e '1,2d' -e '/[.:!?]\s/q' -e '/[.:!?]$/q' "$thisPage" | \
         tr '\n' ' ' | tr -d '\r' | \
-        sed -e 's/:/./' -e 's/`//g' -e 's/\([.:!?]\).*$/\1/' \
+        sed -e 's/:/./' -e 's/\([.:!?]\).*$/\1/' \
             -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' \
             -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
             -e 's/^#.*$//'
@@ -484,7 +484,7 @@ function getHeadingsSummary()
 {
     local thisPage="$1"
     if [[ -r "$thisPage" ]]; then
-        sed -e '/Logbook:/d' -e '/^\[.*]:/d' -e '/^$/d' -e 's/`//g' \
+        sed -e '/Logbook:/d' -e '/^\[.*]:/d' -e '/^$/d' \
             -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
             "$thisPage" | \
         pcregrep -Mo -e '^#{1,2} [^.:!?#]*[.:!?#]' | \
