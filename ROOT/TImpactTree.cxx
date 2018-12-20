@@ -286,7 +286,7 @@ void TImpactTree::_LoadDSTParticleData(
     infile.seekg(23); // skip headers
     for (Int_t i = 1; i <= Npt; i++) {
         if (!infile.good()) break;
-        infile.read((char *)&slice, 48);
+        infile.read((char *)(&slice), 48);
         this->GetBranch(branchname.c_str())->Fill();
     }
     infile.close();
@@ -438,8 +438,8 @@ void TImpactTree::_StyleBunches(
 
     // Get objects
     TFrame *frame = canvas->GetFrame();
-    TPaveText *titleText = (TPaveText *) canvas->GetPrimitive("title");
-    TH1 *hist = (TH1 *) canvas->GetPrimitive("htemp");
+    TPaveText *titleText = (TPaveText *)(canvas->GetPrimitive("title"));
+    TH1 *hist = (TH1 *)(canvas->GetPrimitive("htemp"));
     std::string graphName = "";
     TGraph *graph;
 
@@ -489,7 +489,7 @@ void TImpactTree::_StyleBunches(
     // Set graph draw options
     for (Int_t i = 1; i <= bunchCount; i++) {
         graphName = "graph" + std::to_string(i);
-        graph = (TGraph *) canvas->GetPrimitive(graphName.c_str());
+        graph = (TGraph *)(canvas->GetPrimitive(graphName.c_str()));
         graph->SetDrawOption("B");
         switch (i % 4) {
         case 1:
@@ -524,7 +524,7 @@ void TImpactTree::_StyleBunches(
 // - rename the current graph
 void TImpactTree::_RenameCurrentGraph(TCanvas *canvas, const char *name)
 {
-    TGraph *current_graph = (TGraph *) canvas->GetPrimitive("Graph");
+    TGraph *current_graph = (TGraph *)(canvas->GetPrimitive("Graph"));
     current_graph->SetName(name);
 }
 
