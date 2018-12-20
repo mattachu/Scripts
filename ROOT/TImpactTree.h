@@ -70,7 +70,6 @@ protected:
 
     // Methods to produce different plot types
     void _PlotBunchLayer(
-        TCanvas *canvas,
         Int_t currentLayer,
         Int_t lastSlice,
         Bool_t isBackLayer
@@ -78,7 +77,6 @@ protected:
 
     // Methods to apply styles for different plot types
     void _StyleBunches(
-        TCanvas *canvas,
         Int_t bunchCount,
         std::vector<std::string> bunchNames,
         Double_t xmin,
@@ -88,7 +86,7 @@ protected:
     );
 
     // Utility methods
-    void _RenameCurrentGraph(TCanvas *canvas, const char *name);
+    void _RenameCurrentGraph(const char *name);
     std::string _BuildCumulativePlotString(
         std::string branchName,
         std::string prefix,

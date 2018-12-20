@@ -350,14 +350,15 @@ void TImpactTree::PlotBunches(
         _BUNCHES_CANVAS_TITLE.c_str()
     );
     canvas->SetWindowSize(_BUNCHES_CANVAS_WIDTH, _BUNCHES_CANVAS_HEIGHT);
+    canvas->cd();
 
     // Draw the cumulative plots layer by layer, starting at the back
     for (Int_t i = bunchCount; i > 0; i--) {
-        this->_PlotBunchLayer(canvas, i, lastSlice, (i==bunchCount));
+        this->_PlotBunchLayer(i, lastSlice, (i==bunchCount));
     }
 
     // Apply styles
-    this->_StyleBunches(canvas, bunchCount, bunchNames, xmin, xmax, ymin, ymax);
+    this->_StyleBunches(bunchCount, bunchNames, xmin, xmax, ymin, ymax);
 
     // Update canvas
     canvas->Update();
@@ -368,7 +369,6 @@ void TImpactTree::PlotBunches(
 }
 
 void TImpactTree::_PlotBunchLayer(
-    TCanvas *canvas,
     Int_t currentLayer,
     Int_t lastSlice,
     Bool_t isBackLayer
@@ -382,11 +382,14 @@ void TImpactTree::_PlotBunchLayer(
     if (!isBackLayer) plotOptions = "same";
 
     // Draw graph
-    canvas->Update();
+    TCanvas *canvas = (TCanvas *)(
+        gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME.c_str())
+    );
+    canvas->cd();
     this->Draw(axesDefinition.c_str(), "", plotOptions.c_str(), lastSlice, 0);
 
     // Rename graph
-    this->_RenameCurrentGraph(canvas, graphName.c_str());
+    this->_RenameCurrentGraph(graphName.c_str());
 }
 
 // - final energy histograms
@@ -423,7 +426,6 @@ void TImpactTree::PlotFinalEnergy(TCanvas *canvas)
 
 // Methods to apply styles for different plot types
 void TImpactTree::_StyleBunches(
-    TCanvas *canvas,
     Int_t bunchCount,
     std::vector<std::string> bunchNames,
     Double_t xmin,
@@ -437,6 +439,10 @@ void TImpactTree::_StyleBunches(
     gROOT->SetStyle("mje");
 
     // Get objects
+    TCanvas *canvas = (TCanvas *)(
+        gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME.c_str())
+    );
+    canvas->cd();
     TFrame *frame = canvas->GetFrame();
     TPaveText *titleText = (TPaveText *)(canvas->GetPrimitive("title"));
     TH1 *hist = (TH1 *)(canvas->GetPrimitive("htemp"));
@@ -445,7 +451,9 @@ void TImpactTree::_StyleBunches(
 
     // Set up background
     frame->SetLineWidth(0);
-    titleText->Clear();
+    if (titleText) {
+        titleText->Clear();
+    }
     canvas->SetGridx(false);
     canvas->SetGridy(true);
 
@@ -522,10 +530,12 @@ void TImpactTree::_StyleBunches(
 
 // Utility methods
 // - rename the current graph
-void TImpactTree::_RenameCurrentGraph(TCanvas *canvas, const char *name)
+void TImpactTree::_RenameCurrentGraph(const char *name)
 {
-    TGraph *current_graph = (TGraph *)(canvas->GetPrimitive("Graph"));
-    current_graph->SetName(name);
+    TGraph *thisGraph = (TGraph *)(gPad->GetPrimitive("Graph"));
+    if (thisGraph) {
+        thisGraph->SetName(name);
+    }
 }
 
 // - create the plot string for a cumulative plot
