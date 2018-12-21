@@ -30,7 +30,7 @@ std::string    _ENERGY_FILETYPE      = "eps";
 std::string    _ENERGY_CANVAS_NAME   = "impact_final_energy_plot";
 std::string    _ENERGY_CANVAS_TITLE  = "Impact-T final energy plot";
 std::string    _ENERGY_XAXIS_TITLE   = "Final energy (MeV)";
-std::string    _ENERGY_YAXIS_TITLE   = "Number density";
+std::string    _ENERGY_YAXIS_TITLE   = "Number of macro-particles";
 Int_t    const _ENERGY_CANVAS_WIDTH  =    800;
 Int_t    const _ENERGY_CANVAS_HEIGHT =    500;
 Int_t    const _ENERGY_BINS_DEFAULT  =    100;
@@ -426,15 +426,18 @@ void TImpactTree::PlotFinalEnergy(
             + std::to_string(xmin) + ","
             + std::to_string(xmax) + ")";
         if (i==1) {
-            plotOptions = "BAR";
+            plotOptions = "hist";
         }
         else {
-            plotOptions = "BAR same";
+            plotOptions = "hist same";
         }
         TBranch *thisBranch = this->GetBranch(branchName.c_str());
         Long_t branchEntries = thisBranch->GetEntries();
         this->Draw(plotString.c_str(), "", plotOptions.c_str(), branchEntries);
     }
+
+    // Apply styles
+    this->_StyleFinalEnergy(this->_bunchCount, this->_bunchNames);
 
     // Print to file
     this->_PrintCanvas(
@@ -536,6 +539,106 @@ void TImpactTree::_StyleBunches(
         graph->SetLineWidth(0);
         graph->SetLineStyle(0);
         legend->AddEntry(graph, bunchNames.at(i-1).c_str(), "f");
+    }
+
+    // Axes on top
+    hist->GetXaxis()->Pop();
+    hist->GetYaxis()->Pop();
+
+    // Update canvas
+    legend->Draw();
+    canvas->Update();
+    canvas->Paint();
+}
+
+void TImpactTree::_StyleFinalEnergy(
+    Int_t bunchCount,
+    std::vector<std::string> bunchNames
+)
+{
+    // Apply my style settings
+    load_style_mje();
+    gROOT->SetStyle("mje");
+
+    // Get objects
+    TCanvas *canvas = (TCanvas *)(
+        gROOT->GetListOfCanvases()->FindObject(_ENERGY_CANVAS_NAME.c_str())
+    );
+    canvas->cd();
+    TFrame *frame = canvas->GetFrame();
+    TPaveText *titleText = (TPaveText *)(canvas->GetPrimitive("title"));
+    std::string histName = "";
+    histName = _ENERGY_CANVAS_NAME + "_hist1";
+    TH1 *hist = (TH1 *)(canvas->GetPrimitive(histName.c_str()));
+    // std::string graphName = "";
+    // TGraph *graph;
+
+    // Set up background
+    frame->SetLineWidth(0);
+    if (titleText) {
+        titleText->Clear();
+    }
+    canvas->SetGridx(false);
+    canvas->SetGridy(true);
+
+    // Set axes options
+    // - font code 132 is Times New Roman, medium, regular, scalable
+    // x-axis
+    hist->GetXaxis()->SetTicks("-");
+    hist->GetXaxis()->SetTickSize(0.01);
+    hist->GetXaxis()->SetTitleOffset(-1.0);
+    hist->GetXaxis()->SetLabelOffset(-0.04);
+    hist->GetXaxis()->SetTitle(_ENERGY_XAXIS_TITLE.c_str());
+    hist->GetXaxis()->SetTitleFont(132);
+    hist->GetXaxis()->SetTitleSize(0.05);
+    hist->GetXaxis()->CenterTitle(kTRUE);
+    hist->GetXaxis()->SetLabelFont(132);
+    hist->GetXaxis()->SetLabelSize(0.035);
+    // y-axis
+    hist->GetYaxis()->SetTicks("+");
+    hist->GetYaxis()->SetTickSize(0.01);
+    hist->GetYaxis()->SetTitleOffset(-1.02);
+    hist->GetYaxis()->SetLabelOffset(-0.01);
+    hist->GetYaxis()->SetTitle(_ENERGY_YAXIS_TITLE.c_str());
+    hist->GetYaxis()->SetTitleFont(132);
+    hist->GetYaxis()->SetTitleSize(0.05);
+    hist->GetYaxis()->CenterTitle(kTRUE);
+    hist->GetYaxis()->SetLabelFont(132);
+    hist->GetYaxis()->SetLabelSize(0.035);
+
+    // Add legend
+    TLegend *legend = new TLegend(0.11, 0.9, 0.51, 0.7);
+    legend->SetTextFont(132);
+    legend->SetTextSize(0.03);
+    legend->SetLineColor(17);
+    legend->SetLineStyle(1);
+    legend->SetLineWidth(1);
+
+    // Set histogram draw options
+    for (Int_t i = 1; i <= bunchCount; i++) {
+        histName = _ENERGY_CANVAS_NAME + "_hist" + std::to_string(i);
+        hist = (TH1 *)(canvas->GetPrimitive(histName.c_str()));
+        switch (i % 4) {
+        case 1:
+            hist->SetFillColor(38);   // Blue
+            hist->SetLineColor(kBlue + 3);
+            break;
+        case 2:
+            hist->SetFillColor(623);  // Salmon red
+            hist->SetLineColor(kRed + 3);
+            break;
+        case 3:
+            hist->SetFillColor(30);   // Green
+            hist->SetLineColor(kGreen + 3);
+            break;
+        case 0:
+            hist->SetFillColor(42);   // Mustard
+            hist->SetLineColor(kYellow + 3);
+            break;
+        }
+        hist->SetLineWidth(1);
+        hist->SetLineStyle(1);
+        legend->AddEntry(hist, bunchNames.at(i-1).c_str(), "f");
     }
 
     // Axes on top

@@ -84,6 +84,10 @@ protected:
         Double_t ymin,
         Double_t ymax
     );
+    void _StyleFinalEnergy(
+        Int_t bunchCount,
+        std::vector<std::string> bunchNames
+    );
 
     // Utility methods
     void _RenameCurrentGraph(const char *name);
