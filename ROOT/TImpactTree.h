@@ -45,7 +45,7 @@ public:
         Double_t ymin,
         Double_t ymax
     );
-    void PlotFinalEnergy(TCanvas *canvas);
+    void PlotFinalEnergy();
 
 protected:
     // Class members
@@ -87,6 +87,17 @@ protected:
 
     // Utility methods
     void _RenameCurrentGraph(const char *name);
+    void _CreateCanvas(
+        const char *name,
+        const char *title,
+        const Int_t width,
+        const Int_t height
+    );
+    void _PrintCanvas(
+        const char *name,
+        const char *filename,
+        const char *filetype
+    );
     std::string _BuildCumulativePlotString(
         std::string branchName,
         std::string prefix,
