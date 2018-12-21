@@ -403,6 +403,7 @@ void TImpactTree::PlotFinalEnergy(
 )
 {
     Int_t bunchCount = this->_bunchCount;
+    std::string branchName = "";
     std::string plotString = "";
     std::string plotOptions = "";
     std::string histName = "";
@@ -418,7 +419,8 @@ void TImpactTree::PlotFinalEnergy(
     // Plot each histogram as a separate layer
     for (Int_t i = 1; i <= bunchCount; i++) {
         histName = _ENERGY_CANVAS_NAME + "_hist" + std::to_string(i);
-        plotString = "endslice.bunch" + std::to_string(i) + ".W";
+        branchName = "endslice.bunch" + std::to_string(i);
+        plotString = branchName + ".W";
         plotString += ">>" + histName + "("
             + std::to_string(nbins) + ","
             + std::to_string(xmin) + ","
@@ -429,7 +431,9 @@ void TImpactTree::PlotFinalEnergy(
         else {
             plotOptions = "BAR same";
         }
-        this->Draw(plotString.c_str(), "", plotOptions.c_str());
+        TBranch *thisBranch = this->GetBranch(branchName.c_str());
+        Long_t branchEntries = thisBranch->GetEntries();
+        this->Draw(plotString.c_str(), "", plotOptions.c_str(), branchEntries);
     }
 
     // Print to file
