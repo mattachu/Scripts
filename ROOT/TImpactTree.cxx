@@ -33,6 +33,7 @@ std::string    _ENERGY_XAXIS_TITLE   = "Final energy (MeV)";
 std::string    _ENERGY_YAXIS_TITLE   = "Number density";
 Int_t    const _ENERGY_CANVAS_WIDTH  =    800;
 Int_t    const _ENERGY_CANVAS_HEIGHT =    500;
+Int_t    const _ENERGY_BINS_DEFAULT  =    100;
 Double_t const _ENERGY_XMIN_DEFAULT  =    0.0;
 Double_t const _ENERGY_XMAX_DEFAULT  =    1.1;
 
@@ -395,11 +396,16 @@ void TImpactTree::_PlotBunchLayer(
 }
 
 // - final energy histograms
-void TImpactTree::PlotFinalEnergy()
+void TImpactTree::PlotFinalEnergy(
+    Int_t nbins = _ENERGY_BINS_DEFAULT,
+    Double_t xmin = _ENERGY_XMIN_DEFAULT,
+    Double_t xmax = _ENERGY_XMAX_DEFAULT
+)
 {
     Int_t bunchCount = this->_bunchCount;
     std::string plotString = "";
     std::string plotOptions = "";
+    std::string histName = "";
 
     // Create canvas
     this->_CreateCanvas(
@@ -411,7 +417,12 @@ void TImpactTree::PlotFinalEnergy()
 
     // Plot each histogram as a separate layer
     for (Int_t i = 1; i <= bunchCount; i++) {
+        histName = _ENERGY_CANVAS_NAME + "_hist" + std::to_string(i);
         plotString = "endslice.bunch" + std::to_string(i) + ".W";
+        plotString += ">>" + histName + "("
+            + std::to_string(nbins) + ","
+            + std::to_string(xmin) + ","
+            + std::to_string(xmax) + ")";
         if (i==1) {
             plotOptions = "BAR";
         }

@@ -45,7 +45,7 @@ public:
         Double_t ymin,
         Double_t ymax
     );
-    void PlotFinalEnergy();
+    void PlotFinalEnergy(Int_t nbins, Double_t xmin, Double_t xmax);
 
 protected:
     // Class members
