@@ -15,7 +15,7 @@ fi
 function git-check() {
     echo "Remotes:"
     git remote -vv
-    git fetch --all
+    git fetch --all --prune
     echo
     echo "Branches:"
     git branch -vv --all
