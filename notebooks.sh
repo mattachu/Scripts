@@ -195,8 +195,7 @@ function getNotebookNavigation()
     while [[ -n "$remainingPath" ]]
     do
         currentLink="$currentLevel$contentsPage"
-        currentTitle="$(echo "$remainingPath" | \
-                        sed -e 's|/$||' -e 's|.*/\([^/]*\)$|\1|')"
+        currentTitle="$(getFolderName "$currentLevel")"
         navLinks=" > [$currentTitle]($currentLink)$navLinks"
         remainingPath="$(echo "$remainingPath" | \
                          sed -e 's|/$||' -e 's|[^/]*$||')"
@@ -344,9 +343,47 @@ function getFolderSummary()
     local notebookFolder="$*"
     if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
     local readmePage="$notebookReadmePage"
-    if [[ -r "$notebookFolder/$readmePage" ]]; then
-        cat "$notebookFolder/$readmePage"
+    local thisPage="$notebookFolder/$readmePage"
+    if [[ -r "$thisPage" ]]; then
+        if [[ $(hasTitleLine "$thisPage") == "true" ]]; then
+            sed '1,2d' "$thisPage"
+        else
+            cat "$thisPage"
+        fi
         printBlankLine
+    fi
+}
+
+# Function to get the name of the given folder from the Readme file or directory
+function getFolderName()
+{
+    local notebookFolder="$*"
+    if [[ -z $notebookFolder ]]; then notebookFolder="."; fi
+    local readmePage="$notebookReadmePage"
+    if [[ -r "$notebookFolder/$readmePage" ]]; then
+        notebookName="$(sed -n '1s/^# //p' "$notebookFolder/$readmePage")"
+    fi
+    if [[ -z $notebookName ]]; then
+        notebookName="$(cd "$notebookFolder";
+                        pwd |
+                        sed -e 's|/$||' -e 's|.*/\([^/]*\)$|\1|')"
+    fi
+    echo "$notebookName"
+}
+
+# Function to check whether a Readme file starts with a title line
+function hasTitleLine
+{
+    local thisPage="$*"
+    if [[ -r "$thisPage" ]]; then
+        local thisTitle="$(sed -n '1s/^# //p' "$thisPage")"
+        if [[ -z $thisTitle ]]; then
+            echo "false"
+        else
+            echo "true"
+        fi
+    else
+        echo "Cannot read file $thisPage"
     fi
 }
 
