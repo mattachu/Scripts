@@ -2,8 +2,12 @@
 # Functions for working with notebook Markdown files
 #
 # Main user functions:
+# - processNotebooks([notebookRootFolder])
+#    Process an entire notebook tree recursively
+# - buildNotebookContents([notebookFolder])
+#    Builds contents page and adds internal links for notes-style folders.
 # - indexLogbook([logbookFolder])
-#    Adds internal links and creates monthly summaries for logbooks.
+#    Creates monthly summaries and adds internal links for logbook folders.
 # - convertSalaryTable(inputFile, [outputFile])
 #    Takes a file with values copied from the Excel export from the PKU portal
 #    and converts it to a Markdown table. If `outputFile` is not given, file is
