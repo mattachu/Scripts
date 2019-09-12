@@ -33,6 +33,8 @@ case ${COMPUTER_NAME} in
         export COMPUTER_FULLNAME="Matt's MacBook Pro" ;;
     "MJEaston")
         export COMPUTER_FULLNAME="MJEaston: Matt's Work PC" ;;
+    "ubuntu42")
+        export COMPUTER_FULLNAME="ubuntu42: Matt's Work PC" ;;
 esac
 
 # Show computer name
