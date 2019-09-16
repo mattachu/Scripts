@@ -515,7 +515,8 @@ function getSummaryLine()
         sed -e 's/:/./' -e 's/\([.:!?]\).*$/\1/' \
             -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' \
             -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
-            -e 's/^#.*$//'
+            -e 's/^#.*$//' \
+            -e 's/$/\n/'
         printBlankLine
     else
         echo "Cannot read file $thisPage"
@@ -537,7 +538,8 @@ function getHeadingsSummary()
         tr '\n' ' ' | tr -d '\r' | \
         sed -e 's/  / /g' -e 's/  / /g' -e 's/[ ]*$//g' -e 's/## /\
     - /g' -e 's/[^#]# /\
-* /g' -e 's/# /* /g' -e 's/ \* / /g'
+* /g' -e 's/# /* /g' -e 's/ \* / /g' \
+        -e 's/$/\n/'
         printBlankLine
     else
         echo "Cannot read file $thisPage"
