@@ -14,8 +14,7 @@
 #    modified in place.
 #
 # General notes:
-# - `sed -i ''` should work on both macOS (FreeBSD sed) and Ubuntu (GNU sed)
-# - handling of new lines is tricky to match both systems
+# - handling of new lines and `sed` is tricky to match both macOS and Ubuntu
 
 # Parameters
 export pagePattern="./.*.md"
@@ -31,8 +30,10 @@ export notebookLogbookFolder="Logbook"
 export notebookRootFolder="Notebooks"
 if [[ "$(uname)" == "Darwin" ]]; then
     export findCommand="find -E . -maxdepth 1"
+    export inlineSedCommand="sed -i ''"
 else
     export findCommand="find . -maxdepth 1 -regextype posix-egrep"
+    export inlineSedCommand="sed -i"
 fi
 
 # ------------------------------------------------------------------------------
@@ -217,7 +218,7 @@ function addNotebookNavigation()
     local navLinks="$(getNotebookNavigation)"
     if [[ -w "$thisPage" ]]; then
         blankFirstLine "$thisPage"
-        sed -i '' -e "1s|^.*\$|$navLinks|" "$thisPage"
+        $inlineSedCommand -e "1s|^.*\$|$navLinks|" "$thisPage"
     fi
 }
 
@@ -399,7 +400,7 @@ function blankFirstLine()
     local thisPage="$1"
     if [[ -w "$thisPage" ]]; then
         if [[ $(hasNotebookNavigation "$thisPage") == "true" ]]; then
-            sed -i '' -e "1s/^.*\$//" "$thisPage"
+            $inlineSedCommand -e "1s/^.*\$//" "$thisPage"
         else
             addBlankLineAtStart "$thisPage"
         fi
@@ -436,7 +437,7 @@ function removeLeadingPipe()
 {
     local thisPage="$1"
     if [[ -w "$thisPage" ]]; then
-        sed -i '' -e '1s/^ | //' "$thisPage"
+        $inlineSedCommand -e '1s/^ | //' "$thisPage"
     fi
 }
 
@@ -669,7 +670,7 @@ function linkLastDate()
     local lastDate="$1"
     local thisPage="$2"
     if [[ -n "$lastDate" && -w "$thisPage" ]]; then
-        sed -i '' -e "1s/^.*\$/[< $lastDate]($lastDate)/" "$thisPage"
+        $inlineSedCommand -e "1s/^.*\$/[< $lastDate]($lastDate)/" "$thisPage"
     fi
 }
 
@@ -679,7 +680,7 @@ function linkNextDate()
     local nextDate="$1"
     local thisPage="$2"
     if [[ -n "$nextDate" && -w "$thisPage" ]]; then
-        sed -i '' -e "1s/\$/ | [$nextDate >]($nextDate)/" "$thisPage"
+        $inlineSedCommand -e "1s/\$/ | [$nextDate >]($nextDate)/" "$thisPage"
         removeLeadingPipe "$thisPage"
     fi
 }
@@ -691,7 +692,7 @@ function addContentsLink()
     local contentsPage="$(echo $notebookContentsPage | sed -e 's/\.md//')"
     local contentsText="$notebookContentsText"
     if [[ -w "$thisPage" ]]; then
-        sed -i '' "1s/\$/ | [$contentsText]($contentsPage)/" "$thisPage"
+        $inlineSedCommand "1s/\$/ | [$contentsText]($contentsPage)/" "$thisPage"
     fi
 }
 
@@ -701,7 +702,7 @@ function addThisMonthLink()
     local thisDate="$1"
     if [[ -n "$thisDate" && -w "$thisDate.md" ]]; then
         thisMonth=$(getMonthFromDate "$thisDate")
-        sed -i '' "1s/\$/ | [$thisMonth]($thisMonth)/" "$thisDate.md"
+        $inlineSedCommand "1s/\$/ | [$thisMonth]($thisMonth)/" "$thisDate.md"
     fi
 }
 
