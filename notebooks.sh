@@ -539,7 +539,8 @@ function getHeadingsSummary()
         sed -e 's/  / /g' -e 's/  / /g' -e 's/[ ]*$//g' -e 's/## /\
     - /g' -e 's/[^#]# /\
 * /g' -e 's/# /* /g' -e 's/ \* / /g' \
-        -e 's/$/\n/'
+        -e 's/$/\n/' | \
+        uniq
         printBlankLine
     else
         echo "Cannot read file $thisPage"
