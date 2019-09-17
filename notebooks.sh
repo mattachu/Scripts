@@ -620,7 +620,7 @@ function createMonthlySummary()
         linkLastDate "$lastMonth" "$thisMonth.md"
     fi
     addContentsLink "$thisMonth.md"
-    printMonthHeading "$thisMonth" >> "$thisMonth.md"
+    printMonthHeading "$thisMonth" "full" >> "$thisMonth.md"
 }
 
 # Function to add last, next and up links to logbook pages
