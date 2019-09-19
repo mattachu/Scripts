@@ -30,10 +30,10 @@ export notebookLogbookFolder="Logbook"
 export notebookRootFolder="Notebooks"
 if [[ "$(uname)" == "Darwin" ]]; then
     export findCommand="find -E . -maxdepth 1"
-    export inlineSedCommand="sed -i ''"
+    export inPlaceSedCommand="sed -i .bak"
 else
     export findCommand="find . -maxdepth 1 -regextype posix-egrep"
-    export inlineSedCommand="sed -i"
+    export inPlaceSedCommand="sed --in-place=.bak"
 fi
 
 # ------------------------------------------------------------------------------
@@ -218,7 +218,8 @@ function addNotebookNavigation()
     local navLinks="$(getNotebookNavigation)"
     if [[ -w "$thisPage" ]]; then
         blankFirstLine "$thisPage"
-        $inlineSedCommand -e "1s|^.*\$|$navLinks|" "$thisPage"
+        $inPlaceSedCommand -e "1s|^.*\$|$navLinks|" "$thisPage"
+        rm -f "$thisPage.bak"
     fi
 }
 
@@ -400,7 +401,8 @@ function blankFirstLine()
     local thisPage="$1"
     if [[ -w "$thisPage" ]]; then
         if [[ $(hasNotebookNavigation "$thisPage") == "true" ]]; then
-            $inlineSedCommand -e "1s/^.*\$//" "$thisPage"
+            $inPlaceSedCommand -e "1s/^.*\$//" "$thisPage"
+            rm -f "$thisPage.bak"
         else
             addBlankLineAtStart "$thisPage"
         fi
@@ -437,7 +439,8 @@ function removeLeadingPipe()
 {
     local thisPage="$1"
     if [[ -w "$thisPage" ]]; then
-        $inlineSedCommand -e '1s/^ | //' "$thisPage"
+        $inPlaceSedCommand -e '1s/^ | //' "$thisPage"
+        rm -f "$thisPage.bak"
     fi
 }
 
@@ -516,7 +519,7 @@ function getSummaryLine()
             -e 's/\[\([^]]*\)\]\[[^]]*\]/\1/g' \
             -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
             -e 's/^#.*$//g' \
-            -e 's/$/\n/g'
+            -e 's/$/\n/g' -e 's/n$//g'
         printBlankLine
     else
         echo "Cannot read file $thisPage"
@@ -539,7 +542,7 @@ function getHeadingsSummary()
         sed -e 's/  / /g' -e 's/  / /g' -e 's/[ ]*$//g' -e 's/## /\
     - /g' -e 's/[^#]# /\
 * /g' -e 's/# /* /g' -e 's/ \* / /g' \
-        -e 's/$/\n/g' | \
+            -e 's/$/\n/g'  -e 's/n$//g' | \
         sed -e 's/ $//g' | \
         uniq
         printBlankLine
@@ -674,7 +677,8 @@ function linkLastDate()
     local lastDate="$1"
     local thisPage="$2"
     if [[ -n "$lastDate" && -w "$thisPage" ]]; then
-        $inlineSedCommand -e "1s/^.*\$/[< $lastDate]($lastDate)/" "$thisPage"
+        $inPlaceSedCommand -e "1s/^.*\$/[< $lastDate]($lastDate)/" "$thisPage"
+        rm -f "$thisPage.bak"
     fi
 }
 
@@ -684,7 +688,8 @@ function linkNextDate()
     local nextDate="$1"
     local thisPage="$2"
     if [[ -n "$nextDate" && -w "$thisPage" ]]; then
-        $inlineSedCommand -e "1s/\$/ | [$nextDate >]($nextDate)/" "$thisPage"
+        $inPlaceSedCommand -e "1s/\$/ | [$nextDate >]($nextDate)/" "$thisPage"
+        rm -f "$thisPage.bak"
         removeLeadingPipe "$thisPage"
     fi
 }
@@ -696,7 +701,8 @@ function addContentsLink()
     local contentsPage="$(echo $notebookContentsPage | sed -e 's/\.md//')"
     local contentsText="$notebookContentsText"
     if [[ -w "$thisPage" ]]; then
-        $inlineSedCommand "1s/\$/ | [$contentsText]($contentsPage)/" "$thisPage"
+        $inPlaceSedCommand "1s/\$/ | [$contentsText]($contentsPage)/" "$thisPage"
+        rm -f "$thisPage.bak"
     fi
 }
 
@@ -706,7 +712,8 @@ function addThisMonthLink()
     local thisDate="$1"
     if [[ -n "$thisDate" && -w "$thisDate.md" ]]; then
         thisMonth=$(getMonthFromDate "$thisDate")
-        $inlineSedCommand "1s/\$/ | [$thisMonth]($thisMonth)/" "$thisDate.md"
+        $inPlaceSedCommand "1s/\$/ | [$thisMonth]($thisMonth)/" "$thisDate.md"
+        rm -f "$thisDate.md.bak"
     fi
 }
 
