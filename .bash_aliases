@@ -9,7 +9,7 @@ alias beep="echo -e '\a'"
 alias server="ssh wangzhi@162.105.147.95"
 alias transfer="rsync --archive --update --delete --max-size=50M --verbose ~/Simulations/Current/ ~/Simulations/Transfer/"
 alias run-tests="./run-tests.sh"
-alias sync-usb="unison -fat ${SYNC_FOLDER}/ ${USB_FOLDER}/"
+alias sync-usb="unison -fat -rsrc false ${SYNC_FOLDER}/ ${USB_FOLDER}/"
 
 # Load certain environments (machine specific)
 if [[ "$(uname)" == "Darwin" ]]; then
