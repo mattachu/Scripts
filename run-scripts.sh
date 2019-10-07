@@ -31,7 +31,7 @@ function run-with-timer {
 
 # Run the given command with a log file
 function run-with-log {
-    local logFile="$(echo "$1" | sed -e 's|.*/\([^/]*\)$|\1.log|' )"
+    local logFile="$(echo "$1" | sed -e 's|.*/\([^/]*\)$|\1|' -e 's|$|.log|' )"
     rm -f $logFile
     echo "Current directory: " $(pwd -P) > >(tee -a $logFile) 2> >(tee -a $logFile >&2)
     echo "Current command: $*" > >(tee -a $logFile) 2> >(tee -a $logFile >&2)
