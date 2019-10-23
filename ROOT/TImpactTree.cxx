@@ -1,5 +1,6 @@
 // Class for loading, plotting and manipulating Impact-T data in ROOT
 // written by Matt Easton (see http://matteaston.net/work), November 2018
+// modified by Matt Easton, October 2019
 
 #include <vector>
 #include "TImpactTree.h"
@@ -24,39 +25,24 @@ Double_t const _BUNCHES_XMIN_DEFAULT  =    0.0;
 Double_t const _BUNCHES_XMAX_DEFAULT  =    1.8;
 Double_t const _BUNCHES_YMIN_DEFAULT  =  90000;
 Double_t const _BUNCHES_YMAX_DEFAULT  = 102000;
-// - settings for final energy plot
-std::string    _ENERGY_FILENAME      = "energy.eps";
-std::string    _ENERGY_FILETYPE      = "eps";
-std::string    _ENERGY_CANVAS_NAME   = "impact_final_energy_plot";
-std::string    _ENERGY_CANVAS_TITLE  = "Impact-T final energy plot";
-std::string    _ENERGY_XAXIS_TITLE   = "Final energy (MeV)";
-std::string    _ENERGY_YAXIS_TITLE   = "Number of macro-particles";
-Int_t    const _ENERGY_CANVAS_WIDTH  =    802;
-Int_t    const _ENERGY_CANVAS_HEIGHT =    525;
-Int_t    const _ENERGY_BINS_DEFAULT  =    100;
-Double_t const _ENERGY_XMIN_DEFAULT  =    0.0;
-Double_t const _ENERGY_XMAX_DEFAULT  =    1.1;
 
 // Default constructor
 TImpactTree::TImpactTree():
-    _bunchCount(1), _cellCount(0), _sliceCount(0),
-    _firstCell(0), _firstSlice(0), _lastCell(0), _lastSlice(0)
+    _bunchCount(1), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetDefaultBunchNames();
 }
 
 // Constructor given bunch count only
 TImpactTree::TImpactTree(Int_t bunchCount):
-    _bunchCount(bunchCount), _cellCount(0), _sliceCount(0),
-    _firstCell(0), _firstSlice(0), _lastCell(0), _lastSlice(0)
+    _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetDefaultBunchNames();
 }
 
 // Constructor given bunch count and bunch names
 TImpactTree::TImpactTree(Int_t bunchCount, std::vector<std::string> bunchNames):
-   _bunchCount(bunchCount), _cellCount(0), _sliceCount(0),
-   _firstCell(0), _firstSlice(0), _lastCell(0), _lastSlice(0)
+   _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetBunchNames(bunchNames);
 }
@@ -73,11 +59,6 @@ Int_t TImpactTree::BunchCount() const
     return this->_bunchCount;
 }
 
-Int_t TImpactTree::CellCount() const
-{
-    return this->_cellCount;
-}
-
 Int_t TImpactTree::SliceCount() const
 {
     return this->_sliceCount;
@@ -88,19 +69,9 @@ std::vector<std::string> TImpactTree::GetBunchNames() const
     return this->_bunchNames;
 }
 
-Int_t TImpactTree::GetFirstCell() const
-{
-    return this->_firstCell;
-}
-
 Int_t TImpactTree::GetFirstSlice() const
 {
     return this->_firstSlice;
-}
-
-Int_t TImpactTree::GetLastCell() const
-{
-    return this->_lastCell;
 }
 
 Int_t TImpactTree::GetLastSlice() const
@@ -130,20 +101,6 @@ void TImpactTree::SetBunchNames(std::vector<std::string> bunchNames)
     this->_bunchNames = bunchNames;
 }
 
-void TImpactTree::SetFirstCell(Int_t firstCell)
-{
-    if (firstCell > this->_cellCount) {
-        throw std::invalid_argument(
-            "Cannot set the cell number higher than the number of cells."
-        );
-    }
-    if (firstCell < 0) {
-        throw std::invalid_argument("Cannot set negative cell numbers.");
-    }
-
-    this->_firstCell = firstCell;
-}
-
 void TImpactTree::SetFirstSlice(Int_t firstSlice)
 {
     if (firstSlice > this->_sliceCount) {
@@ -156,25 +113,6 @@ void TImpactTree::SetFirstSlice(Int_t firstSlice)
     }
 
     this->_firstSlice = firstSlice;
-}
-
-void TImpactTree::SetLastCell(Int_t lastCell)
-{
-    if (lastCell > this->_cellCount) {
-        throw std::invalid_argument(
-            "Cannot set the cell number higher than the number of cells."
-        );
-    }
-    if (lastCell < 0) {
-        throw std::invalid_argument("Cannot set negative cell numbers.");
-    }
-    if (lastCell < this->_firstCell) {
-        throw std::invalid_argument(
-            "Cannot set the last cell number lower than the first cell."
-        );
-    }
-
-    this->_lastCell = lastCell;
 }
 
 void TImpactTree::SetLastSlice(Int_t lastSlice)
@@ -220,7 +158,6 @@ void TImpactTree::_Load(Int_t bunchCount)
 
     // Load each data type from the relevant files
     this->_LoadBunches(bunchCount);
-    this->_LoadEndSlice(bunchCount);
 
     // Output data summary
     this->Print();
@@ -261,50 +198,6 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
     this->_sliceCount = this->GetBranch("bunches")->GetEntries();
     this->_firstSlice = 1;
     this->_lastSlice = this->_sliceCount - 1;
-}
-
-// - end slice data from `rfq1.dst` etc.
-void TImpactTree::_LoadEndSlice(Int_t bunchCount)
-{
-    std::string filename = "";
-    std::string branchname = "";
-    for (Int_t i = 1; i <= bunchCount; i++){
-        filename = "rfq" + std::to_string(i) + ".dst";
-        branchname = "endslice.bunch" + std::to_string(i);
-        this->_LoadDSTParticleData(filename, branchname);
-    }
-}
-
-// - load particle data from a `.dst` file into a given branch
-void TImpactTree::_LoadDSTParticleData(
-    std::string filename,
-    std::string branchname
-)
-{
-    Int_t Npt = _GetDSTParticleCount(filename);
-    Double_t slice[6];
-    std::string leafDefinition = "x/D:xp/D:y/D:yp/D:phi/D:W/D";
-    this->Branch(branchname.c_str(), &slice, leafDefinition.c_str());
-    ifstream infile(filename, std::ios::in | std::ios::binary);
-    infile.seekg(23); // skip headers
-    for (Int_t i = 1; i <= Npt; i++) {
-        if (!infile.good()) break;
-        infile.read((char *)(&slice), 48);
-        this->GetBranch(branchname.c_str())->Fill();
-    }
-    infile.close();
-}
-
-// - read the number of particles from a given `.dst` file
-Int_t TImpactTree::_GetDSTParticleCount(std::string filename)
-{
-    Int_t Npt = 0;
-    ifstream infile(filename, std::ios::in | std::ios::binary);
-    infile.seekg(2);
-    infile.read((char *)&Npt, 4);
-    infile.close();
-    this->_UpdateParticleCount(Npt);
-    return Npt;
 }
 
 
@@ -393,58 +286,6 @@ void TImpactTree::_PlotBunchLayer(
 
     // Rename graph
     this->_RenameCurrentGraph(graphName.c_str());
-}
-
-// - final energy histograms
-void TImpactTree::PlotFinalEnergy(
-    Int_t nbins = _ENERGY_BINS_DEFAULT,
-    Double_t xmin = _ENERGY_XMIN_DEFAULT,
-    Double_t xmax = _ENERGY_XMAX_DEFAULT
-)
-{
-    Int_t bunchCount = this->_bunchCount;
-    std::string branchName = "";
-    std::string plotString = "";
-    std::string plotOptions = "";
-    std::string histName = "";
-
-    // Create canvas
-    this->_CreateCanvas(
-        _ENERGY_CANVAS_NAME.c_str(),
-        _ENERGY_CANVAS_TITLE.c_str(),
-        _ENERGY_CANVAS_WIDTH,
-        _ENERGY_CANVAS_HEIGHT
-    );
-
-    // Plot each histogram as a separate layer
-    for (Int_t i = 1; i <= bunchCount; i++) {
-        histName = _ENERGY_CANVAS_NAME + "_hist" + std::to_string(i);
-        branchName = "endslice.bunch" + std::to_string(i);
-        plotString = branchName + ".W";
-        plotString += ">>" + histName + "("
-            + std::to_string(nbins) + ","
-            + std::to_string(xmin) + ","
-            + std::to_string(xmax) + ")";
-        if (i==1) {
-            plotOptions = "hist";
-        }
-        else {
-            plotOptions = "hist same";
-        }
-        TBranch *thisBranch = this->GetBranch(branchName.c_str());
-        Long_t branchEntries = thisBranch->GetEntries();
-        this->Draw(plotString.c_str(), "", plotOptions.c_str(), branchEntries);
-    }
-
-    // Apply styles
-    this->_StyleFinalEnergy(this->_bunchCount, this->_bunchNames);
-
-    // Print to file
-    this->_PrintCanvas(
-        _ENERGY_CANVAS_NAME.c_str(),
-        _ENERGY_FILENAME.c_str(),
-        _ENERGY_FILETYPE.c_str()
-    );
 }
 
 // Methods to apply styles for different plot types
@@ -539,106 +380,6 @@ void TImpactTree::_StyleBunches(
         graph->SetLineWidth(0);
         graph->SetLineStyle(0);
         legend->AddEntry(graph, bunchNames.at(i-1).c_str(), "f");
-    }
-
-    // Axes on top
-    hist->GetXaxis()->Pop();
-    hist->GetYaxis()->Pop();
-
-    // Update canvas
-    legend->Draw();
-    canvas->Update();
-    canvas->Paint();
-}
-
-void TImpactTree::_StyleFinalEnergy(
-    Int_t bunchCount,
-    std::vector<std::string> bunchNames
-)
-{
-    // Apply my style settings
-    load_style_mje();
-    gROOT->SetStyle("mje");
-
-    // Get objects
-    TCanvas *canvas = (TCanvas *)(
-        gROOT->GetListOfCanvases()->FindObject(_ENERGY_CANVAS_NAME.c_str())
-    );
-    canvas->cd();
-    TFrame *frame = canvas->GetFrame();
-    TPaveText *titleText = (TPaveText *)(canvas->GetPrimitive("title"));
-    std::string histName = "";
-    histName = _ENERGY_CANVAS_NAME + "_hist1";
-    TH1 *hist = (TH1 *)(canvas->GetPrimitive(histName.c_str()));
-    // std::string graphName = "";
-    // TGraph *graph;
-
-    // Set up background
-    frame->SetLineWidth(0);
-    if (titleText) {
-        titleText->Clear();
-    }
-    canvas->SetGridx(false);
-    canvas->SetGridy(true);
-
-    // Set axes options
-    // - font code 132 is Times New Roman, medium, regular, scalable
-    // x-axis
-    hist->GetXaxis()->SetTicks("-");
-    hist->GetXaxis()->SetTickSize(0.01);
-    hist->GetXaxis()->SetTitleOffset(-1.0);
-    hist->GetXaxis()->SetLabelOffset(-0.04);
-    hist->GetXaxis()->SetTitle(_ENERGY_XAXIS_TITLE.c_str());
-    hist->GetXaxis()->SetTitleFont(132);
-    hist->GetXaxis()->SetTitleSize(0.05);
-    hist->GetXaxis()->CenterTitle(kTRUE);
-    hist->GetXaxis()->SetLabelFont(132);
-    hist->GetXaxis()->SetLabelSize(0.035);
-    // y-axis
-    hist->GetYaxis()->SetTicks("+");
-    hist->GetYaxis()->SetTickSize(0.01);
-    hist->GetYaxis()->SetTitleOffset(-1.02);
-    hist->GetYaxis()->SetLabelOffset(-0.01);
-    hist->GetYaxis()->SetTitle(_ENERGY_YAXIS_TITLE.c_str());
-    hist->GetYaxis()->SetTitleFont(132);
-    hist->GetYaxis()->SetTitleSize(0.05);
-    hist->GetYaxis()->CenterTitle(kTRUE);
-    hist->GetYaxis()->SetLabelFont(132);
-    hist->GetYaxis()->SetLabelSize(0.035);
-
-    // Add legend
-    TLegend *legend = new TLegend(0.11, 0.9, 0.51, 0.7);
-    legend->SetTextFont(132);
-    legend->SetTextSize(0.03);
-    legend->SetLineColor(17);
-    legend->SetLineStyle(1);
-    legend->SetLineWidth(1);
-
-    // Set histogram draw options
-    for (Int_t i = 1; i <= bunchCount; i++) {
-        histName = _ENERGY_CANVAS_NAME + "_hist" + std::to_string(i);
-        hist = (TH1 *)(canvas->GetPrimitive(histName.c_str()));
-        switch (i % 4) {
-        case 1:
-            hist->SetFillColor(38);   // Blue
-            hist->SetLineColor(kBlue + 3);
-            break;
-        case 2:
-            hist->SetFillColor(623);  // Salmon red
-            hist->SetLineColor(kRed + 3);
-            break;
-        case 3:
-            hist->SetFillColor(30);   // Green
-            hist->SetLineColor(kGreen + 3);
-            break;
-        case 0:
-            hist->SetFillColor(42);   // Mustard
-            hist->SetLineColor(kYellow + 3);
-            break;
-        }
-        hist->SetLineWidth(1);
-        hist->SetLineStyle(1);
-        legend->AddEntry(hist, bunchNames.at(i-1).c_str(), "f");
     }
 
     // Axes on top
