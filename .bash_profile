@@ -18,8 +18,3 @@ fi
 if [ -r "${HOME}/.bashrc" ] ; then
     source "${HOME}/.bashrc"
 fi
-
-# Show greeting if it exists and is readable
-if [ -r "${HOME}/.greeting" ] ; then
-    source "${HOME}/.greeting"
-fi

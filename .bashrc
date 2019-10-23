@@ -313,3 +313,8 @@ fi
 if [ -r "${SCRIPTS_FOLDER}/notebooks.sh" ]; then
     source "${SCRIPTS_FOLDER}/notebooks.sh"
 fi
+
+# Show greeting if it exists and is readable
+if [ -r "${HOME}/.greeting" ] ; then
+    source "${HOME}/.greeting"
+fi
