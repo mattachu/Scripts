@@ -27,6 +27,9 @@ case ${computer_name} in
         alias load-geant4="source /usr/local/bin/geant4.sh"
         alias load-opal="source /opt/OPAL-2.0.0rc2/etc/profile.d/opal.sh"
         ;;
+    "ubuntu42")
+        alias load-root="source ~/Software/ROOT/bin/thisroot.sh"
+        ;;
 esac
 
 # Shortcuts for Reproducible
