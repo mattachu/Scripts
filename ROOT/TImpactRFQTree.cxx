@@ -106,31 +106,20 @@ void TImpactRFQTree::SetLastCell(Int_t lastCell)
 //   - overloads TImpactTree
 void TImpactRFQTree::Load()
 {
+    // Load all data
     this->_Load(this->_bunchCount);
+    // Output data summary
+    this->Print();
 }
 
 // - wrapper method to load all data types
 //   - overloads TImpactTree
 void TImpactRFQTree::_Load(Int_t bunchCount)
 {
-    // Check parameters
-    std::string errorString = "";
-    if (bunchCount < 1) {
-        errorString = "Must have at least one bunch.";
-        throw std::invalid_argument(errorString.c_str());
-    }
-    if (bunchCount > _MAX_BUNCH_COUNT) {
-        errorString = "Cannot handle more than " +
-                      std::to_string(_MAX_BUNCH_COUNT) + " bunches.";
-        throw std::invalid_argument(errorString.c_str());
-    }
-
-    // Load each data type from the relevant files
-    this->_LoadBunches(bunchCount);
+    // Load standard Impact-T data
+    TImpactTree::_Load(bunchCount);
+    // Load data types specific to RFQ
     this->_LoadEndSlice(bunchCount);
-
-    // Output data summary
-    this->Print();
 }
 
 // - end slice data from `rfq1.dst` etc.

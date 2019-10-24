@@ -138,7 +138,10 @@ void TImpactTree::SetLastSlice(Int_t lastSlice)
 // - publicly accessible method
 void TImpactTree::Load()
 {
+    // Load all data
     this->_Load(this->_bunchCount);
+    // Output data summary
+    this->Print();
 }
 
 // - wrapper method to load all data types
@@ -158,9 +161,6 @@ void TImpactTree::_Load(Int_t bunchCount)
 
     // Load each data type from the relevant files
     this->_LoadBunches(bunchCount);
-
-    // Output data summary
-    this->Print();
 }
 
 // - particle count data from `fort.11`
