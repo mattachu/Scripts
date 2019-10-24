@@ -1,14 +1,14 @@
 // Class for loading, plotting and manipulating Impact-T RFQ simulation data
 // written by Matt Easton (see http://matteaston.net/work), October 2019
-// inherits from the main class TImpactTree
+// inherits from the main class TImpactData
 
 #include <vector>
-#include "TImpactRFQTree.h"
-#include "TImpactTree.cxx"
+#include "TImpactRFQData.h"
+#include "TImpactData.cxx"
 #include "Style_mje.C"
 
-// Implements class `TImpactRFQTree`
-ClassImp(TImpactRFQTree);
+// Implements class `TImpactRFQData`
+ClassImp(TImpactRFQData);
 
 // Parameters
 // - settings for final energy plot
@@ -25,50 +25,58 @@ Double_t const _ENERGY_XMIN_DEFAULT  =    0.0;
 Double_t const _ENERGY_XMAX_DEFAULT  =    1.1;
 
 // Default constructor
-TImpactRFQTree::TImpactRFQTree():
-    TImpactTree(), _cellCount(0), _firstCell(0), _lastCell(0)
+TImpactRFQData::TImpactRFQData():
+    TImpactData(), _cellCount(0), _firstCell(0), _lastCell(0)
 {
-
+    this->_CreateTrees();
 }
 
 // Constructor given bunch count only
-TImpactRFQTree::TImpactRFQTree(Int_t bunchCount):
-    TImpactTree(bunchCount), _cellCount(0), _firstCell(0), _lastCell(0)
+TImpactRFQData::TImpactRFQData(Int_t bunchCount):
+    TImpactData(bunchCount), _cellCount(0), _firstCell(0), _lastCell(0)
 {
-
+    this->_CreateTrees();
 }
 
 // Constructor given bunch count and bunch names
-TImpactRFQTree::TImpactRFQTree(Int_t bunchCount, std::vector<std::string> bunchNames):
-   TImpactTree(bunchCount, bunchNames),
+TImpactRFQData::TImpactRFQData(Int_t bunchCount, std::vector<std::string> bunchNames):
+   TImpactData(bunchCount, bunchNames),
    _cellCount(0), _firstCell(0), _lastCell(0)
 {
-
+    this->_CreateTrees();
 }
 
 // Default destructor
-TImpactRFQTree::~TImpactRFQTree()
+TImpactRFQData::~TImpactRFQData()
 {
 
 }
 
+// Methods to create data structures
+//   - overloads TImpactData
+void TImpactRFQData::_CreateTrees()
+{
+    TImpactData::_CreateTrees();
+    this->_endTree = new TTree();
+}
+
 // Methods to access members
-Int_t TImpactRFQTree::CellCount() const
+Int_t TImpactRFQData::CellCount() const
 {
     return this->_cellCount;
 }
 
-Int_t TImpactRFQTree::GetFirstCell() const
+Int_t TImpactRFQData::GetFirstCell() const
 {
     return this->_firstCell;
 }
 
-Int_t TImpactRFQTree::GetLastCell() const
+Int_t TImpactRFQData::GetLastCell() const
 {
     return this->_lastCell;
 }
 
-void TImpactRFQTree::SetFirstCell(Int_t firstCell)
+void TImpactRFQData::SetFirstCell(Int_t firstCell)
 {
     if (firstCell > this->_cellCount) {
         throw std::invalid_argument(
@@ -82,7 +90,7 @@ void TImpactRFQTree::SetFirstCell(Int_t firstCell)
     this->_firstCell = firstCell;
 }
 
-void TImpactRFQTree::SetLastCell(Int_t lastCell)
+void TImpactRFQData::SetLastCell(Int_t lastCell)
 {
     if (lastCell > this->_cellCount) {
         throw std::invalid_argument(
@@ -103,8 +111,8 @@ void TImpactRFQTree::SetLastCell(Int_t lastCell)
 
 // Methods to load data from Impact-T output files
 // - publicly accessible method
-//   - overloads TImpactTree
-void TImpactRFQTree::Load()
+//   - overloads TImpactData
+void TImpactRFQData::Load()
 {
     // Load all data
     this->_Load(this->_bunchCount);
@@ -113,17 +121,17 @@ void TImpactRFQTree::Load()
 }
 
 // - wrapper method to load all data types
-//   - overloads TImpactTree
-void TImpactRFQTree::_Load(Int_t bunchCount)
+//   - overloads TImpactData
+void TImpactRFQData::_Load(Int_t bunchCount)
 {
     // Load standard Impact-T data
-    TImpactTree::_Load(bunchCount);
+    TImpactData::_Load(bunchCount);
     // Load data types specific to RFQ
     this->_LoadEndSlice(bunchCount);
 }
 
 // - end slice data from `rfq1.dst` etc.
-void TImpactRFQTree::_LoadEndSlice(Int_t bunchCount)
+void TImpactRFQData::_LoadEndSlice(Int_t bunchCount)
 {
     std::string filename = "";
     std::string branchname = "";
@@ -135,7 +143,7 @@ void TImpactRFQTree::_LoadEndSlice(Int_t bunchCount)
 }
 
 // - load particle data from a `.dst` file into a given branch
-void TImpactRFQTree::_LoadDSTParticleData(
+void TImpactRFQData::_LoadDSTParticleData(
     std::string filename,
     std::string branchname
 )
@@ -143,19 +151,19 @@ void TImpactRFQTree::_LoadDSTParticleData(
     Int_t Npt = _GetDSTParticleCount(filename);
     Double_t slice[6];
     std::string leafDefinition = "x/D:xp/D:y/D:yp/D:phi/D:W/D";
-    this->Branch(branchname.c_str(), &slice, leafDefinition.c_str());
+    this->_endTree->Branch(branchname.c_str(), &slice, leafDefinition.c_str());
     ifstream infile(filename, std::ios::in | std::ios::binary);
     infile.seekg(23); // skip headers
     for (Int_t i = 1; i <= Npt; i++) {
         if (!infile.good()) break;
         infile.read((char *)(&slice), 48);
-        this->GetBranch(branchname.c_str())->Fill();
+        this->_endTree->GetBranch(branchname.c_str())->Fill();
     }
     infile.close();
 }
 
 // - read the number of particles from a given `.dst` file
-Int_t TImpactRFQTree::_GetDSTParticleCount(std::string filename)
+Int_t TImpactRFQData::_GetDSTParticleCount(std::string filename)
 {
     Int_t Npt = 0;
     ifstream infile(filename, std::ios::in | std::ios::binary);
@@ -166,10 +174,20 @@ Int_t TImpactRFQTree::_GetDSTParticleCount(std::string filename)
     return Npt;
 }
 
+// Methods to output data
+// - publicly accessible method
+void TImpactRFQData::Print()
+{
+    // Print standard Impact data output
+    TImpactData::Print();
+    // Print end slice tree summary
+    printf("End-slice data tree:\n");
+    this->_endTree->Print();
+}
 
 // Methods to produce different plot types
 // - final energy histograms from `rfq1.dst`
-void TImpactRFQTree::PlotFinalEnergy(
+void TImpactRFQData::PlotFinalEnergy(
     Int_t nbins = _ENERGY_BINS_DEFAULT,
     Double_t xmin = _ENERGY_XMIN_DEFAULT,
     Double_t xmax = _ENERGY_XMAX_DEFAULT
@@ -204,9 +222,13 @@ void TImpactRFQTree::PlotFinalEnergy(
         else {
             plotOptions = "hist same";
         }
-        TBranch *thisBranch = this->GetBranch(branchName.c_str());
+        TBranch *thisBranch = this->_endTree->GetBranch(branchName.c_str());
         Long_t branchEntries = thisBranch->GetEntries();
-        this->Draw(plotString.c_str(), "", plotOptions.c_str(), branchEntries);
+        this->_endTree->Draw(
+            plotString.c_str(),
+            "",
+            plotOptions.c_str(),
+            branchEntries);
     }
 
     // Apply styles
@@ -221,7 +243,7 @@ void TImpactRFQTree::PlotFinalEnergy(
 }
 
 // Methods to apply styles for different plot types
-void TImpactRFQTree::_StyleFinalEnergy(
+void TImpactRFQData::_StyleFinalEnergy(
     Int_t bunchCount,
     std::vector<std::string> bunchNames
 )
@@ -319,4 +341,15 @@ void TImpactRFQTree::_StyleFinalEnergy(
     legend->Draw();
     canvas->Update();
     canvas->Paint();
+}
+
+// Utility methods
+// - update the number of particle entries in the trees
+void TImpactRFQData::_UpdateParticleCount(Long_t newCount)
+{
+    // End slice tree
+    Long_t currentCount = this->_endTree->GetEntries();
+    if (newCount > currentCount) {
+        this->_endTree->SetEntries(newCount);
+    }
 }

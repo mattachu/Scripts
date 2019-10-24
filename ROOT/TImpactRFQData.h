@@ -1,23 +1,23 @@
-// Class for loading, plotting and manipulating Impact-T RFQ simulation data
+    // Class for loading, plotting and manipulating Impact-T RFQ simulation data
 // written by Matt Easton (see http://matteaston.net/work), October 2019
 // inherits from the main class TImpactTree
 
 #include <vector>
-#include "TImpactTree.h"
+#include "TImpactData.h"
 #include "TCanvas.h"
 #pragma once
 
-class TImpactRFQTree : public TImpactTree
+class TImpactRFQData : public TImpactData
 {
 public:
     // Class definition
-    ClassDef(TImpactRFQTree, 1); // Data structure for Impact-T RFQ simulations
+    ClassDef(TImpactRFQData, 1); // Data structure for Impact-T RFQ simulations
 
     // Constructors and destructors
-    TImpactRFQTree();
-    TImpactRFQTree(Int_t bunchCount);
-    TImpactRFQTree(Int_t bunchCount, std::vector<std::string> bunchNames);
-    ~TImpactRFQTree();
+    TImpactRFQData();
+    TImpactRFQData(Int_t bunchCount);
+    TImpactRFQData(Int_t bunchCount, std::vector<std::string> bunchNames);
+    ~TImpactRFQData();
 
     // Methods to access members
     Int_t CellCount() const;
@@ -26,18 +26,23 @@ public:
     void SetFirstCell(Int_t firstCell);
     void SetLastCell(Int_t lastCell);
 
-    // Methods to load and plot data
-    void Load(); // overloads TImpactTree
+    // Input and output methods
+    void Load();                          // overloads TImpactTree
+    void Print();                         // overloads TImpactTree
     void PlotFinalEnergy(Int_t nbins, Double_t xmin, Double_t xmax);
 
 protected:
     // Class members
+    TTree                   *_endTree;    // Tree containing end slice data
     Int_t                    _cellCount;  // Number of RFQ cells
     Int_t                    _firstCell;  // FIrst RFQ cell number to plot
     Int_t                    _lastCell;   // Last RFQ cell number to plot
 
+    // Methods to set up data structures
+    void _CreateTrees();                  // overloads TImpactTree
+
     // Methods to load data from different Impact-T output files
-    void _Load(Int_t bunchCount); // overloads TImpactTree
+    void _Load(Int_t bunchCount);         // overloads TImpactTree
     void _LoadEndSlice(Int_t bunchCount);
     void _LoadDSTParticleData(
         std::string filename,
@@ -50,4 +55,7 @@ protected:
         Int_t bunchCount,
         std::vector<std::string> bunchNames
     );
+
+    // Utility methods
+    void _UpdateParticleCount(Long_t newCount);
 };
