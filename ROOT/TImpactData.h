@@ -7,17 +7,17 @@
 #include "TCanvas.h"
 #pragma once
 
-class TImpactTree : public TTree
+class TImpactData
 {
 public:
     // Class definition
-    ClassDef(TImpactTree, 1); // Data structure for Impact-T simulations
+    ClassDef(TImpactData, 1); // Data structure for Impact-T simulations
 
     // Constructors and destructors
-    TImpactTree();
-    TImpactTree(Int_t bunchCount);
-    TImpactTree(Int_t bunchCount, std::vector<std::string> bunchNames);
-    ~TImpactTree();
+    TImpactData();
+    TImpactData(Int_t bunchCount);
+    TImpactData(Int_t bunchCount, std::vector<std::string> bunchNames);
+    ~TImpactData();
 
     // Methods to access members
     Int_t BunchCount() const;
@@ -30,8 +30,9 @@ public:
     void SetFirstSlice(Int_t firstSlice);
     void SetLastSlice(Int_t lastSlice);
 
-    // Methods to load and plot data
+    // Input and output methods
     void Load();
+    void Print();
     void PlotBunches();
     void PlotBunches(
         Long_t firstSlice,
@@ -44,11 +45,15 @@ public:
 
 protected:
     // Class members
+    TTree                   *_bunchTree;  // Tree containing bunch count data
     const Int_t              _bunchCount; // Number of bunches in the simulation
     std::vector<std::string> _bunchNames; // List of names for the bunches
     Int_t                    _sliceCount; // Number of time slices
     Int_t                    _firstSlice; // First time slice to plot
     Int_t                    _lastSlice;  // Last time slice to plot
+
+    // Methods to set up data structures
+    void _CreateTrees();
 
     // Methods to load data from different Impact-T output files
     void _Load(Int_t bunchCount);
@@ -90,5 +95,5 @@ protected:
         std::string xaxis,
         Int_t variableCount
     );
-    void _UpdateParticleCount(Long_t newCount);
+    void _UpdateSliceCount(Long_t newCount);
 };

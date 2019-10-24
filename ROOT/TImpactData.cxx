@@ -3,11 +3,11 @@
 // modified by Matt Easton, October 2019
 
 #include <vector>
-#include "TImpactTree.h"
+#include "TImpactData.h"
 #include "Style_mje.C"
 
-// Implements class `TImpactTree`
-ClassImp(TImpactTree);
+// Implements class `TImpactData`
+ClassImp(TImpactData);
 
 // Parameters
 // - limit for bunch count, required for load method
@@ -27,59 +27,68 @@ Double_t const _BUNCHES_YMIN_DEFAULT  =  90000;
 Double_t const _BUNCHES_YMAX_DEFAULT  = 102000;
 
 // Default constructor
-TImpactTree::TImpactTree():
+TImpactData::TImpactData():
     _bunchCount(1), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetDefaultBunchNames();
+    this->_CreateTrees();
 }
 
 // Constructor given bunch count only
-TImpactTree::TImpactTree(Int_t bunchCount):
+TImpactData::TImpactData(Int_t bunchCount):
     _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetDefaultBunchNames();
+    this->_CreateTrees();
 }
 
 // Constructor given bunch count and bunch names
-TImpactTree::TImpactTree(Int_t bunchCount, std::vector<std::string> bunchNames):
+TImpactData::TImpactData(Int_t bunchCount, std::vector<std::string> bunchNames):
    _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetBunchNames(bunchNames);
+    this->_CreateTrees();
 }
 
 // Default destructor
-TImpactTree::~TImpactTree()
+TImpactData::~TImpactData()
 {
+    this->_bunchTree->Delete();
+}
 
+// Methods to create data structures
+void TImpactData::_CreateTrees()
+{
+    this->_bunchTree = new TTree();
 }
 
 // Methods to access members
-Int_t TImpactTree::BunchCount() const
+Int_t TImpactData::BunchCount() const
 {
     return this->_bunchCount;
 }
 
-Int_t TImpactTree::SliceCount() const
+Int_t TImpactData::SliceCount() const
 {
     return this->_sliceCount;
 }
 
-std::vector<std::string> TImpactTree::GetBunchNames() const
+std::vector<std::string> TImpactData::GetBunchNames() const
 {
     return this->_bunchNames;
 }
 
-Int_t TImpactTree::GetFirstSlice() const
+Int_t TImpactData::GetFirstSlice() const
 {
     return this->_firstSlice;
 }
 
-Int_t TImpactTree::GetLastSlice() const
+Int_t TImpactData::GetLastSlice() const
 {
     return this->_lastSlice;
 }
 
-void TImpactTree::SetDefaultBunchNames()
+void TImpactData::SetDefaultBunchNames()
 {
     std::vector<std::string> bunchNames;
     Int_t bunchCount = this->BunchCount();
@@ -89,7 +98,7 @@ void TImpactTree::SetDefaultBunchNames()
     this->_bunchNames = bunchNames;
 }
 
-void TImpactTree::SetBunchNames(std::vector<std::string> bunchNames)
+void TImpactData::SetBunchNames(std::vector<std::string> bunchNames)
 {
     Int_t bunchCount = this->BunchCount();
     if (bunchNames.size() < bunchCount) {
@@ -101,7 +110,7 @@ void TImpactTree::SetBunchNames(std::vector<std::string> bunchNames)
     this->_bunchNames = bunchNames;
 }
 
-void TImpactTree::SetFirstSlice(Int_t firstSlice)
+void TImpactData::SetFirstSlice(Int_t firstSlice)
 {
     if (firstSlice > this->_sliceCount) {
         throw std::invalid_argument(
@@ -115,7 +124,7 @@ void TImpactTree::SetFirstSlice(Int_t firstSlice)
     this->_firstSlice = firstSlice;
 }
 
-void TImpactTree::SetLastSlice(Int_t lastSlice)
+void TImpactData::SetLastSlice(Int_t lastSlice)
 {
     if (lastSlice > this->_sliceCount) {
         throw std::invalid_argument(
@@ -136,7 +145,7 @@ void TImpactTree::SetLastSlice(Int_t lastSlice)
 
 // Methods to load data from Impact-T output files
 // - publicly accessible method
-void TImpactTree::Load()
+void TImpactData::Load()
 {
     // Load all data
     this->_Load(this->_bunchCount);
@@ -145,7 +154,7 @@ void TImpactTree::Load()
 }
 
 // - wrapper method to load all data types
-void TImpactTree::_Load(Int_t bunchCount)
+void TImpactData::_Load(Int_t bunchCount)
 {
     // Check parameters
     std::string errorString = "";
@@ -164,7 +173,7 @@ void TImpactTree::_Load(Int_t bunchCount)
 }
 
 // - particle count data from `fort.11`
-void TImpactTree::_LoadBunches(Int_t bunchCount)
+void TImpactData::_LoadBunches(Int_t bunchCount)
 {
     // Create structure to hold data
     struct impact_step_t {
@@ -180,7 +189,7 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
     }
 
     // Create a branch for the particle count data
-    this->Branch("bunches", &step, leafDefinition.c_str());
+    this->_bunchTree->Branch("bunches", &step, leafDefinition.c_str());
 
     // Read in data from `fort.11`
     ifstream infile("fort.11");
@@ -190,20 +199,29 @@ void TImpactTree::_LoadBunches(Int_t bunchCount)
         for (Int_t i = 0; i < bunchCount; i++) {
             infile >> step.count[i];
         }
-        this->GetBranch("bunches")->Fill();
+        this->_bunchTree->GetBranch("bunches")->Fill();
     }
     infile.close();
 
     // Set number of slices for the tree object
-    this->_sliceCount = this->GetBranch("bunches")->GetEntries();
+    this->_sliceCount = this->_bunchTree->GetBranch("bunches")->GetEntries();
+    this->_UpdateSliceCount(this->_sliceCount);
     this->_firstSlice = 1;
     this->_lastSlice = this->_sliceCount - 1;
 }
 
+// Methods to output data
+// - publicly accessible method
+void TImpactData::Print()
+{
+    // Print tree summary
+    printf("Bunch data tree:\n");
+    this->_bunchTree->Print();
+}
 
 // Methods to produce different plot types
 // - bunch count cumulative plot for data loaded from `fort.11`
-void TImpactTree::PlotBunches()
+void TImpactData::PlotBunches()
 {
     // Default values
     Long_t firstSlice = 0;
@@ -215,7 +233,7 @@ void TImpactTree::PlotBunches()
     this->PlotBunches(firstSlice, lastSlice, xmin, xmax, ymin, ymax);
 }
 
-void TImpactTree::PlotBunches(
+void TImpactData::PlotBunches(
     Long_t firstSlice,
     Long_t lastSlice,
     Double_t xmin,
@@ -264,7 +282,7 @@ void TImpactTree::PlotBunches(
     );
 }
 
-void TImpactTree::_PlotBunchLayer(
+void TImpactData::_PlotBunchLayer(
     Int_t currentLayer,
     Int_t lastSlice,
     Bool_t isBackLayer
@@ -282,14 +300,19 @@ void TImpactTree::_PlotBunchLayer(
         gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME.c_str())
     );
     canvas->cd();
-    this->Draw(axesDefinition.c_str(), "", plotOptions.c_str(), lastSlice, 0);
+    this->_bunchTree->Draw(
+        axesDefinition.c_str(),
+        "",
+        plotOptions.c_str(),
+        lastSlice,
+        0);
 
     // Rename graph
     this->_RenameCurrentGraph(graphName.c_str());
 }
 
 // Methods to apply styles for different plot types
-void TImpactTree::_StyleBunches(
+void TImpactData::_StyleBunches(
     Int_t bunchCount,
     std::vector<std::string> bunchNames,
     Double_t xmin,
@@ -394,7 +417,7 @@ void TImpactTree::_StyleBunches(
 
 // Utility methods
 // - rename the current graph
-void TImpactTree::_RenameCurrentGraph(const char *name)
+void TImpactData::_RenameCurrentGraph(const char *name)
 {
     TGraph *thisGraph = (TGraph *)(gPad->GetPrimitive("Graph"));
     if (thisGraph) {
@@ -403,7 +426,7 @@ void TImpactTree::_RenameCurrentGraph(const char *name)
 }
 
 // - create a new canvas
-void TImpactTree::_CreateCanvas(
+void TImpactData::_CreateCanvas(
     const char *name,
     const char *title,
     const Int_t width,
@@ -421,7 +444,7 @@ void TImpactTree::_CreateCanvas(
 }
 
 // - print a canvas to file
-void TImpactTree::_PrintCanvas(
+void TImpactData::_PrintCanvas(
     const char *name,
     const char *filename,
     const char *filetype
@@ -439,7 +462,7 @@ void TImpactTree::_PrintCanvas(
 }
 
 // - create the plot string for a cumulative plot
-std::string TImpactTree::_BuildCumulativePlotString(
+std::string TImpactData::_BuildCumulativePlotString(
     std::string branchName,
     std::string prefix,
     std::string xaxis,
@@ -461,11 +484,12 @@ std::string TImpactTree::_BuildCumulativePlotString(
     return plotString;
 }
 
-// - update the number of entries in the tree
-void TImpactTree::_UpdateParticleCount(Long_t newCount)
+// - update the number of time slice entries in the trees
+void TImpactData::_UpdateSliceCount(Long_t newCount)
 {
-    Long_t currentCount = this->GetEntries();
+    // Bunch count tree
+    Long_t currentCount = this->_bunchTree->GetEntries();
     if (newCount > currentCount) {
-        this->SetEntries(newCount);
+        this->_bunchTree->SetEntries(newCount);
     }
 }
