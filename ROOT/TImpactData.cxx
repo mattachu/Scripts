@@ -12,6 +12,10 @@ ClassImp(TImpactData);
 // Parameters
 // - limit for bunch count, required for load method
 Int_t    const _MAX_BUNCH_COUNT       = 99;
+// - settings for trees and branches
+char const    *_BUNCHES_TREENAME      = "bunches";
+char const    *_BUNCHES_TREETITLE     = "Bunch data";
+char const    *_BUNCHES_BRANCHNAME    = "bunches";
 // - settings for bunch count plot
 std::string    _BUNCHES_FILENAME      = "bunch-count.eps";
 std::string    _BUNCHES_FILETYPE      = "eps";
@@ -59,7 +63,7 @@ TImpactData::~TImpactData()
 // Methods to create data structures
 void TImpactData::_CreateTrees()
 {
-    this->_bunchTree = new TTree();
+    this->_bunchTree = new TTree(_BUNCHES_TREENAME, _BUNCHES_TREETITLE);
 }
 
 // Methods to access members
@@ -143,6 +147,17 @@ void TImpactData::SetLastSlice(Int_t lastSlice)
     this->_lastSlice = lastSlice;
 }
 
+TTree *TImpactData::GetTree(std::string treeName)
+{
+    if (treeName == _BUNCHES_TREENAME) {
+        return this->_bunchTree;
+    }
+    else {
+        throw std::invalid_argument("No tree named " + treeName + ".");
+    }
+    return nullptr;
+}
+
 // Methods to load data from Impact-T output files
 // - publicly accessible method
 void TImpactData::Load()
@@ -189,7 +204,7 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
     }
 
     // Create a branch for the particle count data
-    this->_bunchTree->Branch("bunches", &step, leafDefinition.c_str());
+    this->_bunchTree->Branch(_BUNCHES_BRANCHNAME, &step, leafDefinition.c_str());
 
     // Read in data from `fort.11`
     ifstream infile("fort.11");
@@ -199,12 +214,13 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
         for (Int_t i = 0; i < bunchCount; i++) {
             infile >> step.count[i];
         }
-        this->_bunchTree->GetBranch("bunches")->Fill();
+        this->_bunchTree->GetBranch(_BUNCHES_BRANCHNAME)->Fill();
     }
     infile.close();
 
     // Set number of slices for the tree object
-    this->_sliceCount = this->_bunchTree->GetBranch("bunches")->GetEntries();
+    this->_sliceCount =
+        this->_bunchTree->GetBranch(_BUNCHES_BRANCHNAME)->GetEntries();
     this->_UpdateSliceCount(this->_sliceCount);
     this->_firstSlice = 1;
     this->_lastSlice = this->_sliceCount - 1;
@@ -290,7 +306,11 @@ void TImpactData::_PlotBunchLayer(
 {
     // Build correct settings for current layer
     std::string axesDefinition =
-        this->_BuildCumulativePlotString("bunches", "n", "z", currentLayer);
+        this->_BuildCumulativePlotString(
+            _BUNCHES_BRANCHNAME,
+            "n",
+            "z",
+            currentLayer);
     std::string graphName = "graph" + std::to_string(currentLayer);
     std::string plotOptions = "";
     if (!isBackLayer) plotOptions = "same";

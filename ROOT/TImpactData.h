@@ -29,6 +29,7 @@ public:
     void SetBunchNames(std::vector<std::string> bunchNames);
     void SetFirstSlice(Int_t firstSlice);
     void SetLastSlice(Int_t lastSlice);
+    TTree *GetTree(std::string treeName);
 
     // Input and output methods
     void Load();

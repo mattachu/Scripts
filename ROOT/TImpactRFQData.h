@@ -25,6 +25,7 @@ public:
     Int_t GetLastCell() const;
     void SetFirstCell(Int_t firstCell);
     void SetLastCell(Int_t lastCell);
+    TTree *GetTree(std::string treeName); // overloads TImpactTree
 
     // Input and output methods
     void Load();                          // overloads TImpactTree

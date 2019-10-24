@@ -11,6 +11,10 @@
 ClassImp(TImpactRFQData);
 
 // Parameters
+// - settings for trees and branches
+char const    *_ENDSLICE_TREENAME    = "endslice";
+char const    *_ENDSLICE_TREETITLE   = "End slice data";
+std::string    _ENDSLICE_BRANCHNAME  = "endslice";
 // - settings for final energy plot
 std::string    _ENERGY_FILENAME      = "energy.eps";
 std::string    _ENERGY_FILETYPE      = "eps";
@@ -57,7 +61,7 @@ TImpactRFQData::~TImpactRFQData()
 void TImpactRFQData::_CreateTrees()
 {
     TImpactData::_CreateTrees();
-    this->_endTree = new TTree();
+    this->_endTree = new TTree(_ENDSLICE_TREENAME, _ENDSLICE_TREETITLE);
 }
 
 // Methods to access members
@@ -109,6 +113,17 @@ void TImpactRFQData::SetLastCell(Int_t lastCell)
     this->_lastCell = lastCell;
 }
 
+TTree *TImpactRFQData::GetTree(std::string treeName)
+{
+    if (treeName == _ENDSLICE_TREENAME) {
+        return this->_endTree;
+    }
+    else {
+        return TImpactData::GetTree(treeName);
+    }
+    return nullptr;
+}
+
 // Methods to load data from Impact-T output files
 // - publicly accessible method
 //   - overloads TImpactData
@@ -137,7 +152,7 @@ void TImpactRFQData::_LoadEndSlice(Int_t bunchCount)
     std::string branchname = "";
     for (Int_t i = 1; i <= bunchCount; i++){
         filename = "rfq" + std::to_string(i) + ".dst";
-        branchname = "endslice.bunch" + std::to_string(i);
+        branchname = _ENDSLICE_BRANCHNAME + ".bunch" + std::to_string(i);
         this->_LoadDSTParticleData(filename, branchname);
     }
 }
@@ -210,7 +225,7 @@ void TImpactRFQData::PlotFinalEnergy(
     // Plot each histogram as a separate layer
     for (Int_t i = 1; i <= bunchCount; i++) {
         histName = _ENERGY_CANVAS_NAME + "_hist" + std::to_string(i);
-        branchName = "endslice.bunch" + std::to_string(i);
+        branchName = _ENDSLICE_BRANCHNAME + ".bunch" + std::to_string(i);
         plotString = branchName + ".W";
         plotString += ">>" + histName + "("
             + std::to_string(nbins) + ","
