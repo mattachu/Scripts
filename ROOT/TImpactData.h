@@ -29,11 +29,11 @@ public:
     void SetBunchNames(std::vector<std::string> bunchNames);
     void SetFirstSlice(Int_t firstSlice);
     void SetLastSlice(Int_t lastSlice);
-    TTree *GetTree(std::string treeName);
+    virtual TTree *GetTree(std::string treeName);
 
     // Input and output methods
-    void Load();
-    void Print();
+    virtual void Load();
+    virtual void Print();
     void PlotBunches();
     void PlotBunches(
         Long_t firstSlice,
@@ -54,10 +54,10 @@ protected:
     Int_t                    _lastSlice;  // Last time slice to plot
 
     // Methods to set up data structures
-    void _CreateDefaultTrees();
+    virtual void _CreateDefaultTrees();
 
     // Methods to load data from different Impact-T output files
-    void _Load(Int_t bunchCount);
+    virtual void _Load(Int_t bunchCount);
     void _LoadBunches(Int_t bunchCount);
 
     // Methods to produce different plot types

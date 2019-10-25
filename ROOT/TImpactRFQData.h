@@ -25,11 +25,11 @@ public:
     Int_t GetLastCell() const;
     void SetFirstCell(Int_t firstCell);
     void SetLastCell(Int_t lastCell);
-    TTree *GetTree(std::string treeName); // overloads TImpactTree
+    TTree *GetTree(std::string treeName) override;
 
     // Input and output methods
-    void Load();                          // overloads TImpactTree
-    void Print();                         // overloads TImpactTree
+    void Load() override;
+    void Print() override;
     void PlotFinalEnergy(Int_t nbins, Double_t xmin, Double_t xmax);
 
 protected:
@@ -40,10 +40,10 @@ protected:
     Int_t                    _lastCell;   // Last RFQ cell number to plot
 
     // Methods to set up data structures
-    void _CreateDefaultTrees();                  // overloads TImpactTree
+    void _CreateDefaultTrees() override;
 
     // Methods to load data from different Impact-T output files
-    void _Load(Int_t bunchCount);         // overloads TImpactTree
+    void _Load(Int_t bunchCount) override;
     void _LoadEndSlice(Int_t bunchCount);
     void _LoadDSTParticleData(
         std::string filename,
