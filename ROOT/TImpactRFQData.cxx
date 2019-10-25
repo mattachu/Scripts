@@ -32,14 +32,14 @@ Double_t const _ENERGY_XMAX_DEFAULT  =    1.1;
 TImpactRFQData::TImpactRFQData():
     TImpactData(), _cellCount(0), _firstCell(0), _lastCell(0)
 {
-    this->_CreateTrees();
+    this->_CreateDefaultTrees();
 }
 
 // Constructor given bunch count only
 TImpactRFQData::TImpactRFQData(Int_t bunchCount):
     TImpactData(bunchCount), _cellCount(0), _firstCell(0), _lastCell(0)
 {
-    this->_CreateTrees();
+    this->_CreateDefaultTrees();
 }
 
 // Constructor given bunch count and bunch names
@@ -47,7 +47,7 @@ TImpactRFQData::TImpactRFQData(Int_t bunchCount, std::vector<std::string> bunchN
    TImpactData(bunchCount, bunchNames),
    _cellCount(0), _firstCell(0), _lastCell(0)
 {
-    this->_CreateTrees();
+    this->_CreateDefaultTrees();
 }
 
 // Default destructor
@@ -58,9 +58,9 @@ TImpactRFQData::~TImpactRFQData()
 
 // Methods to create data structures
 //   - overloads TImpactData
-void TImpactRFQData::_CreateTrees()
+void TImpactRFQData::_CreateDefaultTrees()
 {
-    TImpactData::_CreateTrees();
+    TImpactData::_CreateDefaultTrees();
     this->_endTree = new TTree(_ENDSLICE_TREENAME, _ENDSLICE_TREETITLE);
 }
 

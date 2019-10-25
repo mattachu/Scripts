@@ -35,7 +35,7 @@ TImpactData::TImpactData():
     _bunchCount(1), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetDefaultBunchNames();
-    this->_CreateTrees();
+    this->_CreateDefaultTrees();
 }
 
 // Constructor given bunch count only
@@ -43,7 +43,7 @@ TImpactData::TImpactData(Int_t bunchCount):
     _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetDefaultBunchNames();
-    this->_CreateTrees();
+    this->_CreateDefaultTrees();
 }
 
 // Constructor given bunch count and bunch names
@@ -51,7 +51,7 @@ TImpactData::TImpactData(Int_t bunchCount, std::vector<std::string> bunchNames):
    _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetBunchNames(bunchNames);
-    this->_CreateTrees();
+    this->_CreateDefaultTrees();
 }
 
 // Default destructor
@@ -61,7 +61,7 @@ TImpactData::~TImpactData()
 }
 
 // Methods to create data structures
-void TImpactData::_CreateTrees()
+void TImpactData::_CreateDefaultTrees()
 {
     this->_bunchTree = new TTree(_BUNCHES_TREENAME, _BUNCHES_TREETITLE);
 }

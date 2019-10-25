@@ -54,7 +54,7 @@ protected:
     Int_t                    _lastSlice;  // Last time slice to plot
 
     // Methods to set up data structures
-    void _CreateTrees();
+    void _CreateDefaultTrees();
 
     // Methods to load data from different Impact-T output files
     void _Load(Int_t bunchCount);

@@ -40,7 +40,7 @@ protected:
     Int_t                    _lastCell;   // Last RFQ cell number to plot
 
     // Methods to set up data structures
-    void _CreateTrees();                  // overloads TImpactTree
+    void _CreateDefaultTrees();                  // overloads TImpactTree
 
     // Methods to load data from different Impact-T output files
     void _Load(Int_t bunchCount);         // overloads TImpactTree
