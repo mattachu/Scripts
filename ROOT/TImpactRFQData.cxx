@@ -53,7 +53,9 @@ TImpactRFQData::TImpactRFQData(Int_t bunchCount, std::vector<std::string> bunchN
 // Default destructor
 TImpactRFQData::~TImpactRFQData()
 {
-
+    if (this->_endTree) {
+        this->_endTree->Delete();
+    }
 }
 
 // Methods to create data structures
@@ -150,6 +152,7 @@ void TImpactRFQData::_LoadEndSlice(Int_t bunchCount)
 {
     std::string filename = "";
     std::string branchname = "";
+    // Load data to a new branch for each bunch
     for (Int_t i = 1; i <= bunchCount; i++){
         filename = "rfq" + std::to_string(i) + ".dst";
         branchname = _ENDSLICE_BRANCHNAME + ".bunch" + std::to_string(i);
@@ -163,10 +166,22 @@ void TImpactRFQData::_LoadDSTParticleData(
     std::string branchname
 )
 {
+    // Check for tree
+    if (!this->_endTree) {
+        throw std::runtime_error(
+            "Cannot load DST data as tree structure is not available."
+        );
+    }
+
+    // Create structure to hold data
     Int_t Npt = _GetDSTParticleCount(filename);
     Double_t slice[6];
     std::string leafDefinition = "x/D:xp/D:y/D:yp/D:phi/D:W/D";
+
+    // Create a branch for the given data
     this->_endTree->Branch(branchname.c_str(), &slice, leafDefinition.c_str());
+
+    // Read in data from the given filename
     ifstream infile(filename, std::ios::in | std::ios::binary);
     infile.seekg(23); // skip headers
     for (Int_t i = 1; i <= Npt; i++) {
@@ -196,8 +211,10 @@ void TImpactRFQData::Print()
     // Print standard Impact data output
     TImpactData::Print();
     // Print end slice tree summary
-    printf("End-slice data tree:\n");
-    this->_endTree->Print();
+    if (this->_endTree) {
+        printf("End-slice data tree:\n");
+        this->_endTree->Print();
+    }
 }
 
 // Methods to produce different plot types
@@ -208,6 +225,14 @@ void TImpactRFQData::PlotFinalEnergy(
     Double_t xmax = _ENERGY_XMAX_DEFAULT
 )
 {
+    // Check for tree
+    if (!this->_endTree) {
+        throw std::runtime_error(
+            "Cannot load end slice data as tree structure is not available."
+        );
+    }
+
+    // Set detaults
     Int_t bunchCount = this->_bunchCount;
     std::string branchName = "";
     std::string plotString = "";
@@ -271,14 +296,27 @@ void TImpactRFQData::_StyleFinalEnergy(
     TCanvas *canvas = (TCanvas *)(
         gROOT->GetListOfCanvases()->FindObject(_ENERGY_CANVAS_NAME.c_str())
     );
+    if (!canvas) {
+        throw std::runtime_error(
+            "Cannot find canvas object."
+        );
+    }
     canvas->cd();
     TFrame *frame = canvas->GetFrame();
+    if (!frame) {
+        throw std::runtime_error(
+            "Cannot find plot frame object."
+        );
+    }
     TPaveText *titleText = (TPaveText *)(canvas->GetPrimitive("title"));
     std::string histName = "";
     histName = _ENERGY_CANVAS_NAME + "_hist1";
     TH1 *hist = (TH1 *)(canvas->GetPrimitive(histName.c_str()));
-    // std::string graphName = "";
-    // TGraph *graph;
+    if (!hist) {
+        throw std::runtime_error(
+            "Cannot find histogram object."
+        );
+    }
 
     // Set up background
     frame->SetLineWidth(0);
@@ -363,8 +401,10 @@ void TImpactRFQData::_StyleFinalEnergy(
 void TImpactRFQData::_UpdateParticleCount(Long_t newCount)
 {
     // End slice tree
-    Long_t currentCount = this->_endTree->GetEntries();
-    if (newCount > currentCount) {
-        this->_endTree->SetEntries(newCount);
+    if (this->_endTree) {
+        Long_t currentCount = this->_endTree->GetEntries();
+        if (newCount > currentCount) {
+            this->_endTree->SetEntries(newCount);
+        }
     }
 }

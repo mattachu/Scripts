@@ -57,13 +57,17 @@ TImpactData::TImpactData(Int_t bunchCount, std::vector<std::string> bunchNames):
 // Default destructor
 TImpactData::~TImpactData()
 {
-    this->_bunchTree->Delete();
+    if (this->_bunchTree) {
+        this->_bunchTree->Delete();
+    }
 }
 
 // Methods to create data structures
 void TImpactData::_CreateDefaultTrees()
 {
-    this->_bunchTree = new TTree(_BUNCHES_TREENAME, _BUNCHES_TREETITLE);
+    if (!this->_bunchTree) {
+        this->_bunchTree = new TTree(_BUNCHES_TREENAME, _BUNCHES_TREETITLE);
+    }
 }
 
 // Methods to access members
@@ -190,6 +194,13 @@ void TImpactData::_Load(Int_t bunchCount)
 // - particle count data from `fort.11`
 void TImpactData::_LoadBunches(Int_t bunchCount)
 {
+    // Check for tree
+    if (!this->_bunchTree) {
+        throw std::runtime_error(
+            "Cannot load bunches as tree structure is not available."
+        );
+    }
+
     // Create structure to hold data
     struct impact_step_t {
         Long_t i = 0;
@@ -231,8 +242,10 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
 void TImpactData::Print()
 {
     // Print tree summary
-    printf("Bunch data tree:\n");
-    this->_bunchTree->Print();
+    if (this->_bunchTree) {
+        printf("Bunch data tree:\n");
+        this->_bunchTree->Print();
+    }
 }
 
 // Methods to produce different plot types
@@ -258,6 +271,13 @@ void TImpactData::PlotBunches(
     Double_t ymax
 )
 {
+    // Check for tree
+    if (!this->_bunchTree) {
+        throw std::runtime_error(
+            "Cannot load bunches as tree structure is not available."
+        );
+    }
+
     // Check parameters
     if (firstSlice < 0) {
         throw std::invalid_argument("Slice values cannot be negative.");
@@ -349,10 +369,25 @@ void TImpactData::_StyleBunches(
     TCanvas *canvas = (TCanvas *)(
         gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME.c_str())
     );
+    if (!canvas) {
+        throw std::runtime_error(
+            "Cannot find canvas object."
+        );
+    }
     canvas->cd();
     TFrame *frame = canvas->GetFrame();
+    if (!frame) {
+        throw std::runtime_error(
+            "Cannot find plot frame object."
+        );
+    }
     TPaveText *titleText = (TPaveText *)(canvas->GetPrimitive("title"));
     TH1 *hist = (TH1 *)(canvas->GetPrimitive("htemp"));
+    if (!hist) {
+        throw std::runtime_error(
+            "Cannot find histogram object."
+        );
+    }
     std::string graphName = "";
     TGraph *graph;
 
@@ -508,8 +543,10 @@ std::string TImpactData::_BuildCumulativePlotString(
 void TImpactData::_UpdateSliceCount(Long_t newCount)
 {
     // Bunch count tree
-    Long_t currentCount = this->_bunchTree->GetEntries();
-    if (newCount > currentCount) {
-        this->_bunchTree->SetEntries(newCount);
+    if (this->_bunchTree) {
+        Long_t currentCount = this->_bunchTree->GetEntries();
+        if (newCount > currentCount) {
+            this->_bunchTree->SetEntries(newCount);
+        }
     }
 }
