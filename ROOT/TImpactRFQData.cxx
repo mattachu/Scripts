@@ -4,7 +4,6 @@
 
 #include <vector>
 #include "TImpactRFQData.h"
-#include "TImpactData.cxx"
 #include "Style_mje.C"
 
 // Implements class `TImpactRFQData`
