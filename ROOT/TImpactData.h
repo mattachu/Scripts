@@ -1,3 +1,5 @@
+#ifndef TIMPACTDATA_H_
+#define TIMPACTDATA_H_
 // Class for loading, plotting and manipulating Impact-T data in ROOT
 // written by Matt Easton (see http://matteaston.net/work), November 2018
 // modified by Matt Easton, October 2019
@@ -5,7 +7,6 @@
 #include <vector>
 #include "TTree.h"
 #include "TCanvas.h"
-#pragma once
 
 class TImpactData
 {
@@ -98,3 +99,5 @@ protected:
     );
     void _UpdateSliceCount(Long_t newCount);
 };
+
+#endif // TIMPACTDATA_H_

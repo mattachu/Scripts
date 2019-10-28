@@ -1,11 +1,12 @@
-    // Class for loading, plotting and manipulating Impact-T RFQ simulation data
+#ifndef TIMPACTRFQDATA_H_
+#define TIMPACTRFQDATA_H_
+// Class for loading, plotting and manipulating Impact-T RFQ simulation data
 // written by Matt Easton (see http://matteaston.net/work), October 2019
 // inherits from the main class TImpactTree
 
 #include <vector>
 #include "TImpactData.h"
 #include "TCanvas.h"
-#pragma once
 
 class TImpactRFQData : public TImpactData
 {
@@ -60,3 +61,5 @@ protected:
     // Utility methods
     void _UpdateParticleCount(Long_t newCount);
 };
+
+#endif // TIMPACTRFQDATA_H_
