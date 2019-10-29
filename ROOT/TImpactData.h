@@ -18,7 +18,7 @@ public:
     TImpactData();
     TImpactData(Int_t bunchCount);
     TImpactData(Int_t bunchCount, std::vector<std::string> bunchNames);
-    ~TImpactData();
+    virtual ~TImpactData();
 
     // Methods to access members
     Int_t BunchCount() const;

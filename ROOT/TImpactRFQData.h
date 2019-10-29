@@ -12,13 +12,13 @@ class TImpactRFQData : public TImpactData
 {
 public:
     // Class definition
-    ClassDef(TImpactRFQData, 1); // Data structure for Impact-T RFQ simulations
+    ClassDefOverride(TImpactRFQData, 1); // Data structure for Impact-T RFQ simulations
 
     // Constructors and destructors
     TImpactRFQData();
     TImpactRFQData(Int_t bunchCount);
     TImpactRFQData(Int_t bunchCount, std::vector<std::string> bunchNames);
-    ~TImpactRFQData();
+    virtual ~TImpactRFQData();
 
     // Methods to access members
     Int_t CellCount() const;
