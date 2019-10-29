@@ -1,8 +1,9 @@
-#ifndef TIMPACTRFQDATA_H_
-#define TIMPACTRFQDATA_H_
 // Class for loading, plotting and manipulating Impact-T RFQ simulation data
 // written by Matt Easton (see http://matteaston.net/work), October 2019
 // inherits from the main class TImpactTree
+
+#ifndef TIMPACTRFQDATA_H_
+#define TIMPACTRFQDATA_H_
 
 #include <vector>
 #include "TImpactData.h"
