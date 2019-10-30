@@ -17,7 +17,7 @@ else
     computer_name=$(hostname)
 fi
 case ${computer_name} in
-    "Matt’s MacBook Pro"|"MacBook Pro")
+    "Matt's MacBook Pro"|"MacBook Pro")
         alias load-root="source /usr/local/bin/thisroot.sh"
         alias load-geant4="source /usr/local/bin/geant4.sh"
         alias load-opal="source /opt/OPAL-1.4.0-1/etc/profile.d/opal.sh"
