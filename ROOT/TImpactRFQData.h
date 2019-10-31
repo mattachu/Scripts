@@ -41,11 +41,14 @@ protected:
     Int_t                    _firstCell;  // FIrst RFQ cell number to plot
     Int_t                    _lastCell;   // Last RFQ cell number to plot
 
-    // Methods to set up data structures
-    void _CreateDefaultTrees() override;
+    // Methods to create and delete data structures
+    void _CreateNullTrees() override;
+    void _CreateEndTree();
+    void _DeleteAllTrees() override;
+    void _DeleteEndTree();
 
     // Methods to load data from different Impact-T output files
-    void _Load(Int_t bunchCount) override;
+    void _LoadAll(Int_t bunchCount) override;
     void _LoadEndSlice(Int_t bunchCount);
     void _LoadDSTParticleData(
         std::string filename,

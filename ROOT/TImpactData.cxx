@@ -35,7 +35,7 @@ TImpactData::TImpactData():
     _bunchCount(1), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetDefaultBunchNames();
-    this->_CreateDefaultTrees();
+    this->_CreateNullTrees();
 }
 
 // Constructor given bunch count only
@@ -43,7 +43,7 @@ TImpactData::TImpactData(Int_t bunchCount):
     _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetDefaultBunchNames();
-    this->_CreateDefaultTrees();
+    this->_CreateNullTrees();
 }
 
 // Constructor given bunch count and bunch names
@@ -51,23 +51,50 @@ TImpactData::TImpactData(Int_t bunchCount, std::vector<std::string> bunchNames):
    _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
 {
     this->SetBunchNames(bunchNames);
-    this->_CreateDefaultTrees();
+    this->_CreateNullTrees();
 }
 
 // Default destructor
 TImpactData::~TImpactData()
 {
-    if (this->_bunchTree) {
-        this->_bunchTree->Delete();
-    }
+    this->_DeleteAllTrees();
 }
 
-// Methods to create data structures
+// Methods to create and delete data structures
+void TImpactData::_CreateNullTrees()
+{
+    this->_bunchTree = nullptr;
+}
+
 void TImpactData::_CreateDefaultTrees()
 {
-    if (!this->_bunchTree) {
-        this->_bunchTree = new TTree(_BUNCHES_TREENAME, _BUNCHES_TREETITLE);
+    this->_CreateBunchTree();
+}
+
+void TImpactData::_CreateBunchTree()
+{
+    try {
+        this->_DeleteBunchTree();
     }
+    catch (...) {}
+    this->_bunchTree = new TTree(_BUNCHES_TREENAME, _BUNCHES_TREETITLE);
+}
+
+void TImpactData::_DeleteAllTrees()
+{
+    this->_DeleteBunchTree();
+}
+
+void TImpactData::_DeleteBunchTree()
+{
+    try {
+        if (this->_bunchTree) {
+            this->_bunchTree->Reset();
+            this->_bunchTree->Delete();
+        }
+    }
+    catch (...)  {}
+    this->_bunchTree = nullptr;
 }
 
 // Methods to access members
@@ -169,14 +196,25 @@ TTree *TImpactData::GetTree(std::string treeName)
 // - publicly accessible method
 void TImpactData::Load()
 {
+    // Set up data structures into which to load data
+    this->_DeleteAllTrees();
+    this->_CreateDefaultTrees();
+
     // Load all data
-    this->_Load(this->_bunchCount);
+    this->_LoadAll(this->_bunchCount);
+
     // Output data summary
     this->Print();
 }
 
 // - wrapper method to load all data types
-void TImpactData::_Load(Int_t bunchCount)
+void TImpactData::_LoadAll(Int_t bunchCount)
+{
+    this->_LoadBunches(bunchCount);
+}
+
+// - particle count data from `fort.11`
+void TImpactData::_LoadBunches(Int_t bunchCount)
 {
     // Check parameters
     std::string errorString = "";
@@ -190,19 +228,21 @@ void TImpactData::_Load(Int_t bunchCount)
         throw std::invalid_argument(errorString.c_str());
     }
 
-    // Load each data type from the relevant files
-    this->_LoadBunches(bunchCount);
-}
+    // Check for file
+    std::string filename = "fort.11";
+    if (!this->_FileExists(filename)) {
+        throw std::runtime_error("Cannot find file " + filename);
+    }
 
-// - particle count data from `fort.11`
-void TImpactData::_LoadBunches(Int_t bunchCount)
-{
     // Check for tree
     if (!this->_bunchTree) {
         throw std::runtime_error(
             "Cannot load bunches as tree structure is not available."
         );
     }
+
+    // Announce status
+    printf("Loading bunch data from file `%s`\n", filename.c_str());
 
     // Create structure to hold data
     struct impact_step_t {
@@ -218,10 +258,14 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
     }
 
     // Create a branch for the particle count data
-    this->_bunchTree->Branch(_BUNCHES_BRANCHNAME, &step, leafDefinition.c_str());
+    this->_bunchTree->Branch(
+        _BUNCHES_BRANCHNAME,
+        &step,
+        leafDefinition.c_str()
+    );
 
     // Read in data from `fort.11`
-    ifstream infile("fort.11");
+    ifstream infile(filename.c_str());
     while (1) {
         if (!infile.good()) break;
         infile >> step.i >> step.t >> step.z >> step.bunches;
@@ -233,11 +277,9 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
     infile.close();
 
     // Set number of slices for the tree object
-    this->_sliceCount =
-        this->_bunchTree->GetBranch(_BUNCHES_BRANCHNAME)->GetEntries();
-    this->_UpdateSliceCount(this->_sliceCount);
-    this->_firstSlice = 1;
-    this->_lastSlice = this->_sliceCount - 1;
+    this->_UpdateSliceCount(
+        this->_bunchTree->GetBranch(_BUNCHES_BRANCHNAME)->GetEntries()
+    );
 }
 
 // Methods to output data
@@ -545,11 +587,24 @@ std::string TImpactData::_BuildCumulativePlotString(
 // - update the number of time slice entries in the trees
 void TImpactData::_UpdateSliceCount(Long_t newCount)
 {
+    // Update member
+    if (newCount > this->_sliceCount) {
+        this->_sliceCount = newCount;
+    }
+    // Update first and last
+    this->_firstSlice = 1;
+    this->_lastSlice = this->_sliceCount - 1;
     // Bunch count tree
     if (this->_bunchTree) {
-        Long_t currentCount = this->_bunchTree->GetEntries();
-        if (newCount > currentCount) {
+        if (newCount > this->_bunchTree->GetEntries()) {
             this->_bunchTree->SetEntries(newCount);
         }
     }
+}
+
+// - check if a file exists
+bool TImpactData::_FileExists(std::string filename)
+{
+    FileStat_t stat;
+    return (gSystem->GetPathInfo(filename.c_str(), stat) == 0);
 }

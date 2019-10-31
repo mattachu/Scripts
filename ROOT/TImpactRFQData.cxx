@@ -31,14 +31,14 @@ Double_t const _ENERGY_XMAX_DEFAULT  =    1.1;
 TImpactRFQData::TImpactRFQData():
     TImpactData(), _cellCount(0), _firstCell(0), _lastCell(0)
 {
-    this->_CreateDefaultTrees();
+    this->_CreateNullTrees();
 }
 
 // Constructor given bunch count only
 TImpactRFQData::TImpactRFQData(Int_t bunchCount):
     TImpactData(bunchCount), _cellCount(0), _firstCell(0), _lastCell(0)
 {
-    this->_CreateDefaultTrees();
+    this->_CreateNullTrees();
 }
 
 // Constructor given bunch count and bunch names
@@ -46,23 +46,46 @@ TImpactRFQData::TImpactRFQData(Int_t bunchCount, std::vector<std::string> bunchN
    TImpactData(bunchCount, bunchNames),
    _cellCount(0), _firstCell(0), _lastCell(0)
 {
-    this->_CreateDefaultTrees();
+    this->_CreateNullTrees();
 }
 
 // Default destructor
 TImpactRFQData::~TImpactRFQData()
 {
-    if (this->_endTree) {
-        this->_endTree->Delete();
-    }
+    this->_DeleteAllTrees();
 }
 
 // Methods to create data structures
 //   - overloads TImpactData
-void TImpactRFQData::_CreateDefaultTrees()
+void TImpactRFQData::_CreateNullTrees()
 {
-    TImpactData::_CreateDefaultTrees();
+    TImpactData::_CreateNullTrees();
+    this->_endTree = nullptr;
+}
+
+//   - tree for end slice data from `.dst` file
+void TImpactRFQData::_CreateEndTree()
+{
     this->_endTree = new TTree(_ENDSLICE_TREENAME, _ENDSLICE_TREETITLE);
+}
+
+//   - overloads TImpactData
+void TImpactRFQData::_DeleteAllTrees()
+{
+    TImpactData::_DeleteAllTrees();
+    this->_DeleteEndTree();
+}
+
+//   - tree for end slice data from `.dst` file
+void TImpactRFQData::_DeleteEndTree()
+{
+    try {
+        if (this->_endTree) {
+            this->_endTree->Reset();
+            this->_endTree->Delete();
+        }
+    } catch (...)  {}
+    this->_endTree = nullptr;
 }
 
 // Methods to access members
@@ -130,18 +153,24 @@ TTree *TImpactRFQData::GetTree(std::string treeName)
 //   - overloads TImpactData
 void TImpactRFQData::Load()
 {
+    // Set up data structures into which to load data
+    this->_DeleteAllTrees();
+    this->_CreateDefaultTrees();
+    this->_CreateEndTree();
+
     // Load all data
-    this->_Load(this->_bunchCount);
+    this->_LoadAll(this->_bunchCount);
+
     // Output data summary
     this->Print();
 }
 
 // - wrapper method to load all data types
 //   - overloads TImpactData
-void TImpactRFQData::_Load(Int_t bunchCount)
+void TImpactRFQData::_LoadAll(Int_t bunchCount)
 {
     // Load standard Impact-T data
-    TImpactData::_Load(bunchCount);
+    TImpactData::_LoadAll(bunchCount);
     // Load data types specific to RFQ
     this->_LoadEndSlice(bunchCount);
 }
@@ -149,9 +178,26 @@ void TImpactRFQData::_Load(Int_t bunchCount)
 // - end slice data from `rfq1.dst` etc.
 void TImpactRFQData::_LoadEndSlice(Int_t bunchCount)
 {
+    // Check parameters
+    std::string errorString = "";
+    if (bunchCount < 1) {
+        errorString = "Must have at least one bunch.";
+        throw std::invalid_argument(errorString.c_str());
+    }
+    if (bunchCount > _MAX_BUNCH_COUNT) {
+        errorString = "Cannot handle more than " +
+                      std::to_string(_MAX_BUNCH_COUNT) + " bunches.";
+        throw std::invalid_argument(errorString.c_str());
+    }
+
+    // Check for tree
+    if (!this->_endTree) {
+        this->_CreateEndTree();
+    }
+
+    // Load data to a new branch for each bunch
     std::string filename = "";
     std::string branchname = "";
-    // Load data to a new branch for each bunch
     for (Int_t i = 1; i <= bunchCount; i++){
         filename = "rfq" + std::to_string(i) + ".dst";
         branchname = _ENDSLICE_BRANCHNAME + ".bunch" + std::to_string(i);
@@ -165,12 +211,20 @@ void TImpactRFQData::_LoadDSTParticleData(
     std::string branchname
 )
 {
+    // Check for file
+    if (!this->_FileExists(filename)) {
+        throw std::runtime_error("Cannot find file: " + filename);
+    }
+
     // Check for tree
     if (!this->_endTree) {
         throw std::runtime_error(
             "Cannot load DST data as tree structure is not available."
         );
     }
+
+    // Announce status
+    printf("Loading end slice data from file `%s`\n", filename.c_str());
 
     // Create structure to hold data
     Int_t Npt = _GetDSTParticleCount(filename);

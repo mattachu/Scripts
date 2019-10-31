@@ -55,11 +55,15 @@ protected:
     Int_t                    _firstSlice; // First time slice to plot
     Int_t                    _lastSlice;  // Last time slice to plot
 
-    // Methods to set up data structures
+    // Methods to create and delete data structures
+    virtual void _CreateNullTrees();
     virtual void _CreateDefaultTrees();
+    void _CreateBunchTree();
+    virtual void _DeleteAllTrees();
+    void _DeleteBunchTree();
 
     // Methods to load data from different Impact-T output files
-    virtual void _Load(Int_t bunchCount);
+    virtual void _LoadAll(Int_t bunchCount);
     void _LoadBunches(Int_t bunchCount);
 
     // Methods to produce different plot types
@@ -99,6 +103,7 @@ protected:
         Int_t variableCount
     );
     void _UpdateSliceCount(Long_t newCount);
+    bool _FileExists(std::string filename);
 };
 
 #endif // TIMPACTDATA_H_
