@@ -108,13 +108,16 @@ void TImpactData::SetDefaultBunchNames()
 
 void TImpactData::SetBunchNames(std::vector<std::string> bunchNames)
 {
-    Int_t bunchCount = this->BunchCount();
-    if (bunchNames.size() < bunchCount) {
-        for (Int_t i = bunchNames.size()+1; i <= bunchCount; i++) {
+    if (bunchNames.size() < this->_bunchCount) {
+        printf("Warning: not enough bunch names given, using some default values.\n");
+        for (Int_t i = bunchNames.size()+1; i <= this->_bunchCount; i++) {
             bunchNames.push_back("Bunch " + std::to_string(i));
         }
     }
-    bunchNames.resize(bunchCount);
+    else if (bunchNames.size() > this->_bunchCount) {
+        printf("Warning: too many bunch names given, some names not used.\n");
+    }
+    bunchNames.resize(this->_bunchCount);
     this->_bunchNames = bunchNames;
 }
 
