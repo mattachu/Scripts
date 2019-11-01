@@ -35,7 +35,9 @@ public:
     virtual TTree *GetTree(std::string treeName);
 
     // Input and output methods
-    virtual void Load(std::vector<Int_t> bpmList = {});
+    virtual void Load();
+    virtual void Load(Int_t bpmNumber);
+    virtual void Load(std::vector<Int_t> bpmList);
     virtual void Print();
     void PlotBunches();
     void PlotBunches(

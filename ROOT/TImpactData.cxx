@@ -230,8 +230,20 @@ TTree *TImpactData::GetTree(std::string treeName)
 }
 
 // Methods to load data from Impact-T output files
-// - publicly accessible method
-void TImpactData::Load(std::vector<Int_t> bpmList = {})
+// - publicly accessible methods
+void TImpactData::Load()
+{
+    std::vector<Int_t> bpmList = {};
+    this->Load(bpmList);
+}
+
+void TImpactData::Load(Int_t bpmNumber)
+{
+    std::vector<Int_t> bpmList = {bpmNumber};
+    this->Load(bpmList);
+}
+
+void TImpactData::Load(std::vector<Int_t> bpmList)
 {
     // Set up data structures into which to load data
     this->_DeleteAllTrees();
