@@ -30,7 +30,7 @@ public:
     TTree *GetTree(std::string treeName) override;
 
     // Input and output methods
-    void Load() override;
+    void Load(std::vector<Int_t> bpmList = {}) override;
     void Print() override;
     void PlotFinalEnergy(Int_t nbins, Double_t xmin, Double_t xmax);
 
@@ -48,7 +48,7 @@ protected:
     void _DeleteEndTree();
 
     // Methods to load data from different Impact-T output files
-    void _LoadAll(Int_t bunchCount) override;
+    void _LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {}) override;
     void _LoadEndSlice(Int_t bunchCount);
     void _LoadDSTParticleData(
         std::string filename,
@@ -63,7 +63,7 @@ protected:
     );
 
     // Utility methods
-    void _UpdateParticleCount(Long_t newCount);
+    void _UpdateParticleCount(Long_t newCount) override;
 };
 
 #endif // TIMPACTRFQDATA_H_

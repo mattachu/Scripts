@@ -16,6 +16,9 @@ Int_t    const _MAX_BUNCH_COUNT       = 99;
 char const    *_BUNCHES_TREENAME      = "bunches";
 char const    *_BUNCHES_TREETITLE     = "Bunch data";
 char const    *_BUNCHES_BRANCHNAME    = "bunches";
+char const    *_BPM_TREENAME          = "bpms";
+char const    *_BPM_TREETITLE         = "BPM output data";
+char const    *_BPM_BRANCHNAME        = "bpm.out";
 // - settings for bunch count plot
 std::string    _BUNCHES_FILENAME      = "bunch-count.eps";
 std::string    _BUNCHES_FILETYPE      = "eps";
@@ -32,7 +35,8 @@ Double_t const _BUNCHES_YMAX_DEFAULT  = 102000;
 
 // Default constructor
 TImpactData::TImpactData():
-    _bunchCount(1), _sliceCount(0), _firstSlice(0), _lastSlice(0)
+    _bunchCount(1), _sliceCount(0), _firstSlice(0), _lastSlice(0),
+    _particleCount(0)
 {
     this->SetDefaultBunchNames();
     this->_CreateNullTrees();
@@ -40,7 +44,8 @@ TImpactData::TImpactData():
 
 // Constructor given bunch count only
 TImpactData::TImpactData(Int_t bunchCount):
-    _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
+    _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0),
+    _particleCount(0)
 {
     this->SetDefaultBunchNames();
     this->_CreateNullTrees();
@@ -48,7 +53,8 @@ TImpactData::TImpactData(Int_t bunchCount):
 
 // Constructor given bunch count and bunch names
 TImpactData::TImpactData(Int_t bunchCount, std::vector<std::string> bunchNames):
-   _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0)
+   _bunchCount(bunchCount), _sliceCount(0), _firstSlice(0), _lastSlice(0),
+   _particleCount(0)
 {
     this->SetBunchNames(bunchNames);
     this->_CreateNullTrees();
@@ -64,6 +70,7 @@ TImpactData::~TImpactData()
 void TImpactData::_CreateNullTrees()
 {
     this->_bunchTree = nullptr;
+    this->_bpmTree = nullptr;
 }
 
 void TImpactData::_CreateDefaultTrees()
@@ -80,9 +87,18 @@ void TImpactData::_CreateBunchTree()
     this->_bunchTree = new TTree(_BUNCHES_TREENAME, _BUNCHES_TREETITLE);
 }
 
+void TImpactData::_CreateBPMTree()
+{
+    try {
+        this->_DeleteBPMTree();
+    } catch (...) {}
+    this->_bpmTree = new TTree(_BPM_TREENAME, _BPM_TREETITLE);
+}
+
 void TImpactData::_DeleteAllTrees()
 {
     this->_DeleteBunchTree();
+    this->_DeleteBPMTree();
 }
 
 void TImpactData::_DeleteBunchTree()
@@ -97,6 +113,17 @@ void TImpactData::_DeleteBunchTree()
     this->_bunchTree = nullptr;
 }
 
+void TImpactData::_DeleteBPMTree()
+{
+    try {
+        if (this->_bpmTree) {
+            this->_bpmTree->Reset();
+            this->_bpmTree->Delete();
+        }
+    } catch (...)  {}
+    this->_bpmTree = nullptr;
+}
+
 // Methods to access members
 Int_t TImpactData::BunchCount() const
 {
@@ -106,6 +133,11 @@ Int_t TImpactData::BunchCount() const
 Int_t TImpactData::SliceCount() const
 {
     return this->_sliceCount;
+}
+
+Int_t TImpactData::ParticleCount() const
+{
+    return this->_particleCount;
 }
 
 std::vector<std::string> TImpactData::GetBunchNames() const
@@ -187,30 +219,48 @@ TTree *TImpactData::GetTree(std::string treeName)
         return this->_bunchTree;
     }
     else {
-        throw std::invalid_argument("No tree named " + treeName + ".");
+        if (treeName == _BPM_TREENAME) {
+            return this->_bpmTree;
+        }
+        else {
+            throw std::invalid_argument("No tree named " + treeName + ".");
+        }
     }
     return nullptr;
 }
 
 // Methods to load data from Impact-T output files
 // - publicly accessible method
-void TImpactData::Load()
+void TImpactData::Load(std::vector<Int_t> bpmList = {})
 {
     // Set up data structures into which to load data
     this->_DeleteAllTrees();
     this->_CreateDefaultTrees();
+    if (!bpmList.empty()) {
+        this->_CreateBPMTree();
+    }
 
     // Load all data
-    this->_LoadAll(this->_bunchCount);
+    this->_LoadAll(this->_bunchCount, bpmList);
 
     // Output data summary
     this->Print();
 }
 
 // - wrapper method to load all data types
-void TImpactData::_LoadAll(Int_t bunchCount)
+void TImpactData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {})
 {
     this->_LoadBunches(bunchCount);
+    if (!bpmList.empty()) {
+        for (
+            std::vector<Int_t>::iterator it = bpmList.begin();
+            it != bpmList.end();
+            ++it
+        )
+        {
+            this->_LoadBPMs(this->_bunchCount, *it);
+        }
+    }
 }
 
 // - particle count data from `fort.11`
@@ -282,14 +332,101 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
     );
 }
 
+// - phase space data from multiple BPM output files `fort.xx`
+void TImpactData::_LoadBPMs(Int_t bunchCount, Int_t bpmNumber)
+{
+    // Check parameters
+    std::string errorString = "";
+    if (bunchCount < 1) {
+        errorString = "Must have at least one bunch.";
+        throw std::invalid_argument(errorString.c_str());
+    }
+    if (bunchCount > _MAX_BUNCH_COUNT) {
+        errorString = "Cannot handle more than " +
+                      std::to_string(_MAX_BUNCH_COUNT) + " bunches.";
+        throw std::invalid_argument(errorString.c_str());
+    }
+
+    // Check for tree
+    if (!this->_bpmTree) {
+        this->_CreateBPMTree();
+    }
+
+    // Loop for each bunch
+    for (Int_t i = 1; i <= bunchCount; i++){
+        this->_LoadBPM(i, bpmNumber);
+    }
+}
+
+// - phase space data from a BPM output file `fort.xx`
+void TImpactData::_LoadBPM(Int_t bunch, Int_t bpmNumber)
+{
+    // Check for tree
+    if (!this->_bpmTree) {
+        this->_CreateBPMTree();
+    }
+
+    // Check for file
+    Int_t fileNumber = bpmNumber + bunch - 1;
+    std::string filename = "fort." + to_string(fileNumber);
+    if (!this->_FileExists(filename)) {
+        throw std::runtime_error("Cannot find file " + filename);
+    }
+
+    // Announce status
+    printf("Loading BPM data from file `%s`\n", filename.c_str());
+
+    // Create structure to hold data
+    struct impact_particle_t {
+        Double_t x = 0.0;
+        Double_t px = 0.0;
+        Double_t y = 0.0;
+        Double_t py = 0.0;
+        Double_t z = 0.0;
+        Double_t pz = 0.0;
+    };
+    impact_particle_t particle;
+    std::string leafDefinition = "x/D:px/D:y/D:py/D:z/D:pz/D";
+
+    // Create a branch for the BPM data
+    std::string branchName =
+        _BPM_BRANCHNAME + to_string(bpmNumber) +
+        ".bunch" + to_string(bunch);
+    this->_bpmTree->Branch(
+        branchName.c_str(),
+        &particle,
+        leafDefinition.c_str()
+    );
+
+    // Read in data from file
+    ifstream infile(filename.c_str());
+    while (1) {
+        if (!infile.good()) break;
+        infile >> particle.x >> particle.px
+               >> particle.y >> particle.py
+               >> particle.z >> particle.pz;
+        this->_bpmTree->GetBranch(branchName.c_str())->Fill();
+    }
+    infile.close();
+
+    // Set number of particles for the tree object
+    this->_UpdateParticleCount(
+        this->_bpmTree->GetBranch(branchName.c_str())->GetEntries()
+    );
+}
+
 // Methods to output data
 // - publicly accessible method
 void TImpactData::Print()
 {
-    // Print tree summary
+    // Print tree summaries
     if (this->_bunchTree) {
         printf("Bunch data tree:\n");
         this->_bunchTree->Print();
+    }
+    if (this->_bpmTree) {
+        printf("BPM data tree:\n");
+        this->_bpmTree->Print();
     }
 }
 
@@ -605,6 +742,21 @@ void TImpactData::_UpdateSliceCount(Long_t newCount)
     if (this->_bunchTree) {
         if (newCount > this->_bunchTree->GetEntries()) {
             this->_bunchTree->SetEntries(newCount);
+        }
+    }
+}
+
+// - update the number of particle entries in the trees
+void TImpactData::_UpdateParticleCount(Long_t newCount)
+{
+    // Update member
+    if (newCount > this->_particleCount) {
+        this->_particleCount = newCount;
+    }
+    // BPM tree
+    if (this->_bpmTree) {
+        if (newCount > this->_bpmTree->GetEntries()) {
+            this->_bpmTree->SetEntries(newCount);
         }
     }
 }

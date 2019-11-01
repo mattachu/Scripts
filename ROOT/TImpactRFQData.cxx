@@ -151,15 +151,18 @@ TTree *TImpactRFQData::GetTree(std::string treeName)
 // Methods to load data from Impact-T output files
 // - publicly accessible method
 //   - overloads TImpactData
-void TImpactRFQData::Load()
+void TImpactRFQData::Load(std::vector<Int_t> bpmList = {})
 {
     // Set up data structures into which to load data
     this->_DeleteAllTrees();
     this->_CreateDefaultTrees();
+    if (!bpmList.empty()) {
+        this->_CreateBPMTree();
+    }
     this->_CreateEndTree();
 
     // Load all data
-    this->_LoadAll(this->_bunchCount);
+    this->_LoadAll(this->_bunchCount, bpmList);
 
     // Output data summary
     this->Print();
@@ -167,10 +170,10 @@ void TImpactRFQData::Load()
 
 // - wrapper method to load all data types
 //   - overloads TImpactData
-void TImpactRFQData::_LoadAll(Int_t bunchCount)
+void TImpactRFQData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {})
 {
     // Load standard Impact-T data
-    TImpactData::_LoadAll(bunchCount);
+    TImpactData::_LoadAll(bunchCount, bpmList);
     // Load data types specific to RFQ
     this->_LoadEndSlice(bunchCount);
 }
@@ -453,7 +456,9 @@ void TImpactRFQData::_StyleFinalEnergy(
 // - update the number of particle entries in the trees
 void TImpactRFQData::_UpdateParticleCount(Long_t newCount)
 {
-    // End slice tree
+    // Run standard Impact data method
+    TImpactData::_UpdateParticleCount(newCount);
+    // Also update end slice tree
     if (this->_endTree) {
         Long_t currentCount = this->_endTree->GetEntries();
         if (newCount > currentCount) {

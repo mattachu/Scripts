@@ -24,6 +24,7 @@ public:
     // Methods to access members
     Int_t BunchCount() const;
     Int_t SliceCount() const;
+    Int_t ParticleCount() const;
     std::vector<std::string> GetBunchNames() const;
     Int_t GetFirstSlice() const;
     Int_t GetLastSlice() const;
@@ -34,7 +35,7 @@ public:
     virtual TTree *GetTree(std::string treeName);
 
     // Input and output methods
-    virtual void Load();
+    virtual void Load(std::vector<Int_t> bpmList = {});
     virtual void Print();
     void PlotBunches();
     void PlotBunches(
@@ -48,23 +49,29 @@ public:
 
 protected:
     // Class members
-    TTree                   *_bunchTree;  // Tree containing bunch count data
-    const Int_t              _bunchCount; // Number of bunches in the simulation
-    std::vector<std::string> _bunchNames; // List of names for the bunches
-    Int_t                    _sliceCount; // Number of time slices
-    Int_t                    _firstSlice; // First time slice to plot
-    Int_t                    _lastSlice;  // Last time slice to plot
+    TTree                   *_bunchTree;     // Tree containing bunch count data
+    TTree                   *_bpmTree;       // Tree containing BPM outupt data
+    const Int_t              _bunchCount;    // Number of bunches in the simulation
+    std::vector<std::string> _bunchNames;    // List of names for the bunches
+    Int_t                    _sliceCount;    // Number of time slices
+    Int_t                    _firstSlice;    // First time slice to plot
+    Int_t                    _lastSlice;     // Last time slice to plot
+    Int_t                    _particleCount; // Number of partilces
 
     // Methods to create and delete data structures
     virtual void _CreateNullTrees();
     virtual void _CreateDefaultTrees();
     void _CreateBunchTree();
+    void _CreateBPMTree();
     virtual void _DeleteAllTrees();
     void _DeleteBunchTree();
+    void _DeleteBPMTree();
 
     // Methods to load data from different Impact-T output files
-    virtual void _LoadAll(Int_t bunchCount);
+    virtual void _LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {});
     void _LoadBunches(Int_t bunchCount);
+    void _LoadBPMs(Int_t bunchCount, Int_t bpmNumber);
+    void _LoadBPM(Int_t bunch, Int_t bpmNumber);
 
     // Methods to produce different plot types
     void _PlotBunchLayer(
@@ -104,6 +111,7 @@ protected:
         Int_t variableCount
     );
     void _UpdateSliceCount(Long_t newCount);
+    virtual void _UpdateParticleCount(Long_t newCount);
     bool _FileExists(std::string filename);
 };
 
