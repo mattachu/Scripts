@@ -388,7 +388,16 @@ void TImpactData::_PlotBunchLayer(
     canvas->cd();
     const char *axes = axesDefinition.c_str();
     const char *plot = plotOptions.c_str();
-    this->_bunchTree->Draw(axes, "", plot, lastSlice, firstSlice);
+    try {
+        this->_bunchTree->Draw(axes, "", plot, lastSlice, firstSlice);
+    }
+    catch (...) {
+        std::string errorString =
+            "Error calling this->_bunchTree->Draw(" +
+            axesDefinition + ", """", " + plotOptions + ", " +
+            std::to_string(lastSlice) + ", " + std::to_string(firstSlice) + ")";
+        throw std::runtime_error(errorString.c_str());
+    }
 
     // Rename graph
     this->_RenameCurrentGraph(graphName.c_str());
