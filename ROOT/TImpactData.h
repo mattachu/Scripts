@@ -69,6 +69,7 @@ protected:
     // Methods to produce different plot types
     void _PlotBunchLayer(
         Int_t currentLayer,
+        Int_t firstSlice,
         Int_t lastSlice,
         Bool_t isBackLayer
     );

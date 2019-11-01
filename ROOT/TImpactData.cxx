@@ -349,7 +349,7 @@ void TImpactData::PlotBunches(
 
     // Draw the cumulative plots layer by layer, starting at the back
     for (Int_t i = bunchCount; i > 0; i--) {
-        this->_PlotBunchLayer(i, lastSlice, (i==bunchCount));
+        this->_PlotBunchLayer(i, firstSlice, lastSlice, (i==bunchCount));
     }
 
     // Apply styles
@@ -365,6 +365,7 @@ void TImpactData::PlotBunches(
 
 void TImpactData::_PlotBunchLayer(
     Int_t currentLayer,
+    Int_t firstSlice,
     Int_t lastSlice,
     Bool_t isBackLayer
 )
@@ -385,12 +386,9 @@ void TImpactData::_PlotBunchLayer(
         gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME.c_str())
     );
     canvas->cd();
-    this->_bunchTree->Draw(
-        axesDefinition.c_str(),
-        "",
-        plotOptions.c_str(),
-        lastSlice,
-        0);
+    const char *axes = axesDefinition.c_str();
+    const char *plot = plotOptions.c_str();
+    this->_bunchTree->Draw(axes, "", plot, lastSlice, firstSlice);
 
     // Rename graph
     this->_RenameCurrentGraph(graphName.c_str());
