@@ -693,6 +693,7 @@ void TImpactData::_CreateCanvas(
     if (!canvas) {
         canvas = gROOT->MakeDefCanvas();
     }
+    canvas->Clear();
     canvas->SetName(name);
     canvas->SetTitle(title);
     canvas->SetWindowSize(width, height);
