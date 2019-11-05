@@ -32,6 +32,14 @@ Double_t const _BUNCHES_XMIN_DEFAULT  =    0.0;
 Double_t const _BUNCHES_XMAX_DEFAULT  =    1.8;
 Double_t const _BUNCHES_YMIN_DEFAULT  =  90000;
 Double_t const _BUNCHES_YMAX_DEFAULT  = 102000;
+// - settings for BPM plot
+std::string    _BPM_FILENAME          = "bpm";
+std::string    _BPM_FILEEXTENSION     = ".eps";
+std::string    _BPM_FILETYPE          = "eps";
+std::string    _BPM_CANVAS_NAME       = "impact_bpm_plot";
+std::string    _BPM_CANVAS_TITLE      = "Impact-T BPM output plot";
+Int_t    const _BPM_CANVAS_WIDTH      = 802;
+Int_t    const _BPM_CANVAS_HEIGHT     = 802;
 
 // Default constructor
 TImpactData::TImpactData():
@@ -555,6 +563,68 @@ void TImpactData::_PlotBunchLayer(
 
     // Rename graph
     this->_RenameCurrentGraph(graphName.c_str());
+}
+
+// - phase space plots from BPM output files `fort.xx`
+void TImpactData::PlotBPM(Int_t bpmNumber, Int_t bunch = 1)
+{
+    // Check for tree
+    if (!this->_bpmTree) {
+        throw std::runtime_error(
+            "Cannot load BPM output data as tree structure is not available."
+        );
+    }
+
+    // Check for branch
+    std::string branchName =
+        _BPM_BRANCHNAME + to_string(bpmNumber) +
+        ".bunch" + to_string(bunch);
+    if (!this->_bpmTree->GetBranch(branchName.c_str())) {
+        throw std::invalid_argument(
+            "No BPM branch for file " + to_string(bpmNumber)
+        );
+    }
+
+    // Create canvas
+    std::string canvasName =_BPM_CANVAS_NAME;
+    this->_CreateCanvas(
+        canvasName.c_str(),
+        _BPM_CANVAS_TITLE.c_str(),
+        _BPM_CANVAS_WIDTH,
+        _BPM_CANVAS_HEIGHT
+    );
+
+    // Plot four phase spaces
+    TCanvas *canvas = (TCanvas *)(
+        gROOT->GetListOfCanvases()->FindObject(canvasName.c_str())
+    );
+    canvas->Divide(2,2);
+    canvas->cd(1);
+    std::string axesDefinition = branchName + ".px:" + branchName + ".x";
+    this->_bpmTree->Draw(axesDefinition.c_str(), "");
+    canvas->cd(2);
+    axesDefinition = branchName + ".py:" + branchName + ".y";
+    this->_bpmTree->Draw(axesDefinition.c_str(), "");
+    canvas->cd(3);
+    axesDefinition = branchName + ".pz:" + branchName + ".z";
+    this->_bpmTree->Draw(axesDefinition.c_str(), "");
+    canvas->cd(4);
+    axesDefinition = branchName + ".y:" + branchName + ".x";
+    this->_bpmTree->Draw(axesDefinition.c_str(), "");
+    canvas->Update();
+    canvas->Paint();
+
+    // Apply styles
+    //this->_StyleBPM(this->_bunchCount, this->_bunchNames);
+
+    // Print to file
+    std::string filename =
+        _BPM_FILENAME + std::to_string(bpmNumber) + _BPM_FILEEXTENSION;
+    this->_PrintCanvas(
+        _BPM_CANVAS_NAME.c_str(),
+        filename.c_str(),
+        _BPM_FILETYPE.c_str()
+    );
 }
 
 // Methods to apply styles for different plot types

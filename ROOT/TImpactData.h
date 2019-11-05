@@ -48,6 +48,7 @@ public:
         Double_t ymin,
         Double_t ymax
     );
+    void PlotBPM(Int_t bpmNumber, Int_t bunch = 1);
 
 protected:
     // Class members
