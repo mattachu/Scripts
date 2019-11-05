@@ -534,6 +534,11 @@ void TImpactData::_PlotBunchLayer(
     TCanvas *canvas = (TCanvas *)(
         gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME.c_str())
     );
+    if (!canvas) {
+        throw std::runtime_error(
+            "Cannot find canvas object."
+        );
+    }
     canvas->cd();
     const char *axes = axesDefinition.c_str();
     const char *plot = plotOptions.c_str();
