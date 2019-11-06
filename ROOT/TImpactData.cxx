@@ -16,9 +16,9 @@ Int_t    const _MAX_BUNCH_COUNT       = 99;
 char const    *_BUNCHES_TREENAME      = "bunches";
 char const    *_BUNCHES_TREETITLE     = "Bunch data";
 char const    *_BUNCHES_BRANCHNAME    = "bunches";
-char const    *_BPM_TREENAME          = "bpms";
-char const    *_BPM_TREETITLE         = "BPM output data";
-char const    *_BPM_BRANCHNAME        = "bpm.out";
+char const    *_PHASE_TREENAME        = "phase";
+char const    *_PHASE_TREETITLE       = "Phase space output data";
+char const    *_PHASE_BRANCHNAME      = "phase.out";
 // - settings for bunch count plot
 std::string    _BUNCHES_FILENAME      = "bunch-count.eps";
 std::string    _BUNCHES_FILETYPE      = "eps";
@@ -32,14 +32,17 @@ Double_t const _BUNCHES_XMIN_DEFAULT  =    0.0;
 Double_t const _BUNCHES_XMAX_DEFAULT  =    1.8;
 Double_t const _BUNCHES_YMIN_DEFAULT  =  90000;
 Double_t const _BUNCHES_YMAX_DEFAULT  = 102000;
-// - settings for BPM plot
-std::string    _BPM_FILENAME          = "bpm";
-std::string    _BPM_FILEEXTENSION     = ".eps";
-std::string    _BPM_FILETYPE          = "eps";
-std::string    _BPM_CANVAS_NAME       = "impact_bpm_plot";
-std::string    _BPM_CANVAS_TITLE      = "Impact-T BPM output plot";
-Int_t    const _BPM_CANVAS_WIDTH      = 802;
-Int_t    const _BPM_CANVAS_HEIGHT     = 825;
+// - settings for phase space plot
+std::string    _PHASE_FILENAME        = "phase";
+std::string    _PHASE_FILEEXTENSION   = ".eps";
+std::string    _PHASE_FILETYPE        = "eps";
+std::string    _PHASE_CANVAS_NAME     = "impact_phase_plot";
+std::string    _PHASE_CANVAS_TITLE    = "Impact-T phase space plot";
+Int_t    const _PHASE_CANVAS_WIDTH    = 802;
+Int_t    const _PHASE_CANVAS_HEIGHT   = 825;
+// - settings for special phase space numbers
+Int_t    const _PHASE_START           = 40;
+Int_t    const _PHASE_END             = 50;
 
 // Default constructor
 TImpactData::TImpactData():
@@ -78,12 +81,13 @@ TImpactData::~TImpactData()
 void TImpactData::_CreateNullTrees()
 {
     this->_bunchTree = nullptr;
-    this->_bpmTree = nullptr;
+    this->_phaseTree = nullptr;
 }
 
 void TImpactData::_CreateDefaultTrees()
 {
     this->_CreateBunchTree();
+    this->_CreatePhaseTree();
 }
 
 void TImpactData::_CreateBunchTree()
@@ -95,18 +99,18 @@ void TImpactData::_CreateBunchTree()
     this->_bunchTree = new TTree(_BUNCHES_TREENAME, _BUNCHES_TREETITLE);
 }
 
-void TImpactData::_CreateBPMTree()
+void TImpactData::_CreatePhaseTree()
 {
     try {
-        this->_DeleteBPMTree();
+        this->_DeletePhaseTree();
     } catch (...) {}
-    this->_bpmTree = new TTree(_BPM_TREENAME, _BPM_TREETITLE);
+    this->_phaseTree = new TTree(_PHASE_TREENAME, _PHASE_TREETITLE);
 }
 
 void TImpactData::_DeleteAllTrees()
 {
     this->_DeleteBunchTree();
-    this->_DeleteBPMTree();
+    this->_DeletePhaseTree();
 }
 
 void TImpactData::_DeleteBunchTree()
@@ -121,15 +125,15 @@ void TImpactData::_DeleteBunchTree()
     this->_bunchTree = nullptr;
 }
 
-void TImpactData::_DeleteBPMTree()
+void TImpactData::_DeletePhaseTree()
 {
     try {
-        if (this->_bpmTree) {
-            this->_bpmTree->Reset();
-            this->_bpmTree->Delete();
+        if (this->_phaseTree) {
+            this->_phaseTree->Reset();
+            this->_phaseTree->Delete();
         }
     } catch (...)  {}
-    this->_bpmTree = nullptr;
+    this->_phaseTree = nullptr;
 }
 
 // Methods to access members
@@ -227,8 +231,8 @@ TTree *TImpactData::GetTree(std::string treeName)
         return this->_bunchTree;
     }
     else {
-        if (treeName == _BPM_TREENAME) {
-            return this->_bpmTree;
+        if (treeName == _PHASE_TREENAME) {
+            return this->_phaseTree;
         }
         else {
             throw std::invalid_argument("No tree named " + treeName + ".");
@@ -256,9 +260,6 @@ void TImpactData::Load(std::vector<Int_t> bpmList)
     // Set up data structures into which to load data
     this->_DeleteAllTrees();
     this->_CreateDefaultTrees();
-    if (!bpmList.empty()) {
-        this->_CreateBPMTree();
-    }
 
     // Load all data
     this->_LoadAll(this->_bunchCount, bpmList);
@@ -271,6 +272,7 @@ void TImpactData::Load(std::vector<Int_t> bpmList)
 void TImpactData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {})
 {
     this->_LoadBunches(bunchCount);
+    this->_LoadPhaseSpaceData(this->_bunchCount, _PHASE_START);
     if (!bpmList.empty()) {
         for (
             std::vector<Int_t>::iterator it = bpmList.begin();
@@ -278,9 +280,10 @@ void TImpactData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {})
             ++it
         )
         {
-            this->_LoadBPMs(this->_bunchCount, *it);
+            this->_LoadPhaseSpaceData(this->_bunchCount, *it);
         }
     }
+    this->_LoadPhaseSpaceData(this->_bunchCount, _PHASE_END);
 }
 
 // - particle count data from `fort.11`
@@ -352,8 +355,8 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
     );
 }
 
-// - phase space data from multiple BPM output files `fort.xx`
-void TImpactData::_LoadBPMs(Int_t bunchCount, Int_t bpmNumber)
+// - phase space data from output files `fort.xx` for multiple bunches
+void TImpactData::_LoadPhaseSpaceData(Int_t bunchCount, Int_t locationNumber)
 {
     // Check parameters
     std::string errorString = "";
@@ -368,33 +371,33 @@ void TImpactData::_LoadBPMs(Int_t bunchCount, Int_t bpmNumber)
     }
 
     // Check for tree
-    if (!this->_bpmTree) {
-        this->_CreateBPMTree();
+    if (!this->_phaseTree) {
+        this->_CreatePhaseTree();
     }
 
     // Loop for each bunch
     for (Int_t i = 1; i <= bunchCount; i++){
-        this->_LoadBPM(i, bpmNumber);
+        this->_LoadPhaseSpace(i, locationNumber);
     }
 }
 
-// - phase space data from a BPM output file `fort.xx`
-void TImpactData::_LoadBPM(Int_t bunch, Int_t bpmNumber)
+// - phase space data from an output file `fort.xx`
+void TImpactData::_LoadPhaseSpace(Int_t bunch, Int_t locationNumber)
 {
     // Check for tree
-    if (!this->_bpmTree) {
-        this->_CreateBPMTree();
+    if (!this->_phaseTree) {
+        this->_CreatePhaseTree();
     }
 
     // Check for file
-    Int_t fileNumber = bpmNumber + bunch - 1;
+    Int_t fileNumber = locationNumber + bunch - 1;
     std::string filename = "fort." + to_string(fileNumber);
     if (!this->_FileExists(filename)) {
         throw std::runtime_error("Cannot find file " + filename);
     }
 
     // Announce status
-    printf("Loading BPM data from file `%s`\n", filename.c_str());
+    printf("Loading phase space data from file `%s`\n", filename.c_str());
 
     // Create structure to hold data
     struct impact_particle_t {
@@ -408,11 +411,11 @@ void TImpactData::_LoadBPM(Int_t bunch, Int_t bpmNumber)
     impact_particle_t particle;
     std::string leafDefinition = "x/D:px/D:y/D:py/D:z/D:pz/D";
 
-    // Create a branch for the BPM data
+    // Create a branch for the current phase space data
     std::string branchName =
-        _BPM_BRANCHNAME + to_string(bpmNumber) +
+        _PHASE_BRANCHNAME + to_string(locationNumber) +
         ".bunch" + to_string(bunch);
-    this->_bpmTree->Branch(
+    this->_phaseTree->Branch(
         branchName.c_str(),
         &particle,
         leafDefinition.c_str()
@@ -425,13 +428,13 @@ void TImpactData::_LoadBPM(Int_t bunch, Int_t bpmNumber)
         infile >> particle.x >> particle.px
                >> particle.y >> particle.py
                >> particle.z >> particle.pz;
-        this->_bpmTree->GetBranch(branchName.c_str())->Fill();
+        this->_phaseTree->GetBranch(branchName.c_str())->Fill();
     }
     infile.close();
 
     // Set number of particles for the tree object
     this->_UpdateParticleCount(
-        this->_bpmTree->GetBranch(branchName.c_str())->GetEntries()
+        this->_phaseTree->GetBranch(branchName.c_str())->GetEntries()
     );
 }
 
@@ -444,9 +447,9 @@ void TImpactData::Print()
         printf("Bunch data tree:\n");
         this->_bunchTree->Print();
     }
-    if (this->_bpmTree) {
-        printf("BPM data tree:\n");
-        this->_bpmTree->Print();
+    if (this->_phaseTree) {
+        printf("Phase space data tree:\n");
+        this->_phaseTree->Print();
     }
 }
 
@@ -565,33 +568,33 @@ void TImpactData::_PlotBunchLayer(
     this->_RenameCurrentGraph(graphName.c_str());
 }
 
-// - phase space plots from BPM output files `fort.xx`
-void TImpactData::PlotBPM(Int_t bpmNumber, Int_t bunch = 1)
+// - phase space plots from output files `fort.xx`
+void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
 {
     // Check for tree
-    if (!this->_bpmTree) {
+    if (!this->_phaseTree) {
         throw std::runtime_error(
-            "Cannot load BPM output data as tree structure is not available."
+            "Cannot load phase space output data as tree structure is not available."
         );
     }
 
     // Check for branch
     std::string branchName =
-        _BPM_BRANCHNAME + to_string(bpmNumber) +
+        _PHASE_BRANCHNAME + to_string(locationNumber) +
         ".bunch" + to_string(bunch);
-    if (!this->_bpmTree->GetBranch(branchName.c_str())) {
+    if (!this->_phaseTree->GetBranch(branchName.c_str())) {
         throw std::invalid_argument(
-            "No BPM branch for file " + to_string(bpmNumber)
+            "No phase space data for file " + to_string(locationNumber)
         );
     }
 
     // Create canvas and divide into five parts (one title and four subplots)
-    std::string canvasName =_BPM_CANVAS_NAME;
+    std::string canvasName =_PHASE_CANVAS_NAME;
     this->_CreateCanvas(
         canvasName.c_str(),
-        _BPM_CANVAS_TITLE.c_str(),
-        _BPM_CANVAS_WIDTH,
-        _BPM_CANVAS_HEIGHT
+        _PHASE_CANVAS_TITLE.c_str(),
+        _PHASE_CANVAS_WIDTH,
+        _PHASE_CANVAS_HEIGHT
     );
     TCanvas *canvas = (TCanvas *)(
         gROOT->GetListOfCanvases()->FindObject(canvasName.c_str())
@@ -603,27 +606,38 @@ void TImpactData::PlotBPM(Int_t bpmNumber, Int_t bunch = 1)
     // Plot four phase spaces
     pad->cd(1);
     std::string axesDefinition = branchName + ".px:" + branchName + ".x";
-    this->_bpmTree->Draw(axesDefinition.c_str(), "");
+    this->_phaseTree->Draw(axesDefinition.c_str(), "");
     pad->cd(2);
     axesDefinition = branchName + ".py:" + branchName + ".y";
-    this->_bpmTree->Draw(axesDefinition.c_str(), "");
+    this->_phaseTree->Draw(axesDefinition.c_str(), "");
     pad->cd(3);
     axesDefinition = branchName + ".pz:" + branchName + ".z";
-    this->_bpmTree->Draw(axesDefinition.c_str(), "");
+    this->_phaseTree->Draw(axesDefinition.c_str(), "");
     pad->cd(4);
     axesDefinition = branchName + ".y:" + branchName + ".x";
-    this->_bpmTree->Draw(axesDefinition.c_str(), "");
+    this->_phaseTree->Draw(axesDefinition.c_str(), "");
 
     // Apply styles
-    this->_StyleBPM(bpmNumber);
+    this->_StylePhaseSpace(locationNumber);
 
     // Print to file
-    std::string filename =
-        _BPM_FILENAME + std::to_string(bpmNumber) + _BPM_FILEEXTENSION;
+    std::string filename = _PHASE_FILENAME + "-";
+    switch (locationNumber) {
+        case _PHASE_START:
+            filename += "start";
+            break;
+        case _PHASE_END:
+            filename += "end";
+            break;
+        default:
+            filename += to_string(locationNumber);
+            break;
+    }
+    filename +=  _PHASE_FILEEXTENSION;
     this->_PrintCanvas(
-        _BPM_CANVAS_NAME.c_str(),
+        _PHASE_CANVAS_NAME.c_str(),
         filename.c_str(),
-        _BPM_FILETYPE.c_str()
+        _PHASE_FILETYPE.c_str()
     );
 }
 
@@ -747,8 +761,8 @@ void TImpactData::_StyleBunches(
     canvas->Paint();
 }
 
-// - phase space plots from BPM output files `fort.xx`
-void TImpactData::_StyleBPM(Int_t bpmNumber)
+// - phase space plots from output files `fort.xx`
+void TImpactData::_StylePhaseSpace(Int_t locationNumber)
 {
     // Apply my style settings
     load_style_mje();
@@ -756,7 +770,7 @@ void TImpactData::_StyleBPM(Int_t bpmNumber)
 
     // Get canvas
     TCanvas *canvas = (TCanvas *)(
-        gROOT->GetListOfCanvases()->FindObject(_BPM_CANVAS_NAME.c_str())
+        gROOT->GetListOfCanvases()->FindObject(_PHASE_CANVAS_NAME.c_str())
     );
     if (!canvas) {
         throw std::runtime_error(
@@ -766,7 +780,18 @@ void TImpactData::_StyleBPM(Int_t bpmNumber)
 
     // Add title
     canvas->cd(1);
-    std::string titleString = "Phase space at BPM " + to_string(bpmNumber);
+    std::string titleString = "Phase space at ";
+    switch (locationNumber) {
+        case _PHASE_START:
+            titleString += "simulation start";
+            break;
+        case _PHASE_END:
+            titleString += "simulation end";
+            break;
+        default:
+            titleString += "BPM " + to_string(locationNumber);
+            break;
+    }
     TPaveLabel *title = new TPaveLabel(
         0.05, 0.05, 0.95, 0.95,
         titleString.c_str(),
@@ -954,10 +979,10 @@ void TImpactData::_UpdateParticleCount(Long_t newCount)
     if (newCount > this->_particleCount) {
         this->_particleCount = newCount;
     }
-    // BPM tree
-    if (this->_bpmTree) {
-        if (newCount > this->_bpmTree->GetEntries()) {
-            this->_bpmTree->SetEntries(newCount);
+    // Phase space tree
+    if (this->_phaseTree) {
+        if (newCount > this->_phaseTree->GetEntries()) {
+            this->_phaseTree->SetEntries(newCount);
         }
     }
 }

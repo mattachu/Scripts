@@ -48,12 +48,12 @@ public:
         Double_t ymin,
         Double_t ymax
     );
-    void PlotBPM(Int_t bpmNumber, Int_t bunch = 1);
+    void PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1);
 
 protected:
     // Class members
     TTree                   *_bunchTree;     // Tree containing bunch count data
-    TTree                   *_bpmTree;       // Tree containing BPM outupt data
+    TTree                   *_phaseTree;     // Tree containing phase space data
     const Int_t              _bunchCount;    // Number of bunches in the simulation
     std::vector<std::string> _bunchNames;    // List of names for the bunches
     Int_t                    _sliceCount;    // Number of time slices
@@ -65,16 +65,16 @@ protected:
     virtual void _CreateNullTrees();
     virtual void _CreateDefaultTrees();
     void _CreateBunchTree();
-    void _CreateBPMTree();
+    void _CreatePhaseTree();
     virtual void _DeleteAllTrees();
     void _DeleteBunchTree();
-    void _DeleteBPMTree();
+    void _DeletePhaseTree();
 
     // Methods to load data from different Impact-T output files
     virtual void _LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {});
     void _LoadBunches(Int_t bunchCount);
-    void _LoadBPMs(Int_t bunchCount, Int_t bpmNumber);
-    void _LoadBPM(Int_t bunch, Int_t bpmNumber);
+    void _LoadPhaseSpaceData(Int_t bunchCount, Int_t locationNumber);
+    void _LoadPhaseSpace(Int_t bunch, Int_t locationNumber);
 
     // Methods to produce different plot types
     void _PlotBunchLayer(
@@ -93,7 +93,7 @@ protected:
         Double_t ymin,
         Double_t ymax
     );
-    void _StyleBPM(Int_t bpmNumber);
+    void _StylePhaseSpace(Int_t locationNumber);
 
     // Utility methods
     void _RenameCurrentGraph(const char *name);
