@@ -571,6 +571,11 @@ void TImpactData::_PlotBunchLayer(
 // - phase space plots from output files `fort.xx`
 void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
 {
+    // Check bunch number
+    if (bunch > this->_bunchCount) {
+        throw std::invalid_argument("No data for bunch " + to_string(bunch));
+    }
+
     // Check for tree
     if (!this->_phaseTree) {
         throw std::runtime_error(
@@ -584,7 +589,8 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
         ".bunch" + to_string(bunch);
     if (!this->_phaseTree->GetBranch(branchName.c_str())) {
         throw std::invalid_argument(
-            "No phase space data for file " + to_string(locationNumber)
+            "No phase space data for location " + to_string(locationNumber) +
+            " bunch " + to_string(bunch)
         );
     }
 
@@ -618,7 +624,7 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
     this->_phaseTree->Draw(axesDefinition.c_str(), "");
 
     // Apply styles
-    this->_StylePhaseSpace(locationNumber);
+    this->_StylePhaseSpace(locationNumber, bunch);
 
     // Print to file
     std::string filename = _PHASE_FILENAME + "-";
@@ -632,6 +638,9 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
         default:
             filename += to_string(locationNumber);
             break;
+    }
+    if (this->_bunchCount > 1) {
+        filename += "-bunch" + to_string(bunch);
     }
     filename +=  _PHASE_FILEEXTENSION;
     this->_PrintCanvas(
@@ -762,7 +771,7 @@ void TImpactData::_StyleBunches(
 }
 
 // - phase space plots from output files `fort.xx`
-void TImpactData::_StylePhaseSpace(Int_t locationNumber)
+void TImpactData::_StylePhaseSpace(Int_t locationNumber, Int_t bunch)
 {
     // Apply my style settings
     load_style_mje();
@@ -791,6 +800,9 @@ void TImpactData::_StylePhaseSpace(Int_t locationNumber)
         default:
             titleString += "BPM " + to_string(locationNumber);
             break;
+    }
+    if (this->_bunchCount > 1) {
+        titleString += " for bunch" + to_string(bunch);
     }
     TPaveLabel *title = new TPaveLabel(
         0.05, 0.05, 0.95, 0.95,

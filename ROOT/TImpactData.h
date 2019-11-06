@@ -93,7 +93,7 @@ protected:
         Double_t ymin,
         Double_t ymax
     );
-    void _StylePhaseSpace(Int_t locationNumber);
+    void _StylePhaseSpace(Int_t locationNumber, Int_t bunch);
 
     // Utility methods
     void _RenameCurrentGraph(const char *name);
