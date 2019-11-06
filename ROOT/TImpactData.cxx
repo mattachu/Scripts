@@ -795,13 +795,22 @@ void TImpactData::_StyleBPM(Int_t bpmNumber)
         gPad->SetRightMargin(0.05);
         gPad->SetTopMargin(0.05);
         gPad->SetBottomMargin(0.10);
-        // Get histogram object to access axes
+        // Get histogram and graph objects
         TH1 *hist = (TH1 *)(gPad->GetPrimitive("htemp"));
         if (!hist) {
             throw std::runtime_error(
                 "Cannot find histogram object."
             );
         }
+        TGraph *graph = (TGraph *)(gPad->GetPrimitive("Graph"));
+        if (!graph) {
+            throw std::runtime_error(
+                "Cannot find graph object."
+            );
+        }
+        // Set points
+        graph->SetMarkerStyle(20);
+        graph->SetMarkerSize(0.2);
         // Set x-axis
         hist->GetXaxis()->SetTicks("-");
         hist->GetXaxis()->SetTickSize(0.01);
