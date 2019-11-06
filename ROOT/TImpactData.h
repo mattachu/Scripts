@@ -93,6 +93,7 @@ protected:
         Double_t ymin,
         Double_t ymax
     );
+    void _StyleBPM(Int_t bpmNumber);
 
     // Utility methods
     void _RenameCurrentGraph(const char *name);

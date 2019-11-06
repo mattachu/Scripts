@@ -39,7 +39,7 @@ std::string    _BPM_FILETYPE          = "eps";
 std::string    _BPM_CANVAS_NAME       = "impact_bpm_plot";
 std::string    _BPM_CANVAS_TITLE      = "Impact-T BPM output plot";
 Int_t    const _BPM_CANVAS_WIDTH      = 802;
-Int_t    const _BPM_CANVAS_HEIGHT     = 802;
+Int_t    const _BPM_CANVAS_HEIGHT     = 825;
 
 // Default constructor
 TImpactData::TImpactData():
@@ -585,7 +585,7 @@ void TImpactData::PlotBPM(Int_t bpmNumber, Int_t bunch = 1)
         );
     }
 
-    // Create canvas
+    // Create canvas and divide into five parts (one title and four subplots)
     std::string canvasName =_BPM_CANVAS_NAME;
     this->_CreateCanvas(
         canvasName.c_str(),
@@ -593,29 +593,29 @@ void TImpactData::PlotBPM(Int_t bpmNumber, Int_t bunch = 1)
         _BPM_CANVAS_WIDTH,
         _BPM_CANVAS_HEIGHT
     );
-
-    // Plot four phase spaces
     TCanvas *canvas = (TCanvas *)(
         gROOT->GetListOfCanvases()->FindObject(canvasName.c_str())
     );
-    canvas->Divide(2,2);
-    canvas->cd(1);
+    canvas->Divide(1,2,0,0);
+    TPad *pad = (TPad *)canvas->GetPad(2);
+    pad->Divide(2,2);
+
+    // Plot four phase spaces
+    pad->cd(1);
     std::string axesDefinition = branchName + ".px:" + branchName + ".x";
     this->_bpmTree->Draw(axesDefinition.c_str(), "");
-    canvas->cd(2);
+    pad->cd(2);
     axesDefinition = branchName + ".py:" + branchName + ".y";
     this->_bpmTree->Draw(axesDefinition.c_str(), "");
-    canvas->cd(3);
+    pad->cd(3);
     axesDefinition = branchName + ".pz:" + branchName + ".z";
     this->_bpmTree->Draw(axesDefinition.c_str(), "");
-    canvas->cd(4);
+    pad->cd(4);
     axesDefinition = branchName + ".y:" + branchName + ".x";
     this->_bpmTree->Draw(axesDefinition.c_str(), "");
-    canvas->Update();
-    canvas->Paint();
 
     // Apply styles
-    //this->_StyleBPM(this->_bunchCount, this->_bunchNames);
+    this->_StyleBPM(bpmNumber);
 
     // Print to file
     std::string filename =
@@ -628,6 +628,7 @@ void TImpactData::PlotBPM(Int_t bpmNumber, Int_t bunch = 1)
 }
 
 // Methods to apply styles for different plot types
+// - bunch count cumulative plot for data loaded from `fort.11`
 void TImpactData::_StyleBunches(
     Int_t bunchCount,
     std::vector<std::string> bunchNames,
@@ -742,6 +743,109 @@ void TImpactData::_StyleBunches(
 
     // Update canvas
     legend->Draw();
+    canvas->Update();
+    canvas->Paint();
+}
+
+// - phase space plots from BPM output files `fort.xx`
+void TImpactData::_StyleBPM(Int_t bpmNumber)
+{
+    // Apply my style settings
+    load_style_mje();
+    gROOT->SetStyle("mje");
+
+    // Get canvas
+    TCanvas *canvas = (TCanvas *)(
+        gROOT->GetListOfCanvases()->FindObject(_BPM_CANVAS_NAME.c_str())
+    );
+    if (!canvas) {
+        throw std::runtime_error(
+            "Cannot find canvas object."
+        );
+    }
+
+    // Add title
+    canvas->cd(1);
+    std::string titleString = "Phase space at BPM " + to_string(bpmNumber);
+    TPaveLabel *title = new TPaveLabel(
+        0.05, 0.05, 0.95, 0.95,
+        titleString.c_str(),
+        "NB" // no border
+    );
+    title->SetFillColor(0);
+    title->SetTextFont(132);
+    title->Draw();
+
+    // Resize pads
+    canvas->SetMargin(0.0, 0.0, 0.0, 0.0);
+    canvas->GetPad(1)->SetPad(0.0, 0.96, 1.0, 1.0);
+    canvas->GetPad(2)->SetPad(0.0, 0.0, 1.0, 0.96);
+
+    // Set subplot options
+    // - font code 132 is Times New Roman, medium, regular, scalable
+    for (Int_t i = 1; i <= 4; i++) {
+        // Connect to correct pad
+        canvas->GetPad(2)->cd(i);
+        // Set background lines
+        gPad->GetFrame()->SetLineWidth(1);
+        gPad->SetGridx(false);
+        gPad->SetGridy(false);
+        // Set margins
+        gPad->SetLeftMargin(0.15);
+        gPad->SetRightMargin(0.05);
+        gPad->SetTopMargin(0.05);
+        gPad->SetBottomMargin(0.10);
+        // Get histogram object to access axes
+        TH1 *hist = (TH1 *)(gPad->GetPrimitive("htemp"));
+        if (!hist) {
+            throw std::runtime_error(
+                "Cannot find histogram object."
+            );
+        }
+        // Set x-axis
+        hist->GetXaxis()->SetTicks("-");
+        hist->GetXaxis()->SetTickSize(0.01);
+        hist->GetXaxis()->SetTitleOffset(-1.0);
+        hist->GetXaxis()->SetLabelOffset(-0.04);
+        hist->GetXaxis()->SetTitleFont(132);
+        hist->GetXaxis()->SetTitleSize(0.05);
+        hist->GetXaxis()->CenterTitle(kFALSE);
+        hist->GetXaxis()->SetLabelFont(132);
+        hist->GetXaxis()->SetLabelSize(0.035);
+        hist->GetXaxis()->Pop();
+        // Set y-axis
+        hist->GetYaxis()->SetTicks("+");
+        hist->GetYaxis()->SetTickSize(0.01);
+        hist->GetYaxis()->SetTitleOffset(-1.4);
+        hist->GetYaxis()->SetLabelOffset(-0.01);
+        hist->GetYaxis()->SetTitleFont(132);
+        hist->GetYaxis()->SetTitleSize(0.05);
+        hist->GetYaxis()->CenterTitle(kFALSE);
+        hist->GetYaxis()->SetLabelFont(132);
+        hist->GetYaxis()->SetLabelSize(0.035);
+        hist->GetYaxis()->Pop();
+        // Set labels
+        switch (i) {
+            case 1:
+                hist->GetXaxis()->SetTitle("x");
+                hist->GetYaxis()->SetTitle("px");
+                break;
+            case 2:
+                hist->GetXaxis()->SetTitle("y");
+                hist->GetYaxis()->SetTitle("py");
+                break;
+            case 3:
+                hist->GetXaxis()->SetTitle("z");
+                hist->GetYaxis()->SetTitle("pz");
+                break;
+            case 4:
+                hist->GetXaxis()->SetTitle("x");
+                hist->GetYaxis()->SetTitle("y");
+                break;
+        }
+    }
+
+    // Update canvas
     canvas->Update();
     canvas->Paint();
 }
