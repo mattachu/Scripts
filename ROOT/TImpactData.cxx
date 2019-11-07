@@ -20,6 +20,9 @@ const char    *_BUNCHES_BRANCHNAME    = "bunches";
 const char    *_PHASE_TREENAME        = "phase";
 const char    *_PHASE_TREETITLE       = "Phase space output data";
 const char    *_PHASE_BRANCHNAME      = "phase.out";
+const char    *_ENDSLICE_TREENAME     = "endslice";
+const char    *_ENDSLICE_TREETITLE    = "End slice data";
+const char    *_ENDSLICE_BRANCHNAME   = "endslice";
 // - settings for bunch count plot
 const char    *_BUNCHES_FILENAME      = "bunch-count.eps";
 const char    *_BUNCHES_FILETYPE      = "eps";
@@ -44,6 +47,18 @@ const Int_t    _PHASE_CANVAS_HEIGHT   = 825;
 // - settings for special phase space numbers
 const Int_t    _PHASE_START           = 40;
 const Int_t    _PHASE_END             = 50;
+// - settings for final energy plot
+const char    *_ENERGY_FILENAME       = "energy.eps";
+const char    *_ENERGY_FILETYPE       = "eps";
+const char    *_ENERGY_CANVAS_NAME    = "impact_final_energy_plot";
+const char    *_ENERGY_CANVAS_TITLE   = "Impact-T final energy plot";
+const char    *_ENERGY_XAXIS_TITLE    = "Final energy (MeV)";
+const char    *_ENERGY_YAXIS_TITLE    = "Number of macro-particles";
+const Int_t    _ENERGY_CANVAS_WIDTH   = 802;
+const Int_t    _ENERGY_CANVAS_HEIGHT  = 525;
+const Int_t    _ENERGY_BINS_DEFAULT   = 100;
+const Double_t _ENERGY_XMIN_DEFAULT   = 0.0;
+const Double_t _ENERGY_XMAX_DEFAULT   = 1.1;
 
 // Default constructor
 TImpactData::TImpactData():
@@ -83,6 +98,7 @@ void TImpactData::_CreateNullTrees()
 {
     this->_bunchTree = nullptr;
     this->_phaseTree = nullptr;
+    this->_endTree = nullptr;
 }
 
 void TImpactData::_CreateDefaultTrees()
@@ -108,10 +124,16 @@ void TImpactData::_CreatePhaseTree()
     this->_phaseTree = new TTree(_PHASE_TREENAME, _PHASE_TREETITLE);
 }
 
+void TImpactData::_CreateEndTree()
+{
+    this->_endTree = new TTree(_ENDSLICE_TREENAME, _ENDSLICE_TREETITLE);
+}
+
 void TImpactData::_DeleteAllTrees()
 {
     this->_DeleteBunchTree();
     this->_DeletePhaseTree();
+    this->_DeleteEndTree();
 }
 
 void TImpactData::_DeleteBunchTree()
@@ -135,6 +157,17 @@ void TImpactData::_DeletePhaseTree()
         }
     } catch (...)  {}
     this->_phaseTree = nullptr;
+}
+
+void TImpactData::_DeleteEndTree()
+{
+    try {
+        if (this->_endTree) {
+            this->_endTree->Reset();
+            this->_endTree->Delete();
+        }
+    } catch (...)  {}
+    this->_endTree = nullptr;
 }
 
 // Methods to access members
@@ -178,7 +211,12 @@ const TTree *TImpactData::GetTree(std::string treeName) const
             return this->_phaseTree;
         }
         else {
-            throw std::invalid_argument("No tree named " + treeName + ".");
+            if (treeName == _ENDSLICE_TREENAME) {
+                return this->_endTree;
+            }
+            else {
+                throw std::invalid_argument("No tree named " + treeName + ".");
+            }
         }
     }
     return nullptr;
@@ -285,6 +323,10 @@ void TImpactData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {})
         }
     }
     this->_LoadPhaseSpaceData(this->_bunchCount, _PHASE_END);
+    if (this->_FileExists("rfq1.dst")) {
+        this->_CreateEndTree();
+        this->_LoadEndSlice(bunchCount);
+    }
 }
 
 // - particle count data from `fort.11`
@@ -439,6 +481,89 @@ void TImpactData::_LoadPhaseSpace(Int_t bunch, Int_t locationNumber)
     );
 }
 
+// - end slice data from `rfq1.dst` etc.
+void TImpactData::_LoadEndSlice(Int_t bunchCount)
+{
+    // Check parameters
+    std::string errorString = "";
+    if (bunchCount < 1) {
+        errorString = "Must have at least one bunch.";
+        throw std::invalid_argument(errorString.c_str());
+    }
+    if (bunchCount > _MAX_BUNCH_COUNT) {
+        errorString = "Cannot handle more than " +
+                      std::to_string(_MAX_BUNCH_COUNT) + " bunches.";
+        throw std::invalid_argument(errorString.c_str());
+    }
+
+    // Check for tree
+    if (!this->_endTree) {
+        this->_CreateEndTree();
+    }
+
+    // Load data to a new branch for each bunch
+    std::string filename = "";
+    std::string branchname = "";
+    for (Int_t i = 1; i <= bunchCount; i++){
+        filename = "rfq" + std::to_string(i) + ".dst";
+        branchname = _ENDSLICE_BRANCHNAME;
+        branchname += ".bunch" + std::to_string(i);
+        this->_LoadDSTParticleData(filename, branchname);
+    }
+}
+
+// - load particle data from a `.dst` file into a given branch
+void TImpactData::_LoadDSTParticleData(
+    std::string filename,
+    std::string branchname
+)
+{
+    // Check for file
+    if (!this->_FileExists(filename)) {
+        throw std::runtime_error("Cannot find file: " + filename);
+    }
+
+    // Check for tree
+    if (!this->_endTree) {
+        throw std::runtime_error(
+            "Cannot load DST data as tree structure is not available."
+        );
+    }
+
+    // Announce status
+    printf("Loading end slice data from file `%s`\n", filename.c_str());
+
+    // Create structure to hold data
+    Int_t Npt = _GetDSTParticleCount(filename);
+    Double_t slice[6];
+    std::string leafDefinition = "x/D:xp/D:y/D:yp/D:phi/D:W/D";
+
+    // Create a branch for the given data
+    this->_endTree->Branch(branchname.c_str(), &slice, leafDefinition.c_str());
+
+    // Read in data from the given filename
+    ifstream infile(filename, std::ios::in | std::ios::binary);
+    infile.seekg(23); // skip headers
+    for (Int_t i = 1; i <= Npt; i++) {
+        if (!infile.good()) break;
+        infile.read((char *)(&slice), 48);
+        this->_endTree->GetBranch(branchname.c_str())->Fill();
+    }
+    infile.close();
+}
+
+// - read the number of particles from a given `.dst` file
+Int_t TImpactData::_GetDSTParticleCount(std::string filename)
+{
+    Int_t Npt = 0;
+    ifstream infile(filename, std::ios::in | std::ios::binary);
+    infile.seekg(2);
+    infile.read((char *)&Npt, 4);
+    infile.close();
+    this->_UpdateParticleCount(Npt);
+    return Npt;
+}
+
 // Methods to output data
 // - publicly accessible method
 void TImpactData::Print()
@@ -451,6 +576,10 @@ void TImpactData::Print()
     if (this->_phaseTree) {
         printf("Phase space data tree:\n");
         this->_phaseTree->Print();
+    }
+    if (this->_endTree) {
+        printf("End-slice data tree:\n");
+        this->_endTree->Print();
     }
 }
 
@@ -647,6 +776,55 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
     }
     filename +=  _PHASE_FILEEXTENSION;
     this->_PrintCanvas(_PHASE_CANVAS_NAME, filename.c_str(), _PHASE_FILETYPE);
+}
+
+// - final energy histograms from `rfq1.dst`
+void TImpactData::PlotFinalEnergy(
+    Int_t nbins = _ENERGY_BINS_DEFAULT,
+    Double_t xmin = _ENERGY_XMIN_DEFAULT,
+    Double_t xmax = _ENERGY_XMAX_DEFAULT
+)
+{
+    // Check for tree
+    if (!this->_endTree) {
+        throw std::runtime_error(
+            "Cannot load end slice data as tree structure is not available."
+        );
+    }
+
+    // Create canvas
+    this->_CreateCanvas(
+        _ENERGY_CANVAS_NAME,
+        _ENERGY_CANVAS_TITLE,
+        _ENERGY_CANVAS_WIDTH,
+        _ENERGY_CANVAS_HEIGHT
+    );
+
+    // Plot each histogram as a separate layer
+    for (Int_t i = 1; i <= this->_bunchCount; ++i) {
+        std::string histName = _ENERGY_CANVAS_NAME;
+        histName += "_hist" + std::to_string(i);
+        std::string branchName = _ENDSLICE_BRANCHNAME;
+        branchName += ".bunch" + std::to_string(i);
+        std::string plotString = branchName + ".W";
+        plotString += ">>" + histName + "("
+            + std::to_string(nbins) + ","
+            + std::to_string(xmin) + ","
+            + std::to_string(xmax) + ")";
+        std::string plotOptions = "hist";
+        if (i > 1) {
+            plotOptions += " same";
+        }
+        TBranch *thisBranch = this->_endTree->GetBranch(branchName.c_str());
+        Long_t n = thisBranch->GetEntries();
+        this->_endTree->Draw(plotString.c_str(), "", plotOptions.c_str(), n);
+    }
+
+    // Apply styles
+    this->_StyleFinalEnergy(this->_bunchCount, this->_bunchNames);
+
+    // Print to file
+    this->_PrintCanvas(_ENERGY_CANVAS_NAME, _ENERGY_FILENAME, _ENERGY_FILETYPE);
 }
 
 // Methods to apply styles for different plot types
@@ -897,6 +1075,121 @@ void TImpactData::_StylePhaseSpace(Int_t locationNumber, Int_t bunch)
     canvas->Paint();
 }
 
+// - final energy histograms from `rfq1.dst`
+void TImpactData::_StyleFinalEnergy(
+    Int_t bunchCount,
+    std::vector<std::string> bunchNames
+)
+{
+    // Apply my style settings
+    load_style_mje();
+    gROOT->SetStyle("mje");
+
+    // Get objects
+    TCanvas *canvas = (TCanvas *)(
+        gROOT->GetListOfCanvases()->FindObject(_ENERGY_CANVAS_NAME)
+    );
+    if (!canvas) {
+        throw std::runtime_error(
+            "Cannot find canvas object."
+        );
+    }
+    canvas->cd();
+    TFrame *frame = canvas->GetFrame();
+    if (!frame) {
+        throw std::runtime_error(
+            "Cannot find plot frame object."
+        );
+    }
+    TPaveText *titleText = (TPaveText *)(canvas->GetPrimitive("title"));
+    std::string histName = _ENERGY_CANVAS_NAME;
+    histName += "_hist1";
+    TH1 *hist = (TH1 *)(canvas->GetPrimitive(histName.c_str()));
+    if (!hist) {
+        throw std::runtime_error(
+            "Cannot find histogram object."
+        );
+    }
+
+    // Set up background
+    frame->SetLineWidth(0);
+    if (titleText) {
+        titleText->Clear();
+    }
+    canvas->SetGridx(false);
+    canvas->SetGridy(true);
+
+    // Set axes options
+    // - font code 132 is Times New Roman, medium, regular, scalable
+    // x-axis
+    hist->GetXaxis()->SetTicks("-");
+    hist->GetXaxis()->SetTickSize(0.01);
+    hist->GetXaxis()->SetTitleOffset(-1.0);
+    hist->GetXaxis()->SetLabelOffset(-0.04);
+    hist->GetXaxis()->SetTitle(_ENERGY_XAXIS_TITLE);
+    hist->GetXaxis()->SetTitleFont(132);
+    hist->GetXaxis()->SetTitleSize(0.05);
+    hist->GetXaxis()->CenterTitle(kTRUE);
+    hist->GetXaxis()->SetLabelFont(132);
+    hist->GetXaxis()->SetLabelSize(0.035);
+    // y-axis
+    hist->GetYaxis()->SetTicks("+");
+    hist->GetYaxis()->SetTickSize(0.01);
+    hist->GetYaxis()->SetTitleOffset(-1.02);
+    hist->GetYaxis()->SetLabelOffset(-0.01);
+    hist->GetYaxis()->SetTitle(_ENERGY_YAXIS_TITLE);
+    hist->GetYaxis()->SetTitleFont(132);
+    hist->GetYaxis()->SetTitleSize(0.05);
+    hist->GetYaxis()->CenterTitle(kTRUE);
+    hist->GetYaxis()->SetLabelFont(132);
+    hist->GetYaxis()->SetLabelSize(0.035);
+
+    // Add legend
+    TLegend *legend = new TLegend(0.11, 0.9, 0.51, 0.7);
+    legend->SetTextFont(132);
+    legend->SetTextSize(0.03);
+    legend->SetLineColor(17);
+    legend->SetLineStyle(1);
+    legend->SetLineWidth(1);
+
+    // Set histogram draw options
+    for (Int_t i = 1; i <= bunchCount; i++) {
+        histName = _ENERGY_CANVAS_NAME;
+        histName += "_hist" + std::to_string(i);
+        hist = (TH1 *)(canvas->GetPrimitive(histName.c_str()));
+        switch (i % 4) {
+        case 1:
+            hist->SetFillColor(38);   // Blue
+            hist->SetLineColor(kBlue + 3);
+            break;
+        case 2:
+            hist->SetFillColor(623);  // Salmon red
+            hist->SetLineColor(kRed + 3);
+            break;
+        case 3:
+            hist->SetFillColor(30);   // Green
+            hist->SetLineColor(kGreen + 3);
+            break;
+        case 0:
+            hist->SetFillColor(42);   // Mustard
+            hist->SetLineColor(kYellow + 3);
+            break;
+        }
+        hist->SetLineWidth(1);
+        hist->SetLineStyle(1);
+        legend->AddEntry(hist, bunchNames.at(i-1).c_str(), "f");
+    }
+
+    // Axes on top
+    hist->GetXaxis()->Pop();
+    hist->GetYaxis()->Pop();
+
+    // Update canvas
+    legend->Draw();
+    canvas->Update();
+    canvas->Paint();
+}
+
 // Utility methods
 // - rename the current graph
 void TImpactData::_RenameCurrentGraph(const char *name)
@@ -1000,6 +1293,13 @@ void TImpactData::_UpdateParticleCount(Long_t newCount)
     if (this->_phaseTree) {
         if (newCount > this->_phaseTree->GetEntries()) {
             this->_phaseTree->SetEntries(newCount);
+        }
+    }
+    // End slice tree
+    if (this->_endTree) {
+        Long_t currentCount = this->_endTree->GetEntries();
+        if (newCount > currentCount) {
+            this->_endTree->SetEntries(newCount);
         }
     }
 }
