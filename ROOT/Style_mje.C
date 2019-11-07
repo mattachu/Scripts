@@ -1,6 +1,9 @@
 // Mainframe macro generated from application: /opt/root/bin/root.exe
 // By ROOT version 6.14/02 on 2018-12-12 14:34:41
 
+#ifndef STYLE_MJE_
+#define STYLE_MJE_
+
 #if !defined( __CINT__) || defined (__MAKECINT__)
 
 #ifndef ROOT_TStyle
@@ -202,3 +205,5 @@ void load_style_mje()
    tmpStyle->SetTextFont(132);
    tmpStyle->SetTextSize(0.05);
 }
+
+#endif // STYLE_MJE_
