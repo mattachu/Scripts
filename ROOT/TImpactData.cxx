@@ -799,6 +799,9 @@ void TImpactData::PlotFinalEnergy(
         _ENERGY_CANVAS_WIDTH,
         _ENERGY_CANVAS_HEIGHT
     );
+    TCanvas *canvas = static_cast<TCanvas *>(
+        gROOT->GetListOfCanvases()->FindObject(_ENERGY_CANVAS_NAME)
+    );
 
     // Plot each histogram as a separate layer
     for (Int_t i = 1; i <= this->_bunchCount; ++i) {
@@ -817,6 +820,10 @@ void TImpactData::PlotFinalEnergy(
         }
         TBranch *thisBranch = this->_endTree->GetBranch(branchName.c_str());
         Long_t n = thisBranch->GetEntries();
+        canvas = static_cast<TCanvas *>(
+            gROOT->GetListOfCanvases()->FindObject(_ENERGY_CANVAS_NAME)
+        );
+        canvas->cd();
         this->_endTree->Draw(plotString.c_str(), "", plotOptions.c_str(), n);
     }
 
