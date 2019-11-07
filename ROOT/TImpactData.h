@@ -5,6 +5,7 @@
 #ifndef TIMPACTDATA_H_
 #define TIMPACTDATA_H_
 
+#include <string>
 #include <vector>
 #include "TTree.h"
 #include "TCanvas.h"
@@ -22,17 +23,17 @@ public:
     virtual ~TImpactData();
 
     // Methods to access members
-    Int_t BunchCount() const;
-    Int_t SliceCount() const;
-    Int_t ParticleCount() const;
-    std::vector<std::string> GetBunchNames() const;
-    Int_t GetFirstSlice() const;
-    Int_t GetLastSlice() const;
+    const Int_t BunchCount() const;
+    const Int_t SliceCount() const;
+    const Int_t ParticleCount() const;
+    const std::vector<std::string> GetBunchNames() const;
+    const Int_t GetFirstSlice() const;
+    const Int_t GetLastSlice() const;
+    virtual const TTree *GetTree(std::string treeName) const;
     void SetDefaultBunchNames();
     void SetBunchNames(std::vector<std::string> bunchNames);
     void SetFirstSlice(Int_t firstSlice);
     void SetLastSlice(Int_t lastSlice);
-    virtual TTree *GetTree(std::string treeName);
 
     // Input and output methods
     virtual void Load();
