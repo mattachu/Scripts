@@ -149,16 +149,24 @@ TTree *TImpactRFQData::GetTree(std::string treeName)
 }
 
 // Methods to load data from Impact-T output files
-// - publicly accessible method
-//   - overloads TImpactData
-void TImpactRFQData::Load(std::vector<Int_t> bpmList = {})
+// - publicly accessible methods (overload TImpactData)
+void TImpactRFQData::Load()
+{
+    std::vector<Int_t> bpmList = {};
+    this->Load(bpmList);
+}
+
+void TImpactRFQData::Load(Int_t bpmNumber)
+{
+    std::vector<Int_t> bpmList = {bpmNumber};
+    this->Load(bpmList);
+}
+
+void TImpactRFQData::Load(std::vector<Int_t> bpmList)
 {
     // Set up data structures into which to load data
     this->_DeleteAllTrees();
     this->_CreateDefaultTrees();
-    if (!bpmList.empty()) {
-        this->_CreateBPMTree();
-    }
     this->_CreateEndTree();
 
     // Load all data

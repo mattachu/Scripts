@@ -30,7 +30,9 @@ public:
     TTree *GetTree(std::string treeName) override;
 
     // Input and output methods
-    void Load(std::vector<Int_t> bpmList = {}) override;
+    void Load() override;
+    void Load(Int_t bpmNumber) override;
+    void Load(std::vector<Int_t> bpmList) override;
     void Print() override;
     void PlotFinalEnergy(Int_t nbins, Double_t xmin, Double_t xmax);
 
