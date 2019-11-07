@@ -2,6 +2,7 @@
 // written by Matt Easton (see http://matteaston.net/work), November 2018
 // modified by Matt Easton, October 2019
 
+#include <string>
 #include <vector>
 #include "TImpactData.h"
 #include "Style_mje.C"
@@ -11,38 +12,47 @@ ClassImp(TImpactData);
 
 // Parameters
 // - limit for bunch count, required for load method
-Int_t    const _MAX_BUNCH_COUNT       = 99;
+const Int_t    _MAX_BUNCH_COUNT       = 99;
 // - settings for trees and branches
-char const    *_BUNCHES_TREENAME      = "bunches";
-char const    *_BUNCHES_TREETITLE     = "Bunch data";
-char const    *_BUNCHES_BRANCHNAME    = "bunches";
-char const    *_PHASE_TREENAME        = "phase";
-char const    *_PHASE_TREETITLE       = "Phase space output data";
-char const    *_PHASE_BRANCHNAME      = "phase.out";
+const char    *_BUNCHES_TREENAME      = "bunches";
+const char    *_BUNCHES_TREETITLE     = "Bunch data";
+const char    *_BUNCHES_BRANCHNAME    = "bunches";
+const char    *_PHASE_TREENAME        = "phase";
+const char    *_PHASE_TREETITLE       = "Phase space output data";
+const char    *_PHASE_BRANCHNAME      = "phase.out";
+const char    *_ENDSLICE_TREENAME     = "endslice";
+const char    *_ENDSLICE_TREETITLE    = "End slice data";
+const char    *_ENDSLICE_BRANCHNAME   = "endslice";
 // - settings for bunch count plot
-std::string    _BUNCHES_FILENAME      = "bunch-count.eps";
-std::string    _BUNCHES_FILETYPE      = "eps";
-std::string    _BUNCHES_CANVAS_NAME   = "impact_bunch_count_plot";
-std::string    _BUNCHES_CANVAS_TITLE  = "Impact-T bunch count plot";
-std::string    _BUNCHES_XAXIS_TITLE   = "z-position (m)";
-std::string    _BUNCHES_YAXIS_TITLE   = "Total number of macro-particles";
-Int_t    const _BUNCHES_CANVAS_WIDTH  =    802;
-Int_t    const _BUNCHES_CANVAS_HEIGHT =    525;
-Double_t const _BUNCHES_XMIN_DEFAULT  =    0.0;
-Double_t const _BUNCHES_XMAX_DEFAULT  =    1.8;
-Double_t const _BUNCHES_YMIN_DEFAULT  =  90000;
-Double_t const _BUNCHES_YMAX_DEFAULT  = 102000;
+const char    *_BUNCHES_FILENAME      = "bunch-count.eps";
+const char    *_BUNCHES_FILETYPE      = "eps";
+const char    *_BUNCHES_CANVAS_NAME   = "impact_bunch_count_plot";
+const char    *_BUNCHES_CANVAS_TITLE  = "Impact-T bunch count plot";
+const char    *_BUNCHES_XAXIS_TITLE   = "z-position (m)";
+const char    *_BUNCHES_YAXIS_TITLE   = "Total number of macro-particles";
+const Int_t    _BUNCHES_CANVAS_WIDTH  =    802;
+const Int_t    _BUNCHES_CANVAS_HEIGHT =    525;
 // - settings for phase space plot
-std::string    _PHASE_FILENAME        = "phase";
-std::string    _PHASE_FILEEXTENSION   = ".eps";
-std::string    _PHASE_FILETYPE        = "eps";
-std::string    _PHASE_CANVAS_NAME     = "impact_phase_plot";
-std::string    _PHASE_CANVAS_TITLE    = "Impact-T phase space plot";
-Int_t    const _PHASE_CANVAS_WIDTH    = 802;
-Int_t    const _PHASE_CANVAS_HEIGHT   = 825;
+const char    *_PHASE_FILENAME        = "phase";
+const char    *_PHASE_FILEEXTENSION   = ".eps";
+const char    *_PHASE_FILETYPE        = "eps";
+const char    *_PHASE_CANVAS_NAME     = "impact_phase_plot";
+const char    *_PHASE_CANVAS_TITLE    = "Impact-T phase space plot";
+const Int_t    _PHASE_CANVAS_WIDTH    = 802;
+const Int_t    _PHASE_CANVAS_HEIGHT   = 825;
 // - settings for special phase space numbers
-Int_t    const _PHASE_START           = 40;
-Int_t    const _PHASE_END             = 50;
+const Int_t    _PHASE_START           = 40;
+const Int_t    _PHASE_END             = 50;
+// - settings for final energy plot
+const char    *_ENERGY_FILENAME       = "energy.eps";
+const char    *_ENERGY_FILETYPE       = "eps";
+const char    *_ENERGY_CANVAS_NAME    = "impact_final_energy_plot";
+const char    *_ENERGY_CANVAS_TITLE   = "Impact-T final energy plot";
+const char    *_ENERGY_XAXIS_TITLE    = "Final energy (MeV)";
+const char    *_ENERGY_YAXIS_TITLE    = "Number of macro-particles";
+const Int_t    _ENERGY_CANVAS_WIDTH   = 802;
+const Int_t    _ENERGY_CANVAS_HEIGHT  = 525;
+const Int_t    _ENERGY_BINS_DEFAULT   = 100;
 
 // Default constructor
 TImpactData::TImpactData():
@@ -82,6 +92,7 @@ void TImpactData::_CreateNullTrees()
 {
     this->_bunchTree = nullptr;
     this->_phaseTree = nullptr;
+    this->_endTree = nullptr;
 }
 
 void TImpactData::_CreateDefaultTrees()
@@ -107,10 +118,16 @@ void TImpactData::_CreatePhaseTree()
     this->_phaseTree = new TTree(_PHASE_TREENAME, _PHASE_TREETITLE);
 }
 
+void TImpactData::_CreateEndTree()
+{
+    this->_endTree = new TTree(_ENDSLICE_TREENAME, _ENDSLICE_TREETITLE);
+}
+
 void TImpactData::_DeleteAllTrees()
 {
     this->_DeleteBunchTree();
     this->_DeletePhaseTree();
+    this->_DeleteEndTree();
 }
 
 void TImpactData::_DeleteBunchTree()
@@ -136,35 +153,67 @@ void TImpactData::_DeletePhaseTree()
     this->_phaseTree = nullptr;
 }
 
+void TImpactData::_DeleteEndTree()
+{
+    try {
+        if (this->_endTree) {
+            this->_endTree->Reset();
+            this->_endTree->Delete();
+        }
+    } catch (...)  {}
+    this->_endTree = nullptr;
+}
+
 // Methods to access members
-Int_t TImpactData::BunchCount() const
+const Int_t TImpactData::BunchCount() const
 {
     return this->_bunchCount;
 }
 
-Int_t TImpactData::SliceCount() const
+const Int_t TImpactData::SliceCount() const
 {
     return this->_sliceCount;
 }
 
-Int_t TImpactData::ParticleCount() const
+const Int_t TImpactData::ParticleCount() const
 {
     return this->_particleCount;
 }
 
-std::vector<std::string> TImpactData::GetBunchNames() const
+const std::vector<std::string> TImpactData::GetBunchNames() const
 {
     return this->_bunchNames;
 }
 
-Int_t TImpactData::GetFirstSlice() const
+const Int_t TImpactData::GetFirstSlice() const
 {
     return this->_firstSlice;
 }
 
-Int_t TImpactData::GetLastSlice() const
+const Int_t TImpactData::GetLastSlice() const
 {
     return this->_lastSlice;
+}
+
+const TTree *TImpactData::GetTree(std::string treeName) const
+{
+    if (treeName == _BUNCHES_TREENAME) {
+        return this->_bunchTree;
+    }
+    else {
+        if (treeName == _PHASE_TREENAME) {
+            return this->_phaseTree;
+        }
+        else {
+            if (treeName == _ENDSLICE_TREENAME) {
+                return this->_endTree;
+            }
+            else {
+                throw std::invalid_argument("No tree named " + treeName + ".");
+            }
+        }
+    }
+    return nullptr;
 }
 
 void TImpactData::SetDefaultBunchNames()
@@ -225,22 +274,6 @@ void TImpactData::SetLastSlice(Int_t lastSlice)
     this->_lastSlice = lastSlice;
 }
 
-TTree *TImpactData::GetTree(std::string treeName)
-{
-    if (treeName == _BUNCHES_TREENAME) {
-        return this->_bunchTree;
-    }
-    else {
-        if (treeName == _PHASE_TREENAME) {
-            return this->_phaseTree;
-        }
-        else {
-            throw std::invalid_argument("No tree named " + treeName + ".");
-        }
-    }
-    return nullptr;
-}
-
 // Methods to load data from Impact-T output files
 // - publicly accessible methods
 void TImpactData::Load()
@@ -284,6 +317,10 @@ void TImpactData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {})
         }
     }
     this->_LoadPhaseSpaceData(this->_bunchCount, _PHASE_END);
+    if (this->_FileExists("rfq1.dst")) {
+        this->_CreateEndTree();
+        this->_LoadEndSlice(bunchCount);
+    }
 }
 
 // - particle count data from `fort.11`
@@ -376,7 +413,7 @@ void TImpactData::_LoadPhaseSpaceData(Int_t bunchCount, Int_t locationNumber)
     }
 
     // Loop for each bunch
-    for (Int_t i = 1; i <= bunchCount; i++){
+    for (Int_t i = 1; i <= bunchCount; i++) {
         this->_LoadPhaseSpace(i, locationNumber);
     }
 }
@@ -438,6 +475,89 @@ void TImpactData::_LoadPhaseSpace(Int_t bunch, Int_t locationNumber)
     );
 }
 
+// - end slice data from `rfq1.dst` etc.
+void TImpactData::_LoadEndSlice(Int_t bunchCount)
+{
+    // Check parameters
+    std::string errorString = "";
+    if (bunchCount < 1) {
+        errorString = "Must have at least one bunch.";
+        throw std::invalid_argument(errorString.c_str());
+    }
+    if (bunchCount > _MAX_BUNCH_COUNT) {
+        errorString = "Cannot handle more than " +
+                      std::to_string(_MAX_BUNCH_COUNT) + " bunches.";
+        throw std::invalid_argument(errorString.c_str());
+    }
+
+    // Check for tree
+    if (!this->_endTree) {
+        this->_CreateEndTree();
+    }
+
+    // Load data to a new branch for each bunch
+    std::string filename = "";
+    std::string branchname = "";
+    for (Int_t i = 1; i <= bunchCount; i++){
+        filename = "rfq" + std::to_string(i) + ".dst";
+        branchname = _ENDSLICE_BRANCHNAME;
+        branchname += ".bunch" + std::to_string(i);
+        this->_LoadDSTParticleData(filename, branchname);
+    }
+}
+
+// - load particle data from a `.dst` file into a given branch
+void TImpactData::_LoadDSTParticleData(
+    std::string filename,
+    std::string branchname
+)
+{
+    // Check for file
+    if (!this->_FileExists(filename)) {
+        throw std::runtime_error("Cannot find file: " + filename);
+    }
+
+    // Check for tree
+    if (!this->_endTree) {
+        throw std::runtime_error(
+            "Cannot load DST data as tree structure is not available."
+        );
+    }
+
+    // Announce status
+    printf("Loading end slice data from file `%s`\n", filename.c_str());
+
+    // Create structure to hold data
+    Int_t Npt = _GetDSTParticleCount(filename);
+    Double_t slice[6];
+    std::string leafDefinition = "x/D:xp/D:y/D:yp/D:phi/D:W/D";
+
+    // Create a branch for the given data
+    this->_endTree->Branch(branchname.c_str(), &slice, leafDefinition.c_str());
+
+    // Read in data from the given filename
+    ifstream infile(filename, std::ios::in | std::ios::binary);
+    infile.seekg(23); // skip headers
+    for (Int_t i = 1; i <= Npt; i++) {
+        if (!infile.good()) break;
+        infile.read((char *)(&slice), 48);
+        this->_endTree->GetBranch(branchname.c_str())->Fill();
+    }
+    infile.close();
+}
+
+// - read the number of particles from a given `.dst` file
+Int_t TImpactData::_GetDSTParticleCount(std::string filename)
+{
+    Int_t Npt = 0;
+    ifstream infile(filename, std::ios::in | std::ios::binary);
+    infile.seekg(2);
+    infile.read((char *)&Npt, 4);
+    infile.close();
+    this->_UpdateParticleCount(Npt);
+    return Npt;
+}
+
 // Methods to output data
 // - publicly accessible method
 void TImpactData::Print()
@@ -451,6 +571,10 @@ void TImpactData::Print()
         printf("Phase space data tree:\n");
         this->_phaseTree->Print();
     }
+    if (this->_endTree) {
+        printf("End-slice data tree:\n");
+        this->_endTree->Print();
+    }
 }
 
 // Methods to produce different plot types
@@ -458,12 +582,12 @@ void TImpactData::Print()
 void TImpactData::PlotBunches()
 {
     // Default values
-    Long_t firstSlice = 0;
+    Long_t firstSlice = this->_firstSlice;
     Long_t lastSlice = this->_lastSlice;
-    Double_t xmin = _BUNCHES_XMIN_DEFAULT;
-    Double_t xmax = _BUNCHES_XMAX_DEFAULT;
-    Double_t ymin = _BUNCHES_YMIN_DEFAULT;
-    Double_t ymax = _BUNCHES_YMAX_DEFAULT;
+    Double_t xmin = 0;
+    Double_t xmax = 0;
+    Double_t ymin = 0;
+    Double_t ymax = 0;
     this->PlotBunches(firstSlice, lastSlice, xmin, xmax, ymin, ymax);
 }
 
@@ -501,15 +625,15 @@ void TImpactData::PlotBunches(
 
     // Create canvas
     this->_CreateCanvas(
-        _BUNCHES_CANVAS_NAME.c_str(),
-        _BUNCHES_CANVAS_TITLE.c_str(),
+        _BUNCHES_CANVAS_NAME,
+        _BUNCHES_CANVAS_TITLE,
         _BUNCHES_CANVAS_WIDTH,
         _BUNCHES_CANVAS_HEIGHT
     );
 
     // Draw the cumulative plots layer by layer, starting at the back
     for (Int_t i = bunchCount; i > 0; i--) {
-        this->_PlotBunchLayer(i, firstSlice, lastSlice, (i==bunchCount));
+        this->_PlotBunchLayer(i, firstSlice, lastSlice, (i == bunchCount));
     }
 
     // Apply styles
@@ -517,9 +641,9 @@ void TImpactData::PlotBunches(
 
     // Print to file
     this->_PrintCanvas(
-        _BUNCHES_CANVAS_NAME.c_str(),
-        _BUNCHES_FILENAME.c_str(),
-        _BUNCHES_FILETYPE.c_str()
+        _BUNCHES_CANVAS_NAME,
+        _BUNCHES_FILENAME,
+        _BUNCHES_FILETYPE
     );
 }
 
@@ -542,8 +666,8 @@ void TImpactData::_PlotBunchLayer(
     if (!isBackLayer) plotOptions = "same";
 
     // Draw graph
-    TCanvas *canvas = (TCanvas *)(
-        gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME.c_str())
+    TCanvas *canvas = static_cast<TCanvas *>(
+        gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME)
     );
     if (!canvas) {
         throw std::runtime_error(
@@ -595,19 +719,19 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
     }
 
     // Create canvas and divide into five parts (one title and four subplots)
-    std::string canvasName =_PHASE_CANVAS_NAME;
+    std::string canvasName = _PHASE_CANVAS_NAME;
     this->_CreateCanvas(
         canvasName.c_str(),
-        _PHASE_CANVAS_TITLE.c_str(),
+        _PHASE_CANVAS_TITLE,
         _PHASE_CANVAS_WIDTH,
         _PHASE_CANVAS_HEIGHT
     );
-    TCanvas *canvas = (TCanvas *)(
+    TCanvas *canvas = static_cast<TCanvas *>(
         gROOT->GetListOfCanvases()->FindObject(canvasName.c_str())
     );
-    canvas->Divide(1,2,0,0);
-    TPad *pad = (TPad *)canvas->GetPad(2);
-    pad->Divide(2,2);
+    canvas->Divide(1, 2, 0, 0);
+    TPad *pad = static_cast<TPad *>(canvas->GetPad(2));
+    pad->Divide(2, 2);
 
     // Plot four phase spaces
     pad->cd(1);
@@ -627,7 +751,9 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
     this->_StylePhaseSpace(locationNumber, bunch);
 
     // Print to file
-    std::string filename = _PHASE_FILENAME + "-";
+    std::string filename = "";
+    filename += _PHASE_FILENAME;
+    filename += "-";
     switch (locationNumber) {
         case _PHASE_START:
             filename += "start";
@@ -643,11 +769,63 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
         filename += "-bunch" + to_string(bunch);
     }
     filename +=  _PHASE_FILEEXTENSION;
-    this->_PrintCanvas(
-        _PHASE_CANVAS_NAME.c_str(),
-        filename.c_str(),
-        _PHASE_FILETYPE.c_str()
+    this->_PrintCanvas(_PHASE_CANVAS_NAME, filename.c_str(), _PHASE_FILETYPE);
+}
+
+// - final energy histograms from `rfq1.dst`
+void TImpactData::PlotFinalEnergy(
+    Int_t nbins = _ENERGY_BINS_DEFAULT,
+    Double_t xmin = 0.0,
+    Double_t xmax = 0.0
+)
+{
+    // Check for tree
+    if (!this->_endTree) {
+        throw std::runtime_error(
+            "Cannot load end slice data as tree structure is not available."
+        );
+    }
+
+    // Create canvas
+    this->_CreateCanvas(
+        _ENERGY_CANVAS_NAME,
+        _ENERGY_CANVAS_TITLE,
+        _ENERGY_CANVAS_WIDTH,
+        _ENERGY_CANVAS_HEIGHT
     );
+    TCanvas *canvas = static_cast<TCanvas *>(
+        gROOT->GetListOfCanvases()->FindObject(_ENERGY_CANVAS_NAME)
+    );
+
+    // Plot each histogram as a separate layer
+    for (Int_t i = 1; i <= this->_bunchCount; ++i) {
+        std::string histName = _ENERGY_CANVAS_NAME;
+        histName += "_hist" + std::to_string(i);
+        std::string branchName = _ENDSLICE_BRANCHNAME;
+        branchName += ".bunch" + std::to_string(i);
+        std::string plotString = branchName + ".W";
+        plotString += ">>" + histName + "("
+            + std::to_string(nbins) + ","
+            + std::to_string(xmin) + ","
+            + std::to_string(xmax) + ")";
+        std::string plotOptions = "hist";
+        if (i > 1) {
+            plotOptions += " same";
+        }
+        TBranch *thisBranch = this->_endTree->GetBranch(branchName.c_str());
+        Long_t n = thisBranch->GetEntries();
+        canvas = static_cast<TCanvas *>(
+            gROOT->GetListOfCanvases()->FindObject(_ENERGY_CANVAS_NAME)
+        );
+        canvas->cd();
+        this->_endTree->Draw(plotString.c_str(), "", plotOptions.c_str(), n);
+    }
+
+    // Apply styles
+    this->_StyleFinalEnergy(this->_bunchCount, this->_bunchNames);
+
+    // Print to file
+    this->_PrintCanvas(_ENERGY_CANVAS_NAME, _ENERGY_FILENAME, _ENERGY_FILETYPE);
 }
 
 // Methods to apply styles for different plot types
@@ -666,8 +844,8 @@ void TImpactData::_StyleBunches(
     gROOT->SetStyle("mje");
 
     // Get objects
-    TCanvas *canvas = (TCanvas *)(
-        gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME.c_str())
+    TCanvas *canvas = static_cast<TCanvas *>(
+        gROOT->GetListOfCanvases()->FindObject(_BUNCHES_CANVAS_NAME)
     );
     if (!canvas) {
         throw std::runtime_error(
@@ -681,8 +859,10 @@ void TImpactData::_StyleBunches(
             "Cannot find plot frame object."
         );
     }
-    TPaveText *titleText = (TPaveText *)(canvas->GetPrimitive("title"));
-    TH1 *hist = (TH1 *)(canvas->GetPrimitive("htemp"));
+    TPaveText *titleText = static_cast<TPaveText *>(
+        canvas->GetPrimitive("title")
+    );
+    TH1 *hist = static_cast<TH1 *>(canvas->GetPrimitive("htemp"));
     if (!hist) {
         throw std::runtime_error(
             "Cannot find histogram object."
@@ -696,8 +876,8 @@ void TImpactData::_StyleBunches(
     if (titleText) {
         titleText->Clear();
     }
-    canvas->SetGridx(false);
-    canvas->SetGridy(true);
+    canvas->SetGridx(kFALSE);
+    canvas->SetGridy(kTRUE);
 
     // Set axes options
     // - font code 132 is Times New Roman, medium, regular, scalable
@@ -706,27 +886,31 @@ void TImpactData::_StyleBunches(
     hist->GetXaxis()->SetTickSize(0.01);
     hist->GetXaxis()->SetTitleOffset(-1.0);
     hist->GetXaxis()->SetLabelOffset(-0.04);
-    hist->GetXaxis()->SetTitle(_BUNCHES_XAXIS_TITLE.c_str());
+    hist->GetXaxis()->SetTitle(_BUNCHES_XAXIS_TITLE);
     hist->GetXaxis()->SetTitleFont(132);
     hist->GetXaxis()->SetTitleSize(0.05);
     hist->GetXaxis()->CenterTitle(kTRUE);
     hist->GetXaxis()->SetLabelFont(132);
     hist->GetXaxis()->SetLabelSize(0.035);
-    hist->GetXaxis()->SetLimits(xmin, xmax);
-    hist->GetXaxis()->SetRangeUser(xmin, xmin);
+    if (xmin != xmax) {
+        hist->GetXaxis()->SetLimits(xmin, xmax);
+        hist->GetXaxis()->SetRangeUser(xmin, xmin);
+    }
     // y-axis
     hist->GetYaxis()->SetTicks("+");
     hist->GetYaxis()->SetTickSize(0.01);
     hist->GetYaxis()->SetTitleOffset(-0.8);
     hist->GetYaxis()->SetLabelOffset(-0.01);
-    hist->GetYaxis()->SetTitle(_BUNCHES_YAXIS_TITLE.c_str());
+    hist->GetYaxis()->SetTitle(_BUNCHES_YAXIS_TITLE);
     hist->GetYaxis()->SetTitleFont(132);
     hist->GetYaxis()->SetTitleSize(0.05);
     hist->GetYaxis()->CenterTitle(kTRUE);
     hist->GetYaxis()->SetLabelFont(132);
     hist->GetYaxis()->SetLabelSize(0.035);
-    hist->GetYaxis()->SetLimits(ymin, ymax);
-    hist->GetYaxis()->SetRangeUser(ymin, ymax);
+    if (xmin != xmax) {
+        hist->GetYaxis()->SetLimits(ymin, ymax);
+        hist->GetYaxis()->SetRangeUser(ymin, ymax);
+    }
 
     // Add legend
     TLegend *legend = new TLegend(0.540, 0.122, 0.841, 0.292);
@@ -739,7 +923,7 @@ void TImpactData::_StyleBunches(
     // Set graph draw options
     for (Int_t i = 1; i <= bunchCount; i++) {
         graphName = "graph" + std::to_string(i);
-        graph = (TGraph *)(canvas->GetPrimitive(graphName.c_str()));
+        graph = static_cast<TGraph *>(canvas->GetPrimitive(graphName.c_str()));
         graph->SetDrawOption("B");
         switch (i % 4) {
         case 1:
@@ -778,8 +962,8 @@ void TImpactData::_StylePhaseSpace(Int_t locationNumber, Int_t bunch)
     gROOT->SetStyle("mje");
 
     // Get canvas
-    TCanvas *canvas = (TCanvas *)(
-        gROOT->GetListOfCanvases()->FindObject(_PHASE_CANVAS_NAME.c_str())
+    TCanvas *canvas = static_cast<TCanvas *>(
+        gROOT->GetListOfCanvases()->FindObject(_PHASE_CANVAS_NAME)
     );
     if (!canvas) {
         throw std::runtime_error(
@@ -825,21 +1009,21 @@ void TImpactData::_StylePhaseSpace(Int_t locationNumber, Int_t bunch)
         canvas->GetPad(2)->cd(i);
         // Set background lines
         gPad->GetFrame()->SetLineWidth(1);
-        gPad->SetGridx(false);
-        gPad->SetGridy(false);
+        gPad->SetGridx(kFALSE);
+        gPad->SetGridy(kFALSE);
         // Set margins
         gPad->SetLeftMargin(0.15);
         gPad->SetRightMargin(0.05);
         gPad->SetTopMargin(0.05);
         gPad->SetBottomMargin(0.10);
         // Get histogram and graph objects
-        TH1 *hist = (TH1 *)(gPad->GetPrimitive("htemp"));
+        TH1 *hist = static_cast<TH1 *>(gPad->GetPrimitive("htemp"));
         if (!hist) {
             throw std::runtime_error(
                 "Cannot find histogram object."
             );
         }
-        TGraph *graph = (TGraph *)(gPad->GetPrimitive("Graph"));
+        TGraph *graph = static_cast<TGraph *>(gPad->GetPrimitive("Graph"));
         if (!graph) {
             throw std::runtime_error(
                 "Cannot find graph object."
@@ -896,11 +1080,126 @@ void TImpactData::_StylePhaseSpace(Int_t locationNumber, Int_t bunch)
     canvas->Paint();
 }
 
+// - final energy histograms from `rfq1.dst`
+void TImpactData::_StyleFinalEnergy(
+    Int_t bunchCount,
+    std::vector<std::string> bunchNames
+)
+{
+    // Apply my style settings
+    load_style_mje();
+    gROOT->SetStyle("mje");
+
+    // Get objects
+    TCanvas *canvas = (TCanvas *)(
+        gROOT->GetListOfCanvases()->FindObject(_ENERGY_CANVAS_NAME)
+    );
+    if (!canvas) {
+        throw std::runtime_error(
+            "Cannot find canvas object."
+        );
+    }
+    canvas->cd();
+    TFrame *frame = canvas->GetFrame();
+    if (!frame) {
+        throw std::runtime_error(
+            "Cannot find plot frame object."
+        );
+    }
+    TPaveText *titleText = (TPaveText *)(canvas->GetPrimitive("title"));
+    std::string histName = _ENERGY_CANVAS_NAME;
+    histName += "_hist1";
+    TH1 *hist = (TH1 *)(canvas->GetPrimitive(histName.c_str()));
+    if (!hist) {
+        throw std::runtime_error(
+            "Cannot find histogram object."
+        );
+    }
+
+    // Set up background
+    frame->SetLineWidth(0);
+    if (titleText) {
+        titleText->Clear();
+    }
+    canvas->SetGridx(false);
+    canvas->SetGridy(true);
+
+    // Set axes options
+    // - font code 132 is Times New Roman, medium, regular, scalable
+    // x-axis
+    hist->GetXaxis()->SetTicks("-");
+    hist->GetXaxis()->SetTickSize(0.01);
+    hist->GetXaxis()->SetTitleOffset(-1.0);
+    hist->GetXaxis()->SetLabelOffset(-0.04);
+    hist->GetXaxis()->SetTitle(_ENERGY_XAXIS_TITLE);
+    hist->GetXaxis()->SetTitleFont(132);
+    hist->GetXaxis()->SetTitleSize(0.05);
+    hist->GetXaxis()->CenterTitle(kTRUE);
+    hist->GetXaxis()->SetLabelFont(132);
+    hist->GetXaxis()->SetLabelSize(0.035);
+    // y-axis
+    hist->GetYaxis()->SetTicks("+");
+    hist->GetYaxis()->SetTickSize(0.01);
+    hist->GetYaxis()->SetTitleOffset(-1.02);
+    hist->GetYaxis()->SetLabelOffset(-0.01);
+    hist->GetYaxis()->SetTitle(_ENERGY_YAXIS_TITLE);
+    hist->GetYaxis()->SetTitleFont(132);
+    hist->GetYaxis()->SetTitleSize(0.05);
+    hist->GetYaxis()->CenterTitle(kTRUE);
+    hist->GetYaxis()->SetLabelFont(132);
+    hist->GetYaxis()->SetLabelSize(0.035);
+
+    // Add legend
+    TLegend *legend = new TLegend(0.11, 0.9, 0.51, 0.7);
+    legend->SetTextFont(132);
+    legend->SetTextSize(0.03);
+    legend->SetLineColor(17);
+    legend->SetLineStyle(1);
+    legend->SetLineWidth(1);
+
+    // Set histogram draw options
+    for (Int_t i = 1; i <= bunchCount; i++) {
+        histName = _ENERGY_CANVAS_NAME;
+        histName += "_hist" + std::to_string(i);
+        hist = (TH1 *)(canvas->GetPrimitive(histName.c_str()));
+        switch (i % 4) {
+        case 1:
+            hist->SetFillColor(38);   // Blue
+            hist->SetLineColor(kBlue + 3);
+            break;
+        case 2:
+            hist->SetFillColor(623);  // Salmon red
+            hist->SetLineColor(kRed + 3);
+            break;
+        case 3:
+            hist->SetFillColor(30);   // Green
+            hist->SetLineColor(kGreen + 3);
+            break;
+        case 0:
+            hist->SetFillColor(42);   // Mustard
+            hist->SetLineColor(kYellow + 3);
+            break;
+        }
+        hist->SetLineWidth(1);
+        hist->SetLineStyle(1);
+        legend->AddEntry(hist, bunchNames.at(i-1).c_str(), "f");
+    }
+
+    // Axes on top
+    hist->GetXaxis()->Pop();
+    hist->GetYaxis()->Pop();
+
+    // Update canvas
+    legend->Draw();
+    canvas->Update();
+    canvas->Paint();
+}
+
 // Utility methods
 // - rename the current graph
 void TImpactData::_RenameCurrentGraph(const char *name)
 {
-    TGraph *thisGraph = (TGraph *)(gPad->GetPrimitive("Graph"));
+    TGraph *thisGraph = static_cast<TGraph *>(gPad->GetPrimitive("Graph"));
     if (thisGraph) {
         thisGraph->SetName(name);
     }
@@ -914,7 +1213,9 @@ void TImpactData::_CreateCanvas(
     const Int_t height
 )
 {
-    TCanvas *canvas = (TCanvas *)(gROOT->GetListOfCanvases()->FindObject(name));
+    TCanvas *canvas = static_cast<TCanvas *>(
+        gROOT->GetListOfCanvases()->FindObject(name)
+    );
     if (!canvas) {
         canvas = gROOT->MakeDefCanvas();
     }
@@ -932,7 +1233,9 @@ void TImpactData::_PrintCanvas(
     const char *filetype
 )
 {
-    TCanvas *canvas = (TCanvas *)(gROOT->GetListOfCanvases()->FindObject(name));
+    TCanvas *canvas = static_cast<TCanvas *>(
+        gROOT->GetListOfCanvases()->FindObject(name)
+    );
     if (!canvas) {
         std::string errorString = "Could not find canvas ";
         errorString += name;
@@ -995,6 +1298,13 @@ void TImpactData::_UpdateParticleCount(Long_t newCount)
     if (this->_phaseTree) {
         if (newCount > this->_phaseTree->GetEntries()) {
             this->_phaseTree->SetEntries(newCount);
+        }
+    }
+    // End slice tree
+    if (this->_endTree) {
+        Long_t currentCount = this->_endTree->GetEntries();
+        if (newCount > currentCount) {
+            this->_endTree->SetEntries(newCount);
         }
     }
 }
