@@ -5,6 +5,7 @@
 #ifndef TIMPACTDATA_H_
 #define TIMPACTDATA_H_
 
+#include <string>
 #include <vector>
 #include "TTree.h"
 #include "TCanvas.h"
@@ -22,23 +23,23 @@ public:
     virtual ~TImpactData();
 
     // Methods to access members
-    Int_t BunchCount() const;
-    Int_t SliceCount() const;
-    Int_t ParticleCount() const;
-    std::vector<std::string> GetBunchNames() const;
-    Int_t GetFirstSlice() const;
-    Int_t GetLastSlice() const;
+    const Int_t BunchCount() const;
+    const Int_t SliceCount() const;
+    const Int_t ParticleCount() const;
+    const std::vector<std::string> GetBunchNames() const;
+    const Int_t GetFirstSlice() const;
+    const Int_t GetLastSlice() const;
+    const TTree *GetTree(std::string treeName) const;
     void SetDefaultBunchNames();
     void SetBunchNames(std::vector<std::string> bunchNames);
     void SetFirstSlice(Int_t firstSlice);
     void SetLastSlice(Int_t lastSlice);
-    virtual TTree *GetTree(std::string treeName);
 
     // Input and output methods
-    virtual void Load();
-    virtual void Load(Int_t bpmNumber);
-    virtual void Load(std::vector<Int_t> bpmList);
-    virtual void Print();
+    void Load();
+    void Load(Int_t bpmNumber);
+    void Load(std::vector<Int_t> bpmList);
+    void Print();
     void PlotBunches();
     void PlotBunches(
         Long_t firstSlice,
@@ -49,11 +50,13 @@ public:
         Double_t ymax
     );
     void PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1);
+    void PlotFinalEnergy(Int_t nbins, Double_t xmin, Double_t xmax);
 
 protected:
     // Class members
     TTree                   *_bunchTree;     // Tree containing bunch count data
     TTree                   *_phaseTree;     // Tree containing phase space data
+    TTree                   *_endTree;       // Tree containing end slice data
     const Int_t              _bunchCount;    // Number of bunches in the simulation
     std::vector<std::string> _bunchNames;    // List of names for the bunches
     Int_t                    _sliceCount;    // Number of time slices
@@ -62,19 +65,27 @@ protected:
     Int_t                    _particleCount; // Number of partilces
 
     // Methods to create and delete data structures
-    virtual void _CreateNullTrees();
-    virtual void _CreateDefaultTrees();
+    void _CreateNullTrees();
+    void _CreateDefaultTrees();
     void _CreateBunchTree();
     void _CreatePhaseTree();
-    virtual void _DeleteAllTrees();
+    void _CreateEndTree();
+    void _DeleteAllTrees();
     void _DeleteBunchTree();
     void _DeletePhaseTree();
+    void _DeleteEndTree();
 
     // Methods to load data from different Impact-T output files
-    virtual void _LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {});
+    void _LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {});
     void _LoadBunches(Int_t bunchCount);
     void _LoadPhaseSpaceData(Int_t bunchCount, Int_t locationNumber);
     void _LoadPhaseSpace(Int_t bunch, Int_t locationNumber);
+    void _LoadEndSlice(Int_t bunchCount);
+    void _LoadDSTParticleData(
+        std::string filename,
+        std::string branchname
+    );
+    Int_t _GetDSTParticleCount(std::string filename);
 
     // Methods to produce different plot types
     void _PlotBunchLayer(
@@ -94,6 +105,10 @@ protected:
         Double_t ymax
     );
     void _StylePhaseSpace(Int_t locationNumber, Int_t bunch);
+    void _StyleFinalEnergy(
+        Int_t bunchCount,
+        std::vector<std::string> bunchNames
+    );
 
     // Utility methods
     void _RenameCurrentGraph(const char *name);
@@ -115,7 +130,7 @@ protected:
         Int_t variableCount
     );
     void _UpdateSliceCount(Long_t newCount);
-    virtual void _UpdateParticleCount(Long_t newCount);
+    void _UpdateParticleCount(Long_t newCount);
     bool _FileExists(std::string filename);
 };
 
