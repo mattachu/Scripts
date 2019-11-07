@@ -32,10 +32,6 @@ const char    *_BUNCHES_XAXIS_TITLE   = "z-position (m)";
 const char    *_BUNCHES_YAXIS_TITLE   = "Total number of macro-particles";
 const Int_t    _BUNCHES_CANVAS_WIDTH  =    802;
 const Int_t    _BUNCHES_CANVAS_HEIGHT =    525;
-const Double_t _BUNCHES_XMIN_DEFAULT  =    0.0;
-const Double_t _BUNCHES_XMAX_DEFAULT  =    1.8;
-const Double_t _BUNCHES_YMIN_DEFAULT  =  90000;
-const Double_t _BUNCHES_YMAX_DEFAULT  = 102000;
 // - settings for phase space plot
 const char    *_PHASE_FILENAME        = "phase";
 const char    *_PHASE_FILEEXTENSION   = ".eps";
@@ -57,8 +53,6 @@ const char    *_ENERGY_YAXIS_TITLE    = "Number of macro-particles";
 const Int_t    _ENERGY_CANVAS_WIDTH   = 802;
 const Int_t    _ENERGY_CANVAS_HEIGHT  = 525;
 const Int_t    _ENERGY_BINS_DEFAULT   = 100;
-const Double_t _ENERGY_XMIN_DEFAULT   = 0.0;
-const Double_t _ENERGY_XMAX_DEFAULT   = 1.1;
 
 // Default constructor
 TImpactData::TImpactData():
@@ -588,12 +582,12 @@ void TImpactData::Print()
 void TImpactData::PlotBunches()
 {
     // Default values
-    Long_t firstSlice = 0;
+    Long_t firstSlice = this->_firstSlice;
     Long_t lastSlice = this->_lastSlice;
-    Double_t xmin = _BUNCHES_XMIN_DEFAULT;
-    Double_t xmax = _BUNCHES_XMAX_DEFAULT;
-    Double_t ymin = _BUNCHES_YMIN_DEFAULT;
-    Double_t ymax = _BUNCHES_YMAX_DEFAULT;
+    Double_t xmin = 0;
+    Double_t xmax = 0;
+    Double_t ymin = 0;
+    Double_t ymax = 0;
     this->PlotBunches(firstSlice, lastSlice, xmin, xmax, ymin, ymax);
 }
 
@@ -781,8 +775,8 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
 // - final energy histograms from `rfq1.dst`
 void TImpactData::PlotFinalEnergy(
     Int_t nbins = _ENERGY_BINS_DEFAULT,
-    Double_t xmin = _ENERGY_XMIN_DEFAULT,
-    Double_t xmax = _ENERGY_XMAX_DEFAULT
+    Double_t xmin = 0.0,
+    Double_t xmax = 0.0
 )
 {
     // Check for tree
@@ -898,8 +892,10 @@ void TImpactData::_StyleBunches(
     hist->GetXaxis()->CenterTitle(kTRUE);
     hist->GetXaxis()->SetLabelFont(132);
     hist->GetXaxis()->SetLabelSize(0.035);
-    hist->GetXaxis()->SetLimits(xmin, xmax);
-    hist->GetXaxis()->SetRangeUser(xmin, xmin);
+    if (xmin != xmax) {
+        hist->GetXaxis()->SetLimits(xmin, xmax);
+        hist->GetXaxis()->SetRangeUser(xmin, xmin);
+    }
     // y-axis
     hist->GetYaxis()->SetTicks("+");
     hist->GetYaxis()->SetTickSize(0.01);
@@ -911,8 +907,10 @@ void TImpactData::_StyleBunches(
     hist->GetYaxis()->CenterTitle(kTRUE);
     hist->GetYaxis()->SetLabelFont(132);
     hist->GetYaxis()->SetLabelSize(0.035);
-    hist->GetYaxis()->SetLimits(ymin, ymax);
-    hist->GetYaxis()->SetRangeUser(ymin, ymax);
+    if (xmin != xmax) {
+        hist->GetYaxis()->SetLimits(ymin, ymax);
+        hist->GetYaxis()->SetRangeUser(ymin, ymax);
+    }
 
     // Add legend
     TLegend *legend = new TLegend(0.540, 0.122, 0.841, 0.292);
