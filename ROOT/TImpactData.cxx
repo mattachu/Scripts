@@ -379,6 +379,7 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
     while (1) {
         if (!infile.good()) break;
         infile >> step.i >> step.t >> step.z >> step.bunches;
+        if (!infile.good()) break;
         for (Int_t i = 0; i < bunchCount; i++) {
             infile >> step.count[i];
         }
@@ -465,6 +466,7 @@ void TImpactData::_LoadPhaseSpace(Int_t bunch, Int_t locationNumber)
         infile >> particle.x >> particle.px
                >> particle.y >> particle.py
                >> particle.z >> particle.pz;
+        if (!infile.good()) break;
         this->_phaseTree->GetBranch(branchName.c_str())->Fill();
     }
     infile.close();
