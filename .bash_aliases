@@ -32,6 +32,9 @@ case ${computer_name} in
         ;;
 esac
 
+# Shortcuts for Impact-T
+alias ImpactGUI="~/Code/Impact/GUI/ImpactGUI.py"
+
 # Shortcuts for Reproducible
 alias reproduce="~/Code/Reproducible/reproduce"
 
