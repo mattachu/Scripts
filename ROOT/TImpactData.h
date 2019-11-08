@@ -29,7 +29,7 @@ public:
     const std::vector<std::string> GetBunchNames() const;
     const Int_t GetFirstSlice() const;
     const Int_t GetLastSlice() const;
-    const TTree *GetTree(std::string treeName) const;
+    TTree *GetTree(std::string treeName) const;
     void SetDefaultBunchNames();
     void SetBunchNames(std::vector<std::string> bunchNames);
     void SetFirstSlice(Int_t firstSlice);

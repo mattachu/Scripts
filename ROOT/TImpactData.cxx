@@ -195,7 +195,7 @@ const Int_t TImpactData::GetLastSlice() const
     return this->_lastSlice;
 }
 
-const TTree *TImpactData::GetTree(std::string treeName) const
+TTree *TImpactData::GetTree(std::string treeName) const
 {
     if (treeName == _BUNCHES_TREENAME) {
         return this->_bunchTree;
