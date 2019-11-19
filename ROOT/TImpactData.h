@@ -2,11 +2,12 @@
 // written by Matt Easton (see http://matteaston.net/work), November 2018
 // modified by Matt Easton, October 2019
 
-#ifndef TIMPACTDATA_H_
-#define TIMPACTDATA_H_
+#ifndef ROOT_TIMPACTDATA_H_
+#define ROOT_TIMPACTDATA_H_
 
 #include <string>
 #include <vector>
+#include "TClass.h"
 #include "TTree.h"
 #include "TCanvas.h"
 
@@ -134,4 +135,4 @@ protected:
     bool _FileExists(std::string filename);
 };
 
-#endif // TIMPACTDATA_H_
+#endif // ROOT_TIMPACTDATA_H_

@@ -2,9 +2,10 @@
 // written by Matt Easton (see http://matteaston.net/work), November 2018
 // modified by Matt Easton, October 2019
 
+#include "TImpactData.h"
+#include <iostream>
 #include <string>
 #include <vector>
-#include "TImpactData.h"
 #include "Style_mje.C"
 
 // Implements class `TImpactData`
@@ -375,7 +376,7 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
     );
 
     // Read in data from `fort.11`
-    ifstream infile(filename.c_str());
+    std::ifstream infile(filename.c_str());
     while (1) {
         if (!infile.good()) break;
         infile >> step.i >> step.t >> step.z >> step.bunches;
@@ -429,7 +430,7 @@ void TImpactData::_LoadPhaseSpace(Int_t bunch, Int_t locationNumber)
 
     // Check for file
     Int_t fileNumber = locationNumber + bunch - 1;
-    std::string filename = "fort." + to_string(fileNumber);
+    std::string filename = "fort." + std::to_string(fileNumber);
     if (!this->_FileExists(filename)) {
         throw std::runtime_error("Cannot find file " + filename);
     }
@@ -451,8 +452,8 @@ void TImpactData::_LoadPhaseSpace(Int_t bunch, Int_t locationNumber)
 
     // Create a branch for the current phase space data
     std::string branchName =
-        _PHASE_BRANCHNAME + to_string(locationNumber) +
-        ".bunch" + to_string(bunch);
+        _PHASE_BRANCHNAME + std::to_string(locationNumber) +
+        ".bunch" + std::to_string(bunch);
     this->_phaseTree->Branch(
         branchName.c_str(),
         &particle,
@@ -460,7 +461,7 @@ void TImpactData::_LoadPhaseSpace(Int_t bunch, Int_t locationNumber)
     );
 
     // Read in data from file
-    ifstream infile(filename.c_str());
+    std::ifstream infile(filename.c_str());
     while (1) {
         if (!infile.good()) break;
         infile >> particle.x >> particle.px
@@ -538,7 +539,7 @@ void TImpactData::_LoadDSTParticleData(
     this->_endTree->Branch(branchname.c_str(), &slice, leafDefinition.c_str());
 
     // Read in data from the given filename
-    ifstream infile(filename, std::ios::in | std::ios::binary);
+    std::ifstream infile(filename, std::ios::in | std::ios::binary);
     infile.seekg(23); // skip headers
     for (Int_t i = 1; i <= Npt; i++) {
         if (!infile.good()) break;
@@ -552,7 +553,7 @@ void TImpactData::_LoadDSTParticleData(
 Int_t TImpactData::_GetDSTParticleCount(std::string filename)
 {
     Int_t Npt = 0;
-    ifstream infile(filename, std::ios::in | std::ios::binary);
+    std::ifstream infile(filename, std::ios::in | std::ios::binary);
     infile.seekg(2);
     infile.read((char *)&Npt, 4);
     infile.close();
@@ -699,7 +700,7 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
 {
     // Check bunch number
     if (bunch > this->_bunchCount) {
-        throw std::invalid_argument("No data for bunch " + to_string(bunch));
+        throw std::invalid_argument("No data for bunch " + std::to_string(bunch));
     }
 
     // Check for tree
@@ -711,12 +712,12 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
 
     // Check for branch
     std::string branchName =
-        _PHASE_BRANCHNAME + to_string(locationNumber) +
-        ".bunch" + to_string(bunch);
+        _PHASE_BRANCHNAME + std::to_string(locationNumber) +
+        ".bunch" + std::to_string(bunch);
     if (!this->_phaseTree->GetBranch(branchName.c_str())) {
         throw std::invalid_argument(
-            "No phase space data for location " + to_string(locationNumber) +
-            " bunch " + to_string(bunch)
+            "No phase space data for location " + std::to_string(locationNumber) +
+            " bunch " + std::to_string(bunch)
         );
     }
 
@@ -764,11 +765,11 @@ void TImpactData::PlotPhaseSpace(Int_t locationNumber, Int_t bunch = 1)
             filename += "end";
             break;
         default:
-            filename += to_string(locationNumber);
+            filename += std::to_string(locationNumber);
             break;
     }
     if (this->_bunchCount > 1) {
-        filename += "-bunch" + to_string(bunch);
+        filename += "-bunch" + std::to_string(bunch);
     }
     filename +=  _PHASE_FILEEXTENSION;
     this->_PrintCanvas(_PHASE_CANVAS_NAME, filename.c_str(), _PHASE_FILETYPE);
@@ -984,11 +985,11 @@ void TImpactData::_StylePhaseSpace(Int_t locationNumber, Int_t bunch)
             titleString += "simulation end";
             break;
         default:
-            titleString += "BPM " + to_string(locationNumber);
+            titleString += "BPM " + std::to_string(locationNumber);
             break;
     }
     if (this->_bunchCount > 1) {
-        titleString += " for bunch" + to_string(bunch);
+        titleString += " for bunch" + std::to_string(bunch);
     }
     TPaveLabel *title = new TPaveLabel(
         0.05, 0.05, 0.95, 0.95,
