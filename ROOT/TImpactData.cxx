@@ -8,9 +8,6 @@
 #include <vector>
 #include "Style_mje.C"
 
-// Implements class `TImpactData`
-ClassImp(TImpactData);
-
 // Parameters
 // - limit for bunch count, required for load method
 const Int_t    _MAX_BUNCH_COUNT       = 99;
@@ -303,7 +300,7 @@ void TImpactData::Load(std::vector<Int_t> bpmList)
 }
 
 // - wrapper method to load all data types
-void TImpactData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList = {})
+void TImpactData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList)
 {
     this->_LoadBunches(bunchCount);
     this->_LoadPhaseSpaceData(this->_bunchCount, _PHASE_START);

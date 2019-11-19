@@ -14,9 +14,6 @@
 class TImpactData
 {
 public:
-    // Class definition
-    ClassDef(TImpactData, 1); // Data structure for Impact-T simulations
-
     // Constructors and destructors
     TImpactData();
     TImpactData(Int_t bunchCount);
