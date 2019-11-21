@@ -291,12 +291,8 @@ void TImpactData::Load(std::vector<Int_t> bpmList)
     // Set up data structures into which to load data
     this->_DeleteAllTrees();
     this->_CreateDefaultTrees();
-
     // Load all data
     this->_LoadAll(this->_bunchCount, bpmList);
-
-    // Output data summary
-    this->Print();
 }
 
 // - wrapper method to load all data types
@@ -986,7 +982,7 @@ void TImpactData::_StylePhaseSpace(Int_t locationNumber, Int_t bunch)
             break;
     }
     if (this->_bunchCount > 1) {
-        titleString += " for bunch" + std::to_string(bunch);
+        titleString += " for bunch " + std::to_string(bunch);
     }
     TPaveLabel *title = new TPaveLabel(
         0.05, 0.05, 0.95, 0.95,
