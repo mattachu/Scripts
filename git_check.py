@@ -4,6 +4,8 @@ import git
 import pathlib
 import socket
 from tabulate import tabulate
+from termcolor import colored
+import colorama
 
 
 # Setup information
@@ -34,6 +36,61 @@ def get_repo_list():
            docs_folder.joinpath('Editing'),
            docs_folder.joinpath('Manuscripts'),
            docs_folder.joinpath('Notebooks')]
+
+
+# Summary status information
+def show_all():
+    repo_list = get_repo_list()
+    path_count = len(repo_list)
+    clean_count = 0
+    dirty_count = 0
+    missing_count = 0
+    error_count = 0
+    colorama.init()
+    for repo_path in repo_list:
+        try:
+            if not repo_path.exists():
+                print(colored(f'{repo_path} does not exist.', 'red'))
+                missing_count += 1
+                continue
+            elif not repo_path.is_dir():
+                print(colored(f'{repo_path} is not a folder.', 'red'))
+                missing_count += 1
+                continue
+            else:
+                repo = git.Repo(repo_path)
+                if repo.is_dirty():
+                    print(colored(f'{repo_path} is dirty.',
+                                  'blue', attrs=['bold']))
+                    dirty_count += 1
+                else:
+                    print(colored(f'{repo_path} is clean.', 'green'))
+                    clean_count += 1
+        except git.exc.InvalidGitRepositoryError:
+            print(colored(f'{repo_path} is not a Git repo', 'red'))
+            missing_count += 1
+            continue
+        except:
+            print(colored(f'{repo_path} gave an error.', 'red'))
+            error_count += 1
+            continue
+    message = f'Checked {path_count} {"path" if path_count == 1 else "paths"}. '
+    if clean_count > 0 or dirty_count > 0:
+        message += (f'{clean_count if clean_count > 0 else "No"} '
+                    f'{"repo" if clean_count == 1 else "repos"} are clean and '
+                    f'{dirty_count if dirty_count > 0 else "no"} '
+                    f'{"repo" if dirty_count == 1 else "repos"} are dirty. ')
+    if missing_count > 0 or error_count > 0:
+        message += (f'Encountered ')
+        if missing_count > 0:
+            message += (f'{missing_count} missing '
+                        f'{"path" if missing_count == 1 else "paths"}')
+        if missing_count > 0 and error_count > 0:
+            message += ' and '
+        if error_count > 0:
+            message += (f'{error_count} errors')
+        message += '. '
+    print(message)
 
 
 # List and show details for a given repo

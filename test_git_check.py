@@ -1,4 +1,4 @@
-# Tests git-check.py
+﻿# Tests git-check.py
 
 import git_check
 import pytest
@@ -118,6 +118,14 @@ class TestGitCheck:
             git_check.show_status(git.Repo(pathlib.Path('/not/a/path')))
         with pytest.raises(git.exc.InvalidGitRepositoryError):
             git_check.show_status(git.Repo(pathlib.Path('/')))
+
+    # Test show_all
+    def test_show_all_output(self, capsys):
+        git_check.show_all()
+        captured = capsys.readouterr()
+        assert len(captured.out) > 0
+        assert 'clean' in captured.out
+        assert 'dirty' in captured.out
 
     # -------------------------------------------------------------
     # Note: tests below here include fetching data over the network
