@@ -77,9 +77,9 @@ def show_all():
     message = f'Checked {path_count} {"path" if path_count == 1 else "paths"}. '
     if clean_count > 0 or dirty_count > 0:
         message += (f'{clean_count if clean_count > 0 else "No"} '
-                    f'{"repo" if clean_count == 1 else "repos"} are clean and '
-                    f'{dirty_count if dirty_count > 0 else "no"} '
-                    f'{"repo" if dirty_count == 1 else "repos"} are dirty. ')
+                    f'{"repo is" if clean_count == 1 else "repos are"} clean '
+                    f'and {dirty_count if dirty_count > 0 else "no"} '
+                    f'{"repo is" if dirty_count == 1 else "repos are"} dirty. ')
     if missing_count > 0 or error_count > 0:
         message += (f'Encountered ')
         if missing_count > 0:
@@ -88,7 +88,8 @@ def show_all():
         if missing_count > 0 and error_count > 0:
             message += ' and '
         if error_count > 0:
-            message += (f'{error_count} errors')
+            message += (f'{error_count} '
+                        f'{"error" if error_count == 1 else "errors"}')
         message += '. '
     print(message)
 
