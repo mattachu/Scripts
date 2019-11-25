@@ -184,7 +184,7 @@ def main():
     print('Current status:\n')
     show_all()
     print()
-    prompt = 'Do you want to fetch data for all repos? [Y/n]'
+    prompt = 'Do you want to fetch data for all repos? [Y/n] '
     if not input(prompt).lower() in ['n', 'no']:
         fetch_all(show_progress=True)
         print()
