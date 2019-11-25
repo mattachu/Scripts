@@ -49,7 +49,7 @@ def get_repo_status_list(branches=True):
                 repo_status['state'] = 'not_folder'
             else:
                 repo = git.Repo(repo_path)
-                if repo.is_dirty():
+                if repo.is_dirty() or len(repo.untracked_files) > 0:
                     repo_status['state'] = 'dirty'
                 else:
                     repo_status['state'] = 'clean'
@@ -277,7 +277,7 @@ def report_all(fetch=True):
 # Main routine
 def main():
     print('Current status:\n')
-    show_all(branches=True)
+    show_all(branches=False)
     print()
     prompt = 'Do you want to fetch data for all repos? [Y/n] '
     if not input(prompt).lower() in ['n', 'no']:
