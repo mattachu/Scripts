@@ -32,6 +32,48 @@ class TestGitCheck:
         self.repo_path_list = git_check.get_repo_path_list()
         assert pathlib.Path(self.scripts_dir) in self.repo_path_list
 
+    # Test get_repo_status_list method
+    def test_get_repo_status_list_output(self, capsys):
+        self.status_list = git_check.get_repo_status_list()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_get_repo_status_list_contains_scripts(self):
+        self.status_list = git_check.get_repo_status_list()
+        self.found_scripts = False
+        for repo_status in self.status_list:
+            if repo_status['path'] == pathlib.Path(self.scripts_dir):
+                self.found_scripts = True
+        assert self.found_scripts == True
+
+    def test_get_repo_status_list_length(self):
+        self.path_list = git_check.get_repo_path_list()
+        self.status_list = git_check.get_repo_status_list()
+        assert len(self.status_list) == len (self.path_list)
+
+    def test_get_repo_status_list_contents(self):
+        self.status_list = git_check.get_repo_status_list() # default branches = True
+        for repo_status in self.status_list:
+            assert 'path' in repo_status
+            assert 'state' in repo_status
+
+    def test_get_repo_status_list_contents_with_branches(self):
+        self.status_list = git_check.get_repo_status_list(branches=True)
+        for repo_status in self.status_list:
+            if repo_status['state'] in ['clean', 'dirty']:
+                assert 'branches' in repo_status
+
+    def test_get_repo_status_list_contents_no_branches(self):
+        self.status_list = git_check.get_repo_status_list(branches=False)
+        for repo_status in self.status_list:
+            assert 'branches' not in repo_status
+
+    def test_get_repo_status_list_contents_default(self):
+        self.status_list = git_check.get_repo_status_list() # default branches = True
+        for repo_status in self.status_list:
+            if repo_status['state'] in ['clean', 'dirty']:
+                assert 'branches' in repo_status
+
 
     # Test list_remotes method
     def test_list_remotes_header(self, capsys):
@@ -89,6 +131,48 @@ class TestGitCheck:
             git_check.list_branches(git.Repo(pathlib.Path('/not/a/path')))
         with pytest.raises(git.exc.InvalidGitRepositoryError):
             git_check.list_branches(git.Repo(pathlib.Path('/')))
+
+    # Test get_branch_state method
+    def test_get_branch_state_output(self, capsys):
+        self.branch_status = git_check.get_branch_state(self.test_repo, 
+                                                         'master')
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_get_branch_state_return_type(self):
+        self.branch_status = git_check.get_branch_state(self.test_repo, 
+                                                         'master')
+        assert isinstance(self.branch_status, str)
+
+    def test_get_branch_state_invalid_input(self):
+        with pytest.raises(ValueError):
+            git_check.get_branch_state(self.test_dir, 'master')
+        with pytest.raises(ValueError):
+            git_check.get_branch_state('Random text', 'master')
+        with pytest.raises(ValueError):
+            git_check.get_branch_state(3.142, 'master')
+        with pytest.raises(ValueError):
+            git_check.get_branch_state(99999999, 'master')
+        with pytest.raises(ValueError):
+            git_check.get_branch_state('/usr/bin', 'master')
+        with pytest.raises(ValueError):
+            git_check.get_branch_state('C:\\Windows\\', 'master')
+        with pytest.raises(ValueError):
+            git_check.get_branch_state(self.test_repo, 3.142)
+        with pytest.raises(ValueError):
+            git_check.get_branch_state(self.test_repo, 99999999)
+
+    def test_get_branch_state_invalid_repo(self):
+        with pytest.raises(git.exc.NoSuchPathError):
+            git_check.get_branch_state(git.Repo(pathlib.Path('/not/a/path')),
+                                        'master')
+        with pytest.raises(git.exc.InvalidGitRepositoryError):
+            git_check.get_branch_state(git.Repo(pathlib.Path('/')),
+                                        'master')
+
+    def test_get_branch_state_invalid_branch(self):
+        with pytest.raises(IndexError):
+            git_check.get_branch_state(self.test_repo, 'random text')
 
     # Test show_status method
     def test_show_status_header(self, capsys):

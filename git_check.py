@@ -8,7 +8,7 @@ from termcolor import colored
 import colorama
 
 
-# Utility methods
+# Methods working with list of repos
 def get_repo_path_list():
     home_folder = pathlib.Path.home()
     code_folder = home_folder.joinpath('Code')
@@ -37,6 +37,39 @@ def get_repo_path_list():
            docs_folder.joinpath('Manuscripts'),
            docs_folder.joinpath('Notebooks')]
 
+def get_repo_status_list(branches=True):
+    repo_path_list = get_repo_path_list()
+    repo_status_list = []
+    for repo_path in repo_path_list:
+        repo_status = {'path': repo_path}
+        try:
+            if not repo_path.exists():
+                repo_status['state'] = 'missing'
+            elif not repo_path.is_dir():
+                repo_status['state'] = 'not_folder'
+            else:
+                repo = git.Repo(repo_path)
+                if repo.is_dirty():
+                    repo_status['state'] = 'dirty'
+                else:
+                    repo_status['state'] = 'clean'
+        except git.exc.InvalidGitRepositoryError:
+            repo_status['state'] = 'not_repo'
+        except:
+            repo_status['state'] = 'error'
+        if not repo_status['state']:
+            repo_status['state'] = 'check_failed'
+        if repo_status['state'] in ['clean', 'dirty']:
+            if branches:
+                branch_list = []
+                for branch in repo.branches:
+                    this_branch = {'name': branch.name,
+                                   'state': get_branch_state(repo, branch.name)}
+                    branch_list.append(this_branch)
+                repo_status['branches'] = branch_list
+        repo_status_list.append(repo_status)
+    return repo_status_list
+
 
 # Methods working with a given repo
 def list_remotes(repo):
@@ -54,6 +87,28 @@ def list_branches(repo):
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
     print('## Branches')
     print(repo.git.branch(['-vv', '--all']))
+
+def get_branch_state(repo, branch_name):
+    """Return sync status of a given branch in a given repo"""
+    if not isinstance(repo, git.repo.base.Repo): raise ValueError
+    if not isinstance(branch_name, str): raise ValueError
+    branch = repo.heads[branch_name]
+    remote_branch = branch.tracking_branch()
+    if not remote_branch:
+        return 'untracked'
+    else:
+        if branch.commit.hexsha == branch.tracking_branch().commit.hexsha:
+            return 'synced'
+        elif branch.commit.hexsha in [log_entry.newhexsha 
+                                      for log_entry 
+                                      in branch.tracking_branch().log()]:
+            return 'behind'
+        elif branch.tracking_branch().commit.hexsha in [log_entry.newhexsha 
+                                                        for log_entry 
+                                                        in branch.log()]:
+            return 'ahead'
+        else:
+            return 'out-of-sync'
 
 def show_status(repo):
     """Show the status of the given repo and its working tree"""
