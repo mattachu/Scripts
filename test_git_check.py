@@ -1,4 +1,4 @@
-﻿# Tests git-check.py
+# Tests git-check.py
 
 import git_check
 import pytest
@@ -66,7 +66,7 @@ class TestGitCheck:
     def test_list_branches_contains_at_least_one_branch(self, capsys):
         git_check.list_branches(self.test_repo)
         captured = capsys.readouterr()
-        assert captured.out != "## Branches\n"
+        assert captured.out != '## Branches\n'
 
     def test_list_branches_invalid_input(self):
         with pytest.raises(ValueError):
@@ -97,7 +97,7 @@ class TestGitCheck:
     def test_show_status_contains_at_least_something(self, capsys):
         git_check.show_status(self.test_repo)
         captured = capsys.readouterr()
-        assert captured.out != "## Status\n"
+        assert captured.out != '## Status\n'
 
     def test_show_status_invalid_input(self):
         with pytest.raises(ValueError):
@@ -119,7 +119,7 @@ class TestGitCheck:
         with pytest.raises(git.exc.InvalidGitRepositoryError):
             git_check.show_status(git.Repo(pathlib.Path('/')))
 
-    # Test show_all
+    # Test show_all method
     def test_show_all_output(self, capsys):
         git_check.show_all()
         captured = capsys.readouterr()
@@ -143,8 +143,8 @@ class TestGitCheck:
         if len(self.test_repo.remotes) == 0:
             assert len(captured.out) == 0
         else:
-            assert captured.out.startswith("Fetching")
-            assert captured.out.endswith("done.\n")
+            assert captured.out.startswith('Fetching')
+            assert captured.out.endswith('done.\n')
 
     def test_fetch_all_remotes_default(self, capsys):
         git_check.fetch_all_remotes(self.test_repo) # default show_progress=False
