@@ -4,7 +4,7 @@ import git
 import pathlib
 import socket
 from tabulate import tabulate
-from termcolor import colored
+import termcolor
 import colorama
 
 
@@ -148,28 +148,30 @@ def show_all():
     colorama.init()
     for repo in repo_status_list:
         if repo['state'] == 'clean':
-            print(colored(f'{repo["path"]} is clean.', 'green'))
+            print(termcolor.colored(f'{repo["path"]} is clean.', 'green'))
             clean_count += 1
         elif repo['state'] == 'dirty':
-            print(colored(f'{repo["path"]} is dirty.', 'blue', attrs=['bold']))
+            print(termcolor.colored(f'{repo["path"]} is dirty.', 
+                                    'blue', attrs=['bold']))
             dirty_count += 1
         elif repo['state'] == 'missing':
-            print(colored(f'{repo["path"]} does not exist.', 'red'))
+            print(termcolor.colored(f'{repo["path"]} does not exist.', 'red'))
             missing_count += 1
         elif repo['state'] == 'not_folder':
-            print(colored(f'{repo["path"]} is not a folder.', 'red'))
+            print(termcolor.colored(f'{repo["path"]} is not a folder.', 'red'))
             missing_count += 1
         elif repo['state'] == 'not_repo':
-            print(colored(f'{repo_path} is not a Git repo', 'red'))
+            print(termcolor.colored(f'{repo_path} is not a Git repo', 'red'))
             missing_count += 1
         elif repo['state'] == 'error':
-            print(colored(f'{repo_path} gave an error.', 'red'))
+            print(termcolor.colored(f'{repo_path} gave an error.', 'red'))
             error_count += 1
         elif repo['state'] == 'check_failed':
-            print(colored(f'{repo_path} check failed.', 'red'))
+            print(termcolor.colored(f'{repo_path} check failed.', 'red'))
             error_count += 1
         else:
-            print(colored(f'{repo["path"]} could not be found.', 'red'))
+            print(termcolor.colored(f'{repo["path"]} could not be found.', 
+                                    'red'))
             error_count += 1
     message = f'Checked {path_count} {"path" if path_count == 1 else "paths"}. '
     if clean_count > 0 or dirty_count > 0:
@@ -206,7 +208,7 @@ def fetch_all(show_progress=False):
             continue
         except:
             if show_progress: 
-                print(colored(f'{repo_path} gave an error.', 'red'))
+                print(termcolor.colored(f'{repo_path} gave an error.', 'red'))
             continue
 
 def report_all(fetch=True):
