@@ -139,40 +139,38 @@ def report(repo, fetch=True):
 
 # Methods working through all repos
 def show_all():
-    repo_path_list = get_repo_path_list()
-    path_count = len(repo_path_list)
+    repo_status_list = get_repo_status_list()
+    path_count = len(repo_status_list)
     clean_count = 0
     dirty_count = 0
     missing_count = 0
     error_count = 0
     colorama.init()
-    for repo_path in repo_path_list:
-        try:
-            if not repo_path.exists():
-                print(colored(f'{repo_path} does not exist.', 'red'))
-                missing_count += 1
-                continue
-            elif not repo_path.is_dir():
-                print(colored(f'{repo_path} is not a folder.', 'red'))
-                missing_count += 1
-                continue
-            else:
-                repo = git.Repo(repo_path)
-                if repo.is_dirty():
-                    print(colored(f'{repo_path} is dirty.',
-                                  'blue', attrs=['bold']))
-                    dirty_count += 1
-                else:
-                    print(colored(f'{repo_path} is clean.', 'green'))
-                    clean_count += 1
-        except git.exc.InvalidGitRepositoryError:
+    for repo in repo_status_list:
+        if repo['state'] == 'clean':
+            print(colored(f'{repo["path"]} is clean.', 'green'))
+            clean_count += 1
+        elif repo['state'] == 'dirty':
+            print(colored(f'{repo["path"]} is dirty.', 'blue', attrs=['bold']))
+            dirty_count += 1
+        elif repo['state'] == 'missing':
+            print(colored(f'{repo["path"]} does not exist.', 'red'))
+            missing_count += 1
+        elif repo['state'] == 'not_folder':
+            print(colored(f'{repo["path"]} is not a folder.', 'red'))
+            missing_count += 1
+        elif repo['state'] == 'not_repo':
             print(colored(f'{repo_path} is not a Git repo', 'red'))
             missing_count += 1
-            continue
-        except:
+        elif repo['state'] == 'error':
             print(colored(f'{repo_path} gave an error.', 'red'))
             error_count += 1
-            continue
+        elif repo['state'] == 'check_failed':
+            print(colored(f'{repo_path} check failed.', 'red'))
+            error_count += 1
+        else:
+            print(colored(f'{repo["path"]} could not be found.', 'red'))
+            error_count += 1
     message = f'Checked {path_count} {"path" if path_count == 1 else "paths"}. '
     if clean_count > 0 or dirty_count > 0:
         message += (f'{clean_count if clean_count > 0 else "No"} '
