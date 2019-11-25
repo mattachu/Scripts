@@ -208,7 +208,6 @@ class TestGitCheck:
     # Test fetch_all_remotes method
     @pytest.mark.slow
     def test_fetch_all_remotes_quiet(self, capsys):
-        assert 1 == 0
         git_check.fetch_all_remotes(self.test_repo, show_progress=False)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
@@ -282,13 +281,13 @@ class TestGitCheck:
 
     @pytest.mark.slow
     def test_report_output_explicit_fetch(self, capsys):
-        git_check.report(self.test_dir, fetch=True)
+        git_check.report(self.test_repo, fetch=True)
         captured = capsys.readouterr()
         assert 'Fetch' in captured.out
 
     @pytest.mark.slow
     def test_report_output_default_fetch(self, capsys):
-        git_check.report(self.test_dir)
+        git_check.report(self.test_repo)
         captured = capsys.readouterr()
         assert 'Fetch' in captured.out
 
