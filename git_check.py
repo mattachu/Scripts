@@ -150,7 +150,7 @@ def fetch_all(show_progress=False):
 
 
 # Full check for a given repo
-def check_repo(dir):
+def check_repo(dir, fetch=True):
     """Check remotes, branches and status of given repo"""
     if isinstance(dir, git.repo.base.Repo):
         repo = dir
@@ -160,7 +160,7 @@ def check_repo(dir):
         raise ValueError
     print(f'Checking Git status at {repo.working_tree_dir}...\n')
     list_remotes(repo)
-    fetch_all_remotes(repo, show_progress=True)
+    if fetch: fetch_all_remotes(repo, show_progress=True)
     print()
     list_branches(repo)
     print()
@@ -168,7 +168,7 @@ def check_repo(dir):
     print()
 
 # Full check on all repos
-def check_all():
+def check_all(fetch=True):
     repo_list = get_repo_list()
     for repo in repo_list:
         try:
@@ -177,7 +177,7 @@ def check_all():
                 continue
             else:
                 repo = git.Repo(repo)
-                check_repo(repo)
+                check_repo(repo, fetch=fetch)
         except git.exc.InvalidGitRepositoryError:
             print(f'\nFolder {repo} is not a Git repository. Continuing...\n')
             continue

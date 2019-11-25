@@ -119,6 +119,43 @@ class TestGitCheck:
         with pytest.raises(git.exc.InvalidGitRepositoryError):
             git_check.show_status(git.Repo(pathlib.Path('/')))
 
+    # Test check_repo method
+    def test_check_repo_output_no_fetch(self, capsys):
+        git_check.check_repo(self.test_dir, fetch=False)
+        captured = capsys.readouterr()
+        assert len(captured.out) > 0
+        assert self.test_dir in captured.out
+        assert 'Remotes' in captured.out
+        assert 'Fetch' not in captured.out
+        assert 'Branches' in captured.out
+        assert 'Status' in captured.out
+
+    def test_check_repo_accepts_repo_as_input(self, capsys):
+        git_check.check_repo(self.test_repo, fetch=False)
+        captured = capsys.readouterr()
+        assert self.test_dir in captured.out
+
+    def test_check_repo_accepts_path_as_input(self, capsys):
+        git_check.check_repo(pathlib.Path(self.test_dir), fetch=False)
+        captured = capsys.readouterr()
+        assert self.test_dir in captured.out
+
+    def test_check_repo_invalid_input(self):
+        with pytest.raises(ValueError):
+            git_check.check_repo(3.142, fetch=False)
+        with pytest.raises(ValueError):
+            git_check.check_repo(99999999, fetch=False)
+        with pytest.raises(ValueError):
+            git_check.check_repo([self.test_dir, self.test_dir], fetch=False)
+
+    def test_check_repo_invalid_repo(self):
+        with pytest.raises(git.exc.NoSuchPathError):
+            git_check.check_repo('/not/a/path', fetch=False)
+        with pytest.raises(git.exc.NoSuchPathError):
+            git_check.check_repo('Random text', fetch=False)
+        with pytest.raises(git.exc.InvalidGitRepositoryError):
+            git_check.check_repo('/', fetch=False)
+
     # Test show_all method
     def test_show_all_output(self, capsys):
         git_check.show_all()
@@ -127,9 +164,20 @@ class TestGitCheck:
         assert 'clean' in captured.out
         assert 'dirty' in captured.out
 
-    # -------------------------------------------------------------
-    # Note: tests below here include fetching data over the network
-    # -------------------------------------------------------------
+    # Test check_all method
+    def test_check_all_output_no_fetch(self, capsys):
+        git_check.check_all(fetch=False)
+        captured = capsys.readouterr()
+        assert len(captured.out) > 0
+        assert self.scripts_dir in captured.out
+        assert 'Remotes' in captured.out
+        assert 'Fetch' not in captured.out
+        assert 'Branches' in captured.out
+        assert 'Status' in captured.out
+
+    # --------------------------------------------------------------------
+    # Note: tests below here include fetching data over the network (slow)
+    # --------------------------------------------------------------------
 
     # Test fetch_all_remotes method
     def test_fetch_all_remotes_quiet(self, capsys):
@@ -191,50 +239,24 @@ class TestGitCheck:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    # Test check_repo
-    def test_check_repo_output(self, capsys):
+    # Test check_repo method including fetching
+    def test_check_repo_output_explicit_fetch(self, capsys):
+        git_check.check_repo(self.test_dir, fetch=True)
+        captured = capsys.readouterr()
+        assert 'Fetch' in captured.out
+
+    def test_check_repo_output_default_fetch(self, capsys):
         git_check.check_repo(self.test_dir)
         captured = capsys.readouterr()
-        assert len(captured.out) > 0
-        assert self.test_dir in captured.out
-        assert 'Remotes' in captured.out
         assert 'Fetch' in captured.out
-        assert 'Branches' in captured.out
-        assert 'Status' in captured.out
 
-    def test_check_repo_accepts_repo_as_input(self, capsys):
-        git_check.check_repo(self.test_repo)
+    # Test check_all method including fetching
+    def test_check_all_output_explicit_fetch(self, capsys):
+        git_check.check_all(fetch=True)
         captured = capsys.readouterr()
-        assert self.test_dir in captured.out
+        assert 'Fetch' in captured.out
 
-    def test_check_repo_accepts_path_as_input(self, capsys):
-        git_check.check_repo(pathlib.Path(self.test_dir))
-        captured = capsys.readouterr()
-        assert self.test_dir in captured.out
-
-    def test_check_repo_invalid_input(self):
-        with pytest.raises(ValueError):
-            git_check.check_repo(3.142)
-        with pytest.raises(ValueError):
-            git_check.check_repo(99999999)
-        with pytest.raises(ValueError):
-            git_check.check_repo([self.test_dir, self.test_dir])
-
-    def test_check_repo_invalid_repo(self):
-        with pytest.raises(git.exc.NoSuchPathError):
-            git_check.check_repo('/not/a/path')
-        with pytest.raises(git.exc.NoSuchPathError):
-            git_check.check_repo('Random text')
-        with pytest.raises(git.exc.InvalidGitRepositoryError):
-            git_check.check_repo('/')
-
-    # Test check_all
-    def test_check_all_output(self, capsys):
+    def test_check_all_output_default_fetch(self, capsys):
         git_check.check_all()
         captured = capsys.readouterr()
-        assert len(captured.out) > 0
-        assert self.scripts_dir in captured.out
-        assert 'Remotes' in captured.out
         assert 'Fetch' in captured.out
-        assert 'Branches' in captured.out
-        assert 'Status' in captured.out
