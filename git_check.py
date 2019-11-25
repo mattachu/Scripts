@@ -9,7 +9,7 @@ import colorama
 
 
 # Utility methods
-def get_repo_list():
+def get_repo_path_list():
     home_folder = pathlib.Path.home()
     code_folder = home_folder.joinpath('Code')
     scripts_folder = code_folder.joinpath('Scripts')
@@ -89,14 +89,14 @@ def check_repo(dir, fetch=True):
 
 # Methods working through all repos
 def show_all():
-    repo_list = get_repo_list()
-    path_count = len(repo_list)
+    repo_path_list = get_repo_path_list()
+    path_count = len(repo_path_list)
     clean_count = 0
     dirty_count = 0
     missing_count = 0
     error_count = 0
     colorama.init()
-    for repo_path in repo_list:
+    for repo_path in repo_path_list:
         try:
             if not repo_path.exists():
                 print(colored(f'{repo_path} does not exist.', 'red'))
@@ -144,8 +144,8 @@ def show_all():
 
 def fetch_all(show_progress=False):
     """Fetch latest data from all remotes for all repos"""
-    repo_list = get_repo_list()
-    for repo_path in repo_list:
+    repo_path_list = get_repo_path_list()
+    for repo_path in repo_path_list:
         try:
             if repo_path.is_dir():
                 repo = git.Repo(repo_path)
@@ -162,8 +162,8 @@ def fetch_all(show_progress=False):
             continue
 
 def check_all(fetch=True):
-    repo_list = get_repo_list()
-    for repo in repo_list:
+    repo_path_list = get_repo_path_list()
+    for repo in repo_path_list:
         try:
             if not repo.is_dir:
                 print(f'\nCannot find folder {repo}. Continuing...\n')

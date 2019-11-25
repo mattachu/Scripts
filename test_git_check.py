@@ -23,14 +23,14 @@ class TestGitCheck:
         self.test_repo = git.Repo(pathlib.Path(self.test_dir))
 
 
-    # Test get_repo_list method
-    def test_get_repo_list_return_type(self):
-        self.repo_list = git_check.get_repo_list()
-        assert isinstance(self.repo_list, list)
+    # Test get_repo_path_list method
+    def test_get_repo_path_list_return_type(self):
+        self.repo_path_list = git_check.get_repo_path_list()
+        assert isinstance(self.repo_path_list, list)
 
-    def test_get_repo_list_contains_scripts(self):
-        self.repo_list = git_check.get_repo_list()
-        assert pathlib.Path(self.scripts_dir) in self.repo_list
+    def test_get_repo_path_list_contains_scripts(self):
+        self.repo_path_list = git_check.get_repo_path_list()
+        assert pathlib.Path(self.scripts_dir) in self.repo_path_list
 
 
     # Test list_remotes method
