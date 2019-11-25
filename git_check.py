@@ -186,7 +186,19 @@ def check_all(fetch=True):
             continue
 
 
+# Main routine
+def main():
+    print('Current status:\n')
+    show_all()
+    print()
+    prompt = 'Do you want to fetch data for all repos? [Y/n]'
+    if not input(prompt).lower() in ['n', 'no']:
+        fetch_all(show_progress=True)
+        print()
+        show_all()
+
+
 # What to do when run as a script
 if __name__ == '__main__':
-    show_all()
+    main()
     input('Press [Enter] to finish.')
