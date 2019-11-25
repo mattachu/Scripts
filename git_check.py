@@ -128,6 +128,27 @@ def fetch_all_remotes(repo, show_progress=False):
         if show_progress: print('done.')
 
 
+# Carry out actions on all repos
+def fetch_all(show_progress=False):
+    """Fetch latest data from all remotes for all repos"""
+    repo_list = get_repo_list()
+    for repo_path in repo_list:
+        try:
+            if repo_path.is_dir():
+                repo = git.Repo(repo_path)
+                if show_progress: 
+                    print(f'Fetching remotes for {repo_path}...', end=' ')
+                fetch_all_remotes(repo, show_progress=False)
+                if show_progress: 
+                    print('done.')
+        except git.exc.InvalidGitRepositoryError:
+            continue
+        except:
+            if show_progress: 
+                print(colored(f'{repo_path} gave an error.', 'red'))
+            continue
+
+
 # Full check for a given repo
 def check_repo(dir):
     """Check remotes, branches and status of given repo"""

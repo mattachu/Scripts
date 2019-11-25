@@ -171,6 +171,26 @@ class TestGitCheck:
         with pytest.raises(git.exc.InvalidGitRepositoryError):
             git_check.fetch_all_remotes(git.Repo(pathlib.Path('/')))
 
+    # Test fetch_all method
+    def test_fetch_all_quiet(self, capsys):
+        git_check.fetch_all(show_progress=False)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_fetch_all_with_progress(self, capsys):
+        git_check.fetch_all(show_progress=True)
+        captured = capsys.readouterr()
+        if len(self.test_repo.remotes) == 0:
+            assert len(captured.out) == 0
+        else:
+            assert captured.out.startswith('Fetching')
+            assert captured.out.endswith('done.\n')
+
+    def test_fetch_all_default(self, capsys):
+        git_check.fetch_all() # default show_progress=False
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
     # Test check_repo
     def test_check_repo_output(self, capsys):
         git_check.check_repo(self.test_dir)
