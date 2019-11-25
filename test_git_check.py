@@ -131,14 +131,14 @@ class TestGitCheck:
     # Note: tests below here include fetching data over the network
     # -------------------------------------------------------------
 
-    # Test fetch_all method
-    def test_fetch_all_quiet(self, capsys):
-        git_check.fetch_all(self.test_repo, show_progress=False)
+    # Test fetch_all_remotes method
+    def test_fetch_all_remotes_quiet(self, capsys):
+        git_check.fetch_all_remotes(self.test_repo, show_progress=False)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_fetch_all_with_progress(self, capsys):
-        git_check.fetch_all(self.test_repo, show_progress=True)
+    def test_fetch_all_remotes_with_progress(self, capsys):
+        git_check.fetch_all_remotes(self.test_repo, show_progress=True)
         captured = capsys.readouterr()
         if len(self.test_repo.remotes) == 0:
             assert len(captured.out) == 0
@@ -146,30 +146,30 @@ class TestGitCheck:
             assert captured.out.startswith("Fetching")
             assert captured.out.endswith("done.\n")
 
-    def test_fetch_all_default(self, capsys):
-        git_check.fetch_all(self.test_repo) # default show_progress=False
+    def test_fetch_all_remotes_default(self, capsys):
+        git_check.fetch_all_remotes(self.test_repo) # default show_progress=False
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_fetch_all_invalid_input(self):
+    def test_fetch_all_remotes_invalid_input(self):
         with pytest.raises(ValueError):
-            git_check.fetch_all(self.test_dir)
+            git_check.fetch_all_remotes(self.test_dir)
         with pytest.raises(ValueError):
-            git_check.fetch_all('Random text')
+            git_check.fetch_all_remotes('Random text')
         with pytest.raises(ValueError):
-            git_check.fetch_all(3.142)
+            git_check.fetch_all_remotes(3.142)
         with pytest.raises(ValueError):
-            git_check.fetch_all(99999999)
+            git_check.fetch_all_remotes(99999999)
         with pytest.raises(ValueError):
-            git_check.fetch_all('/usr/bin')
+            git_check.fetch_all_remotes('/usr/bin')
         with pytest.raises(ValueError):
-            git_check.fetch_all('C:\\Windows\\')
+            git_check.fetch_all_remotes('C:\\Windows\\')
 
-    def test_fetch_all_invalid_repo(self):
+    def test_fetch_all_remotes_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
-            git_check.fetch_all(git.Repo(pathlib.Path('/not/a/path')))
+            git_check.fetch_all_remotes(git.Repo(pathlib.Path('/not/a/path')))
         with pytest.raises(git.exc.InvalidGitRepositoryError):
-            git_check.fetch_all(git.Repo(pathlib.Path('/')))
+            git_check.fetch_all_remotes(git.Repo(pathlib.Path('/')))
 
     # Test check_repo
     def test_check_repo_output(self, capsys):

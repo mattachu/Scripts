@@ -119,7 +119,7 @@ def show_status(repo):
 
 
 # Carry out actions on a given repo
-def fetch_all(repo, show_progress=False):
+def fetch_all_remotes(repo, show_progress=False):
     """Fetch latest data from all remotes"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
     for remote in repo.remotes:
@@ -139,7 +139,7 @@ def check_repo(dir):
         raise ValueError
     print(f'Checking Git status at {repo.working_tree_dir}...\n')
     list_remotes(repo)
-    fetch_all(repo, show_progress=True)
+    fetch_all_remotes(repo, show_progress=True)
     print()
     list_branches(repo)
     print()
