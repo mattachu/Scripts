@@ -8,7 +8,7 @@ from termcolor import colored
 import colorama
 
 
-# Setup information
+# Utility methods
 def get_repo_list():
     home_folder = pathlib.Path.home()
     code_folder = home_folder.joinpath('Code')
@@ -38,7 +38,56 @@ def get_repo_list():
            docs_folder.joinpath('Notebooks')]
 
 
-# Summary status information
+# Methods working with a given repo
+def list_remotes(repo):
+    """List all remotes (with urls) of a given repo"""
+    if not isinstance(repo, git.repo.base.Repo): raise ValueError
+    print('## Remotes')
+    remote_list = []
+    for remote in repo.remotes:
+        remote_list.append([str(remote.name) + ":",
+                            str([url for url in remote.urls]).strip("'[]")])
+    print(tabulate(remote_list, tablefmt='plain'))
+
+def list_branches(repo):
+    """List all branches of a given repo"""
+    if not isinstance(repo, git.repo.base.Repo): raise ValueError
+    print('## Branches')
+    print(repo.git.branch(['-vv', '--all']))
+
+def fetch_all_remotes(repo, show_progress=False):
+    """Fetch latest data from all remotes"""
+    if not isinstance(repo, git.repo.base.Repo): raise ValueError
+    for remote in repo.remotes:
+        if show_progress: print(f'Fetching {remote.name}...', end=' ')
+        remote.fetch()
+        if show_progress: print('done.')
+
+def show_status(repo):
+    """Show the status of the given repo and its working tree"""
+    if not isinstance(repo, git.repo.base.Repo): raise ValueError
+    print('## Status')
+    print(repo.git.status())
+
+def check_repo(dir, fetch=True):
+    """Check remotes, branches and status of given repo"""
+    if isinstance(dir, git.repo.base.Repo):
+        repo = dir
+    elif isinstance(dir, str) or isinstance(dir, pathlib.Path):
+        repo = git.Repo(pathlib.Path(dir))
+    else:
+        raise ValueError
+    print(f'Checking Git status at {repo.working_tree_dir}...\n')
+    list_remotes(repo)
+    if fetch: fetch_all_remotes(repo, show_progress=True)
+    print()
+    list_branches(repo)
+    print()
+    show_status(repo)
+    print()
+
+
+# Methods working through all repos
 def show_all():
     repo_list = get_repo_list()
     path_count = len(repo_list)
@@ -93,42 +142,6 @@ def show_all():
         message += '. '
     print(message)
 
-
-# List and show details for a given repo
-def list_remotes(repo):
-    """List all remotes (with urls) of a given repo"""
-    if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Remotes')
-    remote_list = []
-    for remote in repo.remotes:
-        remote_list.append([str(remote.name) + ":",
-                            str([url for url in remote.urls]).strip("'[]")])
-    print(tabulate(remote_list, tablefmt='plain'))
-
-def list_branches(repo):
-    """List all branches of a given repo"""
-    if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Branches')
-    print(repo.git.branch(['-vv', '--all']))
-
-def show_status(repo):
-    """Show the status of the given repo and its working tree"""
-    if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Status')
-    print(repo.git.status())
-
-
-# Carry out actions on a given repo
-def fetch_all_remotes(repo, show_progress=False):
-    """Fetch latest data from all remotes"""
-    if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    for remote in repo.remotes:
-        if show_progress: print(f'Fetching {remote.name}...', end=' ')
-        remote.fetch()
-        if show_progress: print('done.')
-
-
-# Carry out actions on all repos
 def fetch_all(show_progress=False):
     """Fetch latest data from all remotes for all repos"""
     repo_list = get_repo_list()
@@ -148,26 +161,6 @@ def fetch_all(show_progress=False):
                 print(colored(f'{repo_path} gave an error.', 'red'))
             continue
 
-
-# Full check for a given repo
-def check_repo(dir, fetch=True):
-    """Check remotes, branches and status of given repo"""
-    if isinstance(dir, git.repo.base.Repo):
-        repo = dir
-    elif isinstance(dir, str) or isinstance(dir, pathlib.Path):
-        repo = git.Repo(pathlib.Path(dir))
-    else:
-        raise ValueError
-    print(f'Checking Git status at {repo.working_tree_dir}...\n')
-    list_remotes(repo)
-    if fetch: fetch_all_remotes(repo, show_progress=True)
-    print()
-    list_branches(repo)
-    print()
-    show_status(repo)
-    print()
-
-# Full check on all repos
 def check_all(fetch=True):
     repo_list = get_repo_list()
     for repo in repo_list:
@@ -197,8 +190,6 @@ def main():
         print()
         show_all()
 
-
-# What to do when run as a script
 if __name__ == '__main__':
     main()
     input('Press [Enter] to finish.')
