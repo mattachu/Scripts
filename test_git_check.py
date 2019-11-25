@@ -174,6 +174,52 @@ class TestGitCheck:
         with pytest.raises(IndexError):
             git_check.get_branch_state(self.test_repo, 'random text')
 
+    # Test get_branch_report method
+    def test_get_branch_report_return_type(self):
+        self.branch_list = [{'name': 'master', 'state': 'synced'}]
+        assert isinstance(git_check.get_branch_report(self.branch_list), str)
+
+    def test_get_branch_report_synced(self):
+        self.branch_list = [{'name': 'master', 'state': 'synced'}]
+        self.response = git_check.get_branch_report(self.branch_list)
+        assert 'in sync' in self.response
+
+    def test_get_branch_report_behind(self):
+        self.branch_list = [{'name': 'master', 'state': 'behind'}]
+        self.response = git_check.get_branch_report(self.branch_list)
+        assert 'behind' in self.response
+
+    def test_get_branch_report_ahead(self):
+        self.branch_list = [{'name': 'master', 'state': 'ahead'}]
+        self.response = git_check.get_branch_report(self.branch_list)
+        assert 'ahead' in self.response
+
+    def test_get_branch_report_untracked(self):
+        self.branch_list = [{'name': 'master', 'state': 'untracked'}]
+        self.response = git_check.get_branch_report(self.branch_list)
+        assert 'not tracking' in self.response
+
+    def test_get_branch_report_unsynced(self):
+        self.branch_list = [{'name': 'master', 'state': 'out-of-sync'}]
+        self.response = git_check.get_branch_report(self.branch_list)
+        assert 'out of sync' in self.response
+
+    def test_get_branch_report_invalid_input(self):
+        with pytest.raises(ValueError):
+            git_check.get_branch_report([])
+        with pytest.raises(ValueError):
+            git_check.get_branch_report(['apple', 'orange', 'carrot'])
+        with pytest.raises(ValueError):
+            git_check.get_branch_report('Random text')
+        with pytest.raises(ValueError):
+            git_check.get_branch_report(3.142)
+        with pytest.raises(ValueError):
+            git_check.get_branch_report(99999999)
+        with pytest.raises(ValueError):
+            git_check.get_branch_report('/usr/bin')
+        with pytest.raises(ValueError):
+            git_check.get_branch_report('C:\\Windows\\')
+
     # Test show_status method
     def test_show_status_header(self, capsys):
         git_check.show_status(self.test_repo)
@@ -299,6 +345,21 @@ class TestGitCheck:
         assert len(captured.out) > 0
         assert 'clean' in captured.out
         assert 'dirty' in captured.out
+
+    def test_show_all_with_branches(self, capsys):
+        git_check.show_all(branches=True)
+        captured = capsys.readouterr()
+        assert 'branch' in captured.out
+
+    def test_show_all_no_branches(self, capsys):
+        git_check.show_all(branches=False)
+        captured = capsys.readouterr()
+        assert 'branch' not in captured.out
+
+    def test_show_all_default(self, capsys):
+        git_check.show_all() # default branches = True
+        captured = capsys.readouterr()
+        assert 'branch' in captured.out
 
     # Test fetch_all method
     @pytest.mark.slow

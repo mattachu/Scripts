@@ -110,6 +110,47 @@ def get_branch_state(repo, branch_name):
         else:
             return 'out-of-sync'
 
+def get_branch_report(branch_state_list):
+    if not isinstance(branch_state_list, list): raise ValueError
+    if len(branch_state_list) == 0: raise ValueError
+    for item in branch_state_list:
+        if not isinstance(item, dict): raise ValueError
+    synced_count = sum(b['state'] == 'synced' for b in branch_state_list)
+    behind_count = sum(b['state'] == 'behind' for b in branch_state_list)
+    ahead_count = sum(b['state'] == 'ahead' for b in branch_state_list)
+    untracked_count = sum(b['state'] == 'untracked' for b in branch_state_list)
+    unsynced_count = sum(b['state'] == 'out-of-sync' for b in branch_state_list)
+    message = ''
+    if synced_count > 0:
+        if synced_count == len(branch_state_list):
+            message = 'All branches are in sync with remote'
+        else:
+            message += (f'{synced_count} '
+                        f'{"branch is" if synced_count == 1 else "branches are"} '
+                        'in sync with remote')
+    if behind_count > 0:
+        if len(message) > 0: message += ', '
+        message += (f'{behind_count} '
+                    f'{"branch is" if behind_count == 1 else "branches are"} '
+                    'behind remote')
+    if ahead_count > 0:
+        if len(message) > 0: message += ', '
+        message += (f'{ahead_count} '
+                    f'{"branch is" if ahead_count == 1 else "branches are"} '
+                    'ahead of remote')
+    if untracked_count > 0:
+        if len(message) > 0: message += ', '
+        message += (f'{untracked_count} '
+                    f'{"branch is" if untracked_count == 1 else "branches are"} '
+                    'not tracking a remote branch')
+    if unsynced_count > 0:
+        if len(message) > 0: message += ', '
+        message += (f'{unsynced_count} '
+                    f'{"branch is" if unsynced_count == 1 else "branches are"} '
+                    'out of sync with remote')
+    message += '.'
+    return message
+
 def show_status(repo):
     """Show the status of the given repo and its working tree"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
@@ -138,7 +179,7 @@ def report(repo, fetch=True):
 
 
 # Methods working through all repos
-def show_all():
+def show_all(branches=True):
     repo_status_list = get_repo_status_list()
     path_count = len(repo_status_list)
     clean_count = 0
@@ -150,10 +191,14 @@ def show_all():
         if repo['state'] == 'clean':
             print(termcolor.colored(f'{repo["path"]} is clean.', 'green'))
             clean_count += 1
+            if branches:
+                print('    ' + get_branch_report(repo['branches']))
         elif repo['state'] == 'dirty':
             print(termcolor.colored(f'{repo["path"]} is dirty.', 
                                     'blue', attrs=['bold']))
             dirty_count += 1
+            if branches:
+                print('    ' + get_branch_report(repo['branches']))
         elif repo['state'] == 'missing':
             print(termcolor.colored(f'{repo["path"]} does not exist.', 'red'))
             missing_count += 1
@@ -232,14 +277,15 @@ def report_all(fetch=True):
 # Main routine
 def main():
     print('Current status:\n')
-    show_all()
+    show_all(branches=True)
     print()
     prompt = 'Do you want to fetch data for all repos? [Y/n] '
     if not input(prompt).lower() in ['n', 'no']:
         fetch_all(show_progress=True)
         print()
-        show_all()
+        show_all(branches=True)
 
 if __name__ == '__main__':
     main()
+    print()
     input('Press [Enter] to finish.')
