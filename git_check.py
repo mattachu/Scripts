@@ -55,6 +55,12 @@ def list_branches(repo):
     print('## Branches')
     print(repo.git.branch(['-vv', '--all']))
 
+def show_status(repo):
+    """Show the status of the given repo and its working tree"""
+    if not isinstance(repo, git.repo.base.Repo): raise ValueError
+    print('## Status')
+    print(repo.git.status())
+
 def fetch_all_remotes(repo, show_progress=False):
     """Fetch latest data from all remotes"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
@@ -63,20 +69,9 @@ def fetch_all_remotes(repo, show_progress=False):
         remote.fetch()
         if show_progress: print('done.')
 
-def show_status(repo):
-    """Show the status of the given repo and its working tree"""
+def report(repo, fetch=True):
+    """Report remotes, branches and status of given repo"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Status')
-    print(repo.git.status())
-
-def check_repo(dir, fetch=True):
-    """Check remotes, branches and status of given repo"""
-    if isinstance(dir, git.repo.base.Repo):
-        repo = dir
-    elif isinstance(dir, str) or isinstance(dir, pathlib.Path):
-        repo = git.Repo(pathlib.Path(dir))
-    else:
-        raise ValueError
     print(f'Checking Git status at {repo.working_tree_dir}...\n')
     list_remotes(repo)
     if fetch: fetch_all_remotes(repo, show_progress=True)
@@ -161,7 +156,7 @@ def fetch_all(show_progress=False):
                 print(colored(f'{repo_path} gave an error.', 'red'))
             continue
 
-def check_all(fetch=True):
+def report_all(fetch=True):
     repo_path_list = get_repo_path_list()
     for repo in repo_path_list:
         try:
@@ -170,7 +165,7 @@ def check_all(fetch=True):
                 continue
             else:
                 repo = git.Repo(repo)
-                check_repo(repo, fetch=fetch)
+                report(repo, fetch=fetch)
         except git.exc.InvalidGitRepositoryError:
             print(f'\nFolder {repo} is not a Git repository. Continuing...\n')
             continue

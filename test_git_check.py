@@ -165,9 +165,9 @@ class TestGitCheck:
         with pytest.raises(git.exc.InvalidGitRepositoryError):
             git_check.fetch_all_remotes(git.Repo(pathlib.Path('/')))
 
-    # Test check_repo method
-    def test_check_repo_output_no_fetch(self, capsys):
-        git_check.check_repo(self.test_dir, fetch=False)
+    # Test report method
+    def test_report_output_no_fetch(self, capsys):
+        git_check.report(self.test_repo, fetch=False)
         captured = capsys.readouterr()
         assert len(captured.out) > 0
         assert self.test_dir in captured.out
@@ -176,41 +176,35 @@ class TestGitCheck:
         assert 'Branches' in captured.out
         assert 'Status' in captured.out
 
-    def test_check_repo_accepts_repo_as_input(self, capsys):
-        git_check.check_repo(self.test_repo, fetch=False)
-        captured = capsys.readouterr()
-        assert self.test_dir in captured.out
-
-    def test_check_repo_accepts_path_as_input(self, capsys):
-        git_check.check_repo(pathlib.Path(self.test_dir), fetch=False)
-        captured = capsys.readouterr()
-        assert self.test_dir in captured.out
-
-    def test_check_repo_invalid_input(self):
+    def test_report_invalid_input(self):
         with pytest.raises(ValueError):
-            git_check.check_repo(3.142, fetch=False)
+            git_check.report(self.test_dir, fetch=False)
         with pytest.raises(ValueError):
-            git_check.check_repo(99999999, fetch=False)
+            git_check.report('Random text', fetch=False)
         with pytest.raises(ValueError):
-            git_check.check_repo([self.test_dir, self.test_dir], fetch=False)
+            git_check.report(3.142, fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report(99999999, fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report('/usr/bin', fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report('C:\\Windows\\', fetch=False)
 
-    def test_check_repo_invalid_repo(self):
+    def test_report_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
-            git_check.check_repo('/not/a/path', fetch=False)
-        with pytest.raises(git.exc.NoSuchPathError):
-            git_check.check_repo('Random text', fetch=False)
+            git_check.report(git.Repo(pathlib.Path('/not/a/path')), fetch=False)
         with pytest.raises(git.exc.InvalidGitRepositoryError):
-            git_check.check_repo('/', fetch=False)
+            git_check.report(git.Repo(pathlib.Path('/')), fetch=False)
 
     @pytest.mark.slow
-    def test_check_repo_output_explicit_fetch(self, capsys):
-        git_check.check_repo(self.test_dir, fetch=True)
+    def test_report_output_explicit_fetch(self, capsys):
+        git_check.report(self.test_dir, fetch=True)
         captured = capsys.readouterr()
         assert 'Fetch' in captured.out
 
     @pytest.mark.slow
-    def test_check_repo_output_default_fetch(self, capsys):
-        git_check.check_repo(self.test_dir)
+    def test_report_output_default_fetch(self, capsys):
+        git_check.report(self.test_dir)
         captured = capsys.readouterr()
         assert 'Fetch' in captured.out
 
@@ -246,9 +240,9 @@ class TestGitCheck:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    # Test check_all method
-    def test_check_all_output_no_fetch(self, capsys):
-        git_check.check_all(fetch=False)
+    # Test report_all method
+    def test_report_all_output_no_fetch(self, capsys):
+        git_check.report_all(fetch=False)
         captured = capsys.readouterr()
         assert len(captured.out) > 0
         assert self.scripts_dir in captured.out
@@ -258,13 +252,13 @@ class TestGitCheck:
         assert 'Status' in captured.out
 
     @pytest.mark.slow
-    def test_check_all_output_explicit_fetch(self, capsys):
-        git_check.check_all(fetch=True)
+    def test_report_all_output_explicit_fetch(self, capsys):
+        git_check.report_all(fetch=True)
         captured = capsys.readouterr()
         assert 'Fetch' in captured.out
 
     @pytest.mark.slow
-    def test_check_all_output_default_fetch(self, capsys):
-        git_check.check_all()
+    def test_report_all_output_default_fetch(self, capsys):
+        git_check.report_all()
         captured = capsys.readouterr()
         assert 'Fetch' in captured.out
