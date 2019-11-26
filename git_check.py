@@ -223,13 +223,13 @@ def show_all(branches=True):
             print(termcolor.colored(f'{repo["path"]} is not a folder.', 'red'))
             missing_count += 1
         elif repo['state'] == 'not_repo':
-            print(termcolor.colored(f'{repo_path} is not a Git repo', 'red'))
+            print(termcolor.colored(f'{repo["path"]} is not a Git repo', 'red'))
             missing_count += 1
         elif repo['state'] == 'error':
-            print(termcolor.colored(f'{repo_path} gave an error.', 'red'))
+            print(termcolor.colored(f'{repo["path"]} gave an error.', 'red'))
             error_count += 1
         elif repo['state'] == 'check_failed':
-            print(termcolor.colored(f'{repo_path} check failed.', 'red'))
+            print(termcolor.colored(f'{repo["path"]} check failed.', 'red'))
             error_count += 1
         else:
             print(termcolor.colored(f'{repo["path"]} could not be processed.', 
