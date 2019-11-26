@@ -64,7 +64,6 @@ def get_repo_status_list(branches=True):
 def list_remotes(repo):
     """List all remotes (with urls) of a given repo"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Remotes')
     remote_list = []
     for remote in repo.remotes:
         remote_list.append([str(remote.name) + ":",
@@ -74,7 +73,6 @@ def list_remotes(repo):
 def list_branches(repo):
     """List all branches of a given repo"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Branches')
     print(repo.git.branch(['-vv', '--all']))
 
 def get_branch_state(repo, branch_name):
@@ -144,7 +142,6 @@ def get_branch_report(branch_state_list):
 def show_status(repo):
     """Show the status of the given repo and its working tree"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Status')
     print(repo.git.status())
 
 def fetch_all_remotes(repo, show_progress=False):
@@ -160,12 +157,17 @@ def report(repo, fetch=True):
     """Report remotes, branches and status of given repo"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
     if not isinstance(fetch, bool): raise ValueError
-    print(f'Checking Git status at {repo.working_tree_dir}...\n')
+    print(termcolor.colored('Checking Git status at '
+                            f'{repo.working_tree_dir}...\n', 
+                            'blue', attrs=['bold']))
+    print(termcolor.colored('## Remotes', 'green'))
     list_remotes(repo)
     if fetch: fetch_all_remotes(repo, show_progress=True)
     print()
+    print(termcolor.colored('## Branches', 'green'))
     list_branches(repo)
     print()
+    print(termcolor.colored('## Status', 'green'))
     show_status(repo)
     print()
 
@@ -180,7 +182,6 @@ def show_all(branches=True):
     dirty_count = 0
     missing_count = 0
     error_count = 0
-    colorama.init()
     for repo in repo_status_list:
         if repo['state'] == 'clean':
             print(termcolor.colored(f'{repo["path"]} is clean.', 'green'))
@@ -330,6 +331,7 @@ def main():
 
 # What to do when run as a script
 if __name__ == '__main__':
+    colorama.init()
     main()
     print()
     input('Press [Enter] to finish.')

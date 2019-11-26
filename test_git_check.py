@@ -140,11 +140,6 @@ class TestGitCheck:
 
 
     # Test list_remotes method
-    def test_list_remotes_header(self, capsys):
-        git_check.list_remotes(self.test_repo)
-        captured = capsys.readouterr()
-        assert captured.out.startswith('## Remotes')
-
     def test_list_remotes_invalid_input(self):
         with pytest.raises(ValueError):
             git_check.list_remotes(self.test_dir)
@@ -166,11 +161,6 @@ class TestGitCheck:
             git_check.list_remotes(git.Repo('/'))
 
     # Test list_branches method
-    def test_list_branches_header(self, capsys):
-        git_check.list_branches(self.test_repo)
-        captured = capsys.readouterr()
-        assert captured.out.startswith('## Branches')
-
     def test_list_branches_contains_at_least_one_branch(self, capsys):
         git_check.list_branches(self.test_repo)
         captured = capsys.readouterr()
@@ -287,15 +277,10 @@ class TestGitCheck:
             git_check.get_branch_report('C:\\Windows\\')
 
     # Test show_status method
-    def test_show_status_header(self, capsys):
-        git_check.show_status(self.test_repo)
-        captured = capsys.readouterr()
-        assert captured.out.startswith('## Status')
-
     def test_show_status_contains_at_least_something(self, capsys):
         git_check.show_status(self.test_repo)
         captured = capsys.readouterr()
-        assert captured.out != '## Status\n'
+        assert len(captured.out) > 0
 
     def test_show_status_invalid_input(self):
         with pytest.raises(ValueError):
