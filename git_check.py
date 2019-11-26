@@ -3,7 +3,7 @@
 import git
 import pathlib
 import socket
-from tabulate import tabulate
+import tabulate
 import termcolor
 import colorama
 
@@ -86,7 +86,7 @@ def list_remotes(repo):
     for remote in repo.remotes:
         remote_list.append([str(remote.name) + ":",
                             str([url for url in remote.urls]).strip("'[]")])
-    print(tabulate(remote_list, tablefmt='plain'))
+    print(tabulate.tabulate(remote_list, tablefmt='plain'))
 
 def list_branches(repo):
     """List all branches of a given repo"""
