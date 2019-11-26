@@ -40,6 +40,7 @@ def get_repo_path_list():
 
 def get_repo_status_list(branches=True):
     """Get status of all repos and return a list with status details"""
+    if not isinstance(branches, bool): raise ValueError
     repo_path_list = get_repo_path_list()
     repo_status_list = []
     for repo_path in repo_path_list:
@@ -163,6 +164,7 @@ def show_status(repo):
 def fetch_all_remotes(repo, show_progress=False):
     """Fetch latest data from all remotes"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
+    if not isinstance(show_progress, bool): raise ValueError
     for remote in repo.remotes:
         if show_progress: print(f'Fetching {remote.name}...', end=' ')
         remote.fetch()
@@ -171,6 +173,7 @@ def fetch_all_remotes(repo, show_progress=False):
 def report(repo, fetch=True):
     """Report remotes, branches and status of given repo"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
+    if not isinstance(fetch, bool): raise ValueError
     print(f'Checking Git status at {repo.working_tree_dir}...\n')
     list_remotes(repo)
     if fetch: fetch_all_remotes(repo, show_progress=True)
@@ -184,6 +187,7 @@ def report(repo, fetch=True):
 # Methods working through all repos
 def show_all(branches=True):
     """Print out the status of all repos"""
+    if not isinstance(branches, bool): raise ValueError
     repo_status_list = get_repo_status_list()
     path_count = len(repo_status_list)
     clean_count = 0
@@ -243,6 +247,7 @@ def show_all(branches=True):
 
 def fetch_all(show_progress=False):
     """Fetch latest data from all remotes for all repos"""
+    if not isinstance(show_progress, bool): raise ValueError
     repo_path_list = get_repo_path_list()
     for repo_path in repo_path_list:
         try:
@@ -262,6 +267,7 @@ def fetch_all(show_progress=False):
 
 def report_all(fetch=True):
     """Report the full status of all repos"""
+    if not isinstance(fetch, bool): raise ValueError
     repo_path_list = get_repo_path_list()
     for repo in repo_path_list:
         try:

@@ -74,6 +74,28 @@ class TestGitCheck:
             if repo_status['state'] in ['clean', 'dirty']:
                 assert 'branches' in repo_status
 
+    def test_get_repo_status_list_invalid_input(self):
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list('false')
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list('True')
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list('Random text')
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list(1)
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list(0)
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list(3.142)
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list(99999999)
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list('/usr/bin')
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list('C:\\Windows\\')
+        with pytest.raises(ValueError):
+            git_check.get_repo_status_list(self.test_repo)
+
 
     # Test list_remotes method
     def test_list_remotes_header(self, capsys):
@@ -287,6 +309,36 @@ class TestGitCheck:
             git_check.fetch_all_remotes('/usr/bin')
         with pytest.raises(ValueError):
             git_check.fetch_all_remotes('C:\\Windows\\')
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_dir, False)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes('Random text', False)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(3.142, False)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(99999999, False)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes('/usr/bin', False)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes('C:\\Windows\\', False)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_repo, 'false')
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_repo, 'True')
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_repo, 1)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_repo, 0)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_repo, 3.142)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_repo, 99999999)
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_repo, 'random text')
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_repo, '/')
+        with pytest.raises(ValueError):
+            git_check.fetch_all_remotes(self.test_repo, self.test_repo)
 
     def test_fetch_all_remotes_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
@@ -305,6 +357,18 @@ class TestGitCheck:
         assert 'Branches' in captured.out
         assert 'Status' in captured.out
 
+    @pytest.mark.slow
+    def test_report_output_explicit_fetch(self, capsys):
+        git_check.report(self.test_repo, fetch=True)
+        captured = capsys.readouterr()
+        assert 'Fetch' in captured.out
+
+    @pytest.mark.slow
+    def test_report_output_default_fetch(self, capsys):
+        git_check.report(self.test_repo)
+        captured = capsys.readouterr()
+        assert 'Fetch' in captured.out
+
     def test_report_invalid_input(self):
         with pytest.raises(ValueError):
             git_check.report(self.test_dir, fetch=False)
@@ -318,24 +382,30 @@ class TestGitCheck:
             git_check.report('/usr/bin', fetch=False)
         with pytest.raises(ValueError):
             git_check.report('C:\\Windows\\', fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report(self.test_repo, fetch='false')
+        with pytest.raises(ValueError):
+            git_check.report(self.test_repo, fetch='True')
+        with pytest.raises(ValueError):
+            git_check.report(self.test_repo, fetch=1)
+        with pytest.raises(ValueError):
+            git_check.report(self.test_repo, fetch=0)
+        with pytest.raises(ValueError):
+            git_check.report(self.test_repo, fetch=3.142)
+        with pytest.raises(ValueError):
+            git_check.report(self.test_repo, fetch=99999999)
+        with pytest.raises(ValueError):
+            git_check.report(self.test_repo, fetch='random text')
+        with pytest.raises(ValueError):
+            git_check.report(self.test_repo, fetch='/')
+        with pytest.raises(ValueError):
+            git_check.report(self.test_repo, fetch=self.test_repo)
 
     def test_report_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
             git_check.report(git.Repo(pathlib.Path('/not/a/path')), fetch=False)
         with pytest.raises(git.exc.InvalidGitRepositoryError):
             git_check.report(git.Repo(pathlib.Path('/')), fetch=False)
-
-    @pytest.mark.slow
-    def test_report_output_explicit_fetch(self, capsys):
-        git_check.report(self.test_repo, fetch=True)
-        captured = capsys.readouterr()
-        assert 'Fetch' in captured.out
-
-    @pytest.mark.slow
-    def test_report_output_default_fetch(self, capsys):
-        git_check.report(self.test_repo)
-        captured = capsys.readouterr()
-        assert 'Fetch' in captured.out
 
 
     # Test show_all method
@@ -361,6 +431,26 @@ class TestGitCheck:
         captured = capsys.readouterr()
         assert 'branch' in captured.out
 
+    def test_show_all_invalid_input(self):
+        with pytest.raises(ValueError):
+            git_check.show_all(branches='false')
+        with pytest.raises(ValueError):
+            git_check.show_all(branches='True')
+        with pytest.raises(ValueError):
+            git_check.show_all(branches=0)
+        with pytest.raises(ValueError):
+            git_check.show_all(branches=1)
+        with pytest.raises(ValueError):
+            git_check.show_all(branches=3.142)
+        with pytest.raises(ValueError):
+            git_check.show_all(branches=99999999)
+        with pytest.raises(ValueError):
+            git_check.show_all(branches='random text')
+        with pytest.raises(ValueError):
+            git_check.show_all(branches='/')
+        with pytest.raises(ValueError):
+            git_check.show_all(branches=self.test_repo)
+
     # Test fetch_all method
     @pytest.mark.slow
     def test_fetch_all_quiet(self, capsys):
@@ -384,6 +474,26 @@ class TestGitCheck:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
+    def test_fetch_all_invalid_input(self):
+        with pytest.raises(ValueError):
+            git_check.fetch_all(show_progress='false')
+        with pytest.raises(ValueError):
+            git_check.fetch_all(show_progress='True')
+        with pytest.raises(ValueError):
+            git_check.fetch_all(show_progress=0)
+        with pytest.raises(ValueError):
+            git_check.fetch_all(show_progress=1)
+        with pytest.raises(ValueError):
+            git_check.fetch_all(show_progress=3.142)
+        with pytest.raises(ValueError):
+            git_check.fetch_all(show_progress=99999999)
+        with pytest.raises(ValueError):
+            git_check.fetch_all(show_progress='random text')
+        with pytest.raises(ValueError):
+            git_check.fetch_all(show_progress='/')
+        with pytest.raises(ValueError):
+            git_check.fetch_all(show_progress=self.test_repo)
+
     # Test report_all method
     def test_report_all_output_no_fetch(self, capsys):
         git_check.report_all(fetch=False)
@@ -406,3 +516,23 @@ class TestGitCheck:
         git_check.report_all()
         captured = capsys.readouterr()
         assert 'Fetch' in captured.out
+
+    def test_report_all_invalid_input(self):
+        with pytest.raises(ValueError):
+            git_check.report_all(fetch='false')
+        with pytest.raises(ValueError):
+            git_check.report_all(fetch='True')
+        with pytest.raises(ValueError):
+            git_check.report_all(fetch=0)
+        with pytest.raises(ValueError):
+            git_check.report_all(fetch=1)
+        with pytest.raises(ValueError):
+            git_check.report_all(fetch=3.142)
+        with pytest.raises(ValueError):
+            git_check.report_all(fetch=99999999)
+        with pytest.raises(ValueError):
+            git_check.report_all(fetch='random text')
+        with pytest.raises(ValueError):
+            git_check.report_all(fetch='/')
+        with pytest.raises(ValueError):
+            git_check.report_all(fetch=self.test_repo)
