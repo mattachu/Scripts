@@ -65,7 +65,7 @@ class TestGitCheck:
             assert 'state' in repo_status
             assert isinstance(repo_status['path'], pathlib.Path)
             assert isinstance(repo_status['state'], str)
-            assert repo_status['state'] in ('clean', 'dirty',
+            assert repo_status['state'] in ('clean', 'dirty', 'out-of-sync',
                                             'missing', 'not_folder', 'not_repo',
                                             'error', 'check_failed')
 

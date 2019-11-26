@@ -66,9 +66,12 @@ def get_repo_status_list(branches=True):
             if branches:
                 branch_list = []
                 for branch in repo.branches:
-                    this_branch = {'name': branch.name,
-                                   'state': get_branch_state(repo, branch.name)}
-                    branch_list.append(this_branch)
+                    branch_state = get_branch_state(repo, branch.name)
+                    branch_info = {'name': branch.name, 'state': branch_state}
+                    branch_list.append(branch_info)
+                    if (repo_status['state'] == 'clean' 
+                        and branch_state != 'synced'):
+                        repo_status['state'] = 'out-of-sync'
                 repo_status['branches'] = branch_list
         repo_status_list.append(repo_status)
     return repo_status_list
@@ -188,7 +191,7 @@ def report(repo, fetch=True):
 def show_all(branches=True):
     """Print out the status of all repos"""
     if not isinstance(branches, bool): raise ValueError
-    repo_status_list = get_repo_status_list()
+    repo_status_list = get_repo_status_list(branches=branches)
     path_count = len(repo_status_list)
     clean_count = 0
     dirty_count = 0
@@ -203,6 +206,12 @@ def show_all(branches=True):
                 print('    ' + get_branch_report(repo['branches']))
         elif repo['state'] == 'dirty':
             print(termcolor.colored(f'{repo["path"]} is dirty.', 
+                                    'blue', attrs=['bold']))
+            dirty_count += 1
+            if branches:
+                print('    ' + get_branch_report(repo['branches']))
+        elif repo['state'] == 'out-of-sync':
+            print(termcolor.colored(f'{repo["path"]} is out of sync with remote.', 
                                     'blue', attrs=['bold']))
             dirty_count += 1
             if branches:
@@ -223,7 +232,7 @@ def show_all(branches=True):
             print(termcolor.colored(f'{repo_path} check failed.', 'red'))
             error_count += 1
         else:
-            print(termcolor.colored(f'{repo["path"]} could not be found.', 
+            print(termcolor.colored(f'{repo["path"]} could not be processed.', 
                                     'red'))
             error_count += 1
     message = f'Checked {path_count} {"path" if path_count == 1 else "paths"}. '
@@ -231,7 +240,9 @@ def show_all(branches=True):
         message += (f'{clean_count if clean_count > 0 else "No"} '
                     f'{"repo is" if clean_count == 1 else "repos are"} clean '
                     f'and {dirty_count if dirty_count > 0 else "no"} '
-                    f'{"repo is" if dirty_count == 1 else "repos are"} dirty. ')
+                    f'{"repo is" if dirty_count == 1 else "repos are"} dirty')
+        if branches: message += ' or out of sync with remote'
+        message += '. '
     if missing_count > 0 or error_count > 0:
         message += (f'Encountered ')
         if missing_count > 0:
@@ -243,6 +254,7 @@ def show_all(branches=True):
             message += (f'{error_count} '
                         f'{"error" if error_count == 1 else "errors"}')
         message += '. '
+    print()
     print(message)
 
 def fetch_all(show_progress=False):
