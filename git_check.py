@@ -52,7 +52,7 @@ def get_repo_status_list(branches=True):
                     branch_state = get_branch_state(repo, branch.name)
                     branch_info = {'name': branch.name, 'state': branch_state}
                     branch_list.append(branch_info)
-                    if (repo_status['state'] == 'clean' 
+                    if (repo_status['state'] == 'clean'
                         and branch_state != 'synced'):
                         repo_status['state'] = 'out-of-sync'
                 repo_status['branches'] = branch_list
@@ -86,12 +86,12 @@ def get_branch_state(repo, branch_name):
     else:
         if branch.commit.hexsha == branch.tracking_branch().commit.hexsha:
             return 'synced'
-        elif branch.commit.hexsha in [log_entry.newhexsha 
-                                      for log_entry 
+        elif branch.commit.hexsha in [log_entry.newhexsha
+                                      for log_entry
                                       in branch.tracking_branch().log()]:
             return 'behind'
-        elif branch.tracking_branch().commit.hexsha in [log_entry.newhexsha 
-                                                        for log_entry 
+        elif branch.tracking_branch().commit.hexsha in [log_entry.newhexsha
+                                                        for log_entry
                                                         in branch.log()]:
             return 'ahead'
         else:
@@ -158,7 +158,7 @@ def report(repo, fetch=True):
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
     if not isinstance(fetch, bool): raise ValueError
     print(termcolor.colored('Checking Git status at '
-                            f'{repo.working_tree_dir}...\n', 
+                            f'{repo.working_tree_dir}...\n',
                             'blue', attrs=['bold']))
     print(termcolor.colored('## Remotes', 'green'))
     list_remotes(repo)
@@ -189,13 +189,13 @@ def show_all(branches=True):
             if branches:
                 print('    ' + get_branch_report(repo['branches']))
         elif repo['state'] == 'dirty':
-            print(termcolor.colored(f'{repo["path"]} is dirty.', 
+            print(termcolor.colored(f'{repo["path"]} is dirty.',
                                     'blue', attrs=['bold']))
             dirty_count += 1
             if branches:
                 print('    ' + get_branch_report(repo['branches']))
         elif repo['state'] == 'out-of-sync':
-            print(termcolor.colored(f'{repo["path"]} is out of sync with remote.', 
+            print(termcolor.colored(f'{repo["path"]} is out of sync with remote.',
                                     'blue', attrs=['bold']))
             dirty_count += 1
             if branches:
@@ -207,7 +207,7 @@ def show_all(branches=True):
             print(termcolor.colored(f'{repo["path"]} is not a folder.', 'red'))
             missing_count += 1
         elif repo['state'] == 'not_repo':
-            print(termcolor.colored(f'{repo["path"]} is not a Git repo', 'red'))
+            print(termcolor.colored(f'{repo["path"]} is not a Git repo.', 'red'))
             missing_count += 1
         elif repo['state'] == 'error':
             print(termcolor.colored(f'{repo["path"]} gave an error.', 'red'))
@@ -216,7 +216,7 @@ def show_all(branches=True):
             print(termcolor.colored(f'{repo["path"]} check failed.', 'red'))
             error_count += 1
         else:
-            print(termcolor.colored(f'{repo["path"]} could not be processed.', 
+            print(termcolor.colored(f'{repo["path"]} could not be processed.',
                                     'red'))
             error_count += 1
     message = f'Checked {path_count} {"path" if path_count == 1 else "paths"}. '
@@ -245,20 +245,20 @@ def fetch_all(show_progress=False):
     """Fetch latest data from all remotes for all repos"""
     if not isinstance(show_progress, bool): raise ValueError
     repo_status_list = get_repo_status_list(branches=False)
-    fetch_list = [repo_status['path'] for repo_status in repo_status_list 
-                  if repo_status['state'] not in ('missing', 'not_folder', 
-                                                   'not_repo', 'error', 
+    fetch_list = [repo_status['path'] for repo_status in repo_status_list
+                  if repo_status['state'] not in ('missing', 'not_folder',
+                                                   'not_repo', 'error',
                                                    'check_failed')]
     for repo_path in fetch_list:
         try:
             repo = git.Repo(repo_path)
-            if show_progress: 
+            if show_progress:
                 print(f'Fetching remotes for {repo_path}...', end=' ')
             fetch_all_remotes(repo, show_progress=False)
-            if show_progress: 
+            if show_progress:
                 print('done.')
         except:
-            if show_progress: 
+            if show_progress:
                 print(termcolor.colored(f'{repo_path} gave an error.', 'red'))
             continue
 
@@ -266,24 +266,24 @@ def report_all(filter='none', fetch=True):
     """Report the full status of all repos"""
     if not isinstance(filter, str): raise ValueError
     if not isinstance(fetch, bool): raise ValueError
-    if not filter in ('none', 'exists', 'dirty', 'out-of-sync', 'not clean'): 
+    if not filter in ('none', 'exists', 'dirty', 'out-of-sync', 'not clean'):
         raise ValueError
     repo_list = get_repo_status_list(branches=True)
-    if filter == 'none': 
+    if filter == 'none':
         repo_path_list = [repo['path'] for repo in repo_list]
     elif filter == 'exists':
-        repo_path_list = [repo['path'] for repo in repo_list 
-                          if repo['state'] not in ('missing', 'not_folder', 
-                                                   'not_repo', 'error', 
+        repo_path_list = [repo['path'] for repo in repo_list
+                          if repo['state'] not in ('missing', 'not_folder',
+                                                   'not_repo', 'error',
                                                    'check_failed')]
     elif filter == 'dirty':
-        repo_path_list = [repo['path'] for repo in repo_list 
+        repo_path_list = [repo['path'] for repo in repo_list
                           if repo['state'] == 'dirty']
     elif filter == 'out-of-sync':
-        repo_path_list = [repo['path'] for repo in repo_list 
+        repo_path_list = [repo['path'] for repo in repo_list
                           if repo['state'] == 'out-of-sync']
     elif filter == 'not clean':
-        repo_path_list = [repo['path'] for repo in repo_list 
+        repo_path_list = [repo['path'] for repo in repo_list
                           if repo['state'] in ('dirty', 'out-of-sync')]
     for repo_path in repo_path_list:
         try:

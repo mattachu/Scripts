@@ -16,8 +16,8 @@ class TestGitCheck:
             scripts_dir = '/home/matt/Code/Scripts'
         else:
             scripts_dir = 'C:\\Users\\Matt\\Code\\Scripts'
-    elif 'MacBook Pro' in hostname:
-        scripts_dir = '/Users/Matt/Code/Scripts'
+    elif 'MacBook' in hostname:
+        scripts_dir = '/Users/matt/Code/Scripts'
     elif hostname == 'ubuntu42':
         scripts_dir = '/home/matt/Code/Scripts'
 
@@ -188,13 +188,13 @@ class TestGitCheck:
 
     # Test get_branch_state method
     def test_get_branch_state_no_output(self, capsys):
-        self.branch_status = git_check.get_branch_state(self.test_repo, 
+        self.branch_status = git_check.get_branch_state(self.test_repo,
                                                          'master')
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     def test_get_branch_state_return_value(self):
-        self.branch_status = git_check.get_branch_state(self.test_repo, 
+        self.branch_status = git_check.get_branch_state(self.test_repo,
                                                         'master')
         assert isinstance(self.branch_status, str)
         assert self.branch_status in ('synced', 'behind', 'ahead',
