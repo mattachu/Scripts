@@ -323,10 +323,25 @@ def main():
     show_all(branches=False)
     print()
     prompt = 'Do you want to fetch data for all repos? [Y/n] '
-    if not input(prompt).lower() in ['n', 'no']:
+    fetch_response = input(prompt)
+    if fetch_response.lower() in ['n', 'no']:
+        fetch_later = True
+    else:
         fetch_all(show_progress=True)
+        fetch_later = False
         print()
         show_all(branches=True)
+        print()
+    prompt = ('Do you want to see more details for '
+              '[A]ll repos, [D]irty and out-of-sync repos, or [N]o details? '
+              '[A/D/N] ')
+    details_response = input(prompt)
+    if details_response.lower() in ['a', 'all', 'al']:
+        print()
+        report_all(filter='exists', fetch=fetch_later)
+    elif details_response.lower() in ['d', 'dirty', 'dirt', 'o', 'out-of-sync', 'out']:
+        print()
+        report_all(filter='not clean', fetch=fetch_later)
 
 
 # What to do when run as a script
