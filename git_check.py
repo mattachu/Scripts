@@ -207,7 +207,7 @@ def show_all(branches=True):
             print(termcolor.colored(f'{repo["path"]} is not a folder.', 'red'))
             missing_count += 1
         elif repo['state'] == 'not_repo':
-            print(termcolor.colored(f'{repo["path"]} is not a Git repo', 'red'))
+            print(termcolor.colored(f'{repo["path"]} is not a Git repo.', 'red'))
             missing_count += 1
         elif repo['state'] == 'error':
             print(termcolor.colored(f'{repo["path"]} gave an error.', 'red'))
