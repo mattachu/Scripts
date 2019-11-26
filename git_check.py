@@ -277,10 +277,29 @@ def fetch_all(show_progress=False):
                 print(termcolor.colored(f'{repo_path} gave an error.', 'red'))
             continue
 
-def report_all(fetch=True):
+def report_all(filter='none', fetch=True):
     """Report the full status of all repos"""
+    if not isinstance(filter, str): raise ValueError
     if not isinstance(fetch, bool): raise ValueError
-    repo_path_list = get_repo_path_list()
+    if not filter in ('none', 'exists', 'dirty', 'out-of-sync', 'not clean'): 
+        raise ValueError
+    repo_list = get_repo_status_list(branches=True)
+    if filter == 'none': 
+        repo_path_list = [repo['path'] for repo in repo_list]
+    elif filter == 'exists':
+        repo_path_list = [repo['path'] for repo in repo_list 
+                          if repo['state'] not in ('missing', 'not_folder', 
+                                                   'not_repo', 'error', 
+                                                   'check_failed')]
+    elif filter == 'dirty':
+        repo_path_list = [repo['path'] for repo in repo_list 
+                          if repo['state'] == 'dirty']
+    elif filter == 'out-of-sync':
+        repo_path_list = [repo['path'] for repo in repo_list 
+                          if repo['state'] == 'out-of-sync']
+    elif filter == 'not clean':
+        repo_path_list = [repo['path'] for repo in repo_list 
+                          if repo['state'] in ('dirty', 'out-of-sync')]
     for repo in repo_path_list:
         try:
             if not repo.is_dir:

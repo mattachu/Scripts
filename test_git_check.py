@@ -539,6 +539,13 @@ class TestGitCheck:
         captured = capsys.readouterr()
         assert 'Fetch' in captured.out
 
+    def test_report_all_input(self):
+        git_check.report_all(filter='none', fetch=False)
+        git_check.report_all(filter='exists', fetch=False)
+        git_check.report_all(filter='dirty', fetch=False)
+        git_check.report_all(filter='out-of-sync', fetch=False)
+        git_check.report_all(filter='not clean', fetch=False)
+
     def test_report_all_invalid_input(self):
         with pytest.raises(ValueError):
             git_check.report_all(fetch='false')
@@ -558,3 +565,17 @@ class TestGitCheck:
             git_check.report_all(fetch='/')
         with pytest.raises(ValueError):
             git_check.report_all(fetch=self.test_repo)
+        with pytest.raises(ValueError):
+            git_check.report_all(filter='random text', fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report_all(filter=False, fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report_all(filter=None, fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report_all(filter=3.142, fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report_all(filter=99999999, fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report_all(filter='/', fetch=False)
+        with pytest.raises(ValueError):
+            git_check.report_all(filter=self.test_repo, fetch=False)
