@@ -5,13 +5,17 @@ import pytest
 import git
 import pathlib
 import socket
+import sys
 
 class TestGitCheck:
 
     # Set paths
     hostname = socket.gethostname()
     if hostname == 'MJEaston':
-        scripts_dir = 'C:\\Users\\Matt\\Code\\Scripts'
+        if sys.platform.startswith('linux'):
+            scripts_dir = '/home/matt/Code/Scripts'
+        else:
+            scripts_dir = 'C:\\Users\\Matt\\Code\\Scripts'
     elif 'MacBook Pro' in hostname:
         scripts_dir = '/Users/Matt/Code/Scripts'
     elif hostname == 'ubuntu42':
