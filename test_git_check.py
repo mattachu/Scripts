@@ -16,8 +16,8 @@ class TestGitCheck:
             scripts_dir = '/home/matt/Code/Scripts'
         else:
             scripts_dir = 'C:\\Users\\Matt\\Code\\Scripts'
-    elif 'MacBook Pro' in hostname:
-        scripts_dir = '/Users/Matt/Code/Scripts'
+    elif 'MacBook' in hostname:
+        scripts_dir = '/Users/matt/Code/Scripts'
     elif hostname == 'ubuntu42':
         scripts_dir = '/home/matt/Code/Scripts'
 
