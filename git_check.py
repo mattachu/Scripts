@@ -51,7 +51,7 @@ def get_repo_status_list(branches=True):
             elif not repo_path.is_dir():
                 repo_status['state'] = 'not_folder'
             else:
-                repo = git.Repo(repo_path)
+                repo = git.Repo(str(repo_path))
                 if repo.is_dirty() or len(repo.untracked_files) > 0:
                     repo_status['state'] = 'dirty'
                 else:
@@ -264,7 +264,7 @@ def fetch_all(show_progress=False):
     for repo_path in repo_path_list:
         try:
             if repo_path.is_dir():
-                repo = git.Repo(repo_path)
+                repo = git.Repo(str(repo_path))
                 if show_progress: 
                     print(f'Fetching remotes for {repo_path}...', end=' ')
                 fetch_all_remotes(repo, show_progress=False)
@@ -306,7 +306,7 @@ def report_all(filter='none', fetch=True):
                 print(f'\nCannot find folder {repo}. Continuing...\n')
                 continue
             else:
-                repo = git.Repo(repo)
+                repo = git.Repo(str(repo))
                 report(repo, fetch=fetch)
         except git.exc.InvalidGitRepositoryError:
             print(f'\nFolder {repo} is not a Git repository. Continuing...\n')

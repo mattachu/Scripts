@@ -20,7 +20,7 @@ class TestGitCheck:
     # Setup before testing
     def setup_class(self):
         self.test_dir = self.scripts_dir
-        self.test_repo = git.Repo(pathlib.Path(self.test_dir))
+        self.test_repo = git.Repo(self.test_dir)
 
 
     # Test get_repo_path_list method
@@ -139,9 +139,9 @@ class TestGitCheck:
 
     def test_list_remotes_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
-            git_check.list_remotes(git.Repo(pathlib.Path('/not/a/path')))
+            git_check.list_remotes(git.Repo('/not/a/path'))
         with pytest.raises(git.exc.InvalidGitRepositoryError):
-            git_check.list_remotes(git.Repo(pathlib.Path('/')))
+            git_check.list_remotes(git.Repo('/'))
 
     # Test list_branches method
     def test_list_branches_header(self, capsys):
@@ -170,9 +170,9 @@ class TestGitCheck:
 
     def test_list_branches_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
-            git_check.list_branches(git.Repo(pathlib.Path('/not/a/path')))
+            git_check.list_branches(git.Repo('/not/a/path'))
         with pytest.raises(git.exc.InvalidGitRepositoryError):
-            git_check.list_branches(git.Repo(pathlib.Path('/')))
+            git_check.list_branches(git.Repo('/'))
 
     # Test get_branch_state method
     def test_get_branch_state_no_output(self, capsys):
@@ -208,10 +208,10 @@ class TestGitCheck:
 
     def test_get_branch_state_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
-            git_check.get_branch_state(git.Repo(pathlib.Path('/not/a/path')),
+            git_check.get_branch_state(git.Repo('/not/a/path'),
                                         'master')
         with pytest.raises(git.exc.InvalidGitRepositoryError):
-            git_check.get_branch_state(git.Repo(pathlib.Path('/')),
+            git_check.get_branch_state(git.Repo('/'),
                                         'master')
 
     def test_get_branch_state_invalid_branch(self):
@@ -291,9 +291,9 @@ class TestGitCheck:
 
     def test_show_status_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
-            git_check.show_status(git.Repo(pathlib.Path('/not/a/path')))
+            git_check.show_status(git.Repo('/not/a/path'))
         with pytest.raises(git.exc.InvalidGitRepositoryError):
-            git_check.show_status(git.Repo(pathlib.Path('/')))
+            git_check.show_status(git.Repo('/'))
 
     # Test fetch_all_remotes method
     @pytest.mark.slow
@@ -364,9 +364,9 @@ class TestGitCheck:
 
     def test_fetch_all_remotes_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
-            git_check.fetch_all_remotes(git.Repo(pathlib.Path('/not/a/path')))
+            git_check.fetch_all_remotes(git.Repo('/not/a/path'))
         with pytest.raises(git.exc.InvalidGitRepositoryError):
-            git_check.fetch_all_remotes(git.Repo(pathlib.Path('/')))
+            git_check.fetch_all_remotes(git.Repo('/'))
 
     # Test report method
     def test_report_output_no_fetch(self, capsys):
@@ -425,9 +425,9 @@ class TestGitCheck:
 
     def test_report_invalid_repo(self):
         with pytest.raises(git.exc.NoSuchPathError):
-            git_check.report(git.Repo(pathlib.Path('/not/a/path')), fetch=False)
+            git_check.report(git.Repo('/not/a/path'), fetch=False)
         with pytest.raises(git.exc.InvalidGitRepositoryError):
-            git_check.report(git.Repo(pathlib.Path('/')), fetch=False)
+            git_check.report(git.Repo('/'), fetch=False)
 
 
     # Test show_all method
