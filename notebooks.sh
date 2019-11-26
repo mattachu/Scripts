@@ -132,7 +132,8 @@ function convertSalaryTable()
         if [[ ! -n "$outputFile" ]]; then
             outputFile="$tempFile"
         fi
-        convertSalaryHeaders "$inputFile" > "$outputFile"
+        getSalaryDescription > "$outputFile"
+        convertSalaryHeaders "$inputFile" >> "$outputFile"
         convertSalaryBody "$inputFile" >> "$outputFile"
         if [[ "$outputFile" == "$tempFile" ]]; then
             mv "$tempFile" "$inputFile"
@@ -742,6 +743,13 @@ function hasSummaryLine()
 
 # ------------------------------------------------------------------------------
 # Functions for processing salary tables
+
+# Function to output salary file description
+function getSalaryDescription()
+{
+    echo "Record of salary payments from PKU."
+    echo
+}
 
 # Function to process the headers for a salary table file copied from Excel
 function convertSalaryHeaders()
