@@ -3,40 +3,23 @@
 import git
 import pathlib
 import socket
-from tabulate import tabulate
+import tabulate
 import termcolor
 import colorama
+import configparser
 
 
 # Methods working with list of repos
-def get_repo_path_list():
+def get_repo_path_list(config_file=None):
     """Get lists of all paths to check Git status"""
-    home_folder = pathlib.Path.home()
-    code_folder = home_folder.joinpath('Code')
-    scripts_folder = code_folder.joinpath('Scripts')
-    hostname = socket.gethostname()
-    if hostname == 'MJEaston':
-        docs_folder = home_folder.joinpath('OneDrive/Documents')
-        sim_folder = pathlib.Path('D:/Simulations/Current')
-    elif 'MacBook Pro' in hostname:
-        docs_folder = home_folder.joinpath('OneDrive/Documents')
-        sim_folder = home_folder.joinpath('Code/CurrentSimulation')
-    elif hostname == 'ubuntu42':
-        docs_folder = home_folder.joinpath('Documents')
-        sim_folder = home_folder.joinpath('Simulations/Current')
-    return[scripts_folder,
-           sim_folder,
-           code_folder.joinpath('Impact'),
-           code_folder.joinpath('Reproducible'),
-           code_folder.joinpath('runLORASR'),
-           code_folder.joinpath('sweep'),
-           code_folder.joinpath('OPAL'),
-           code_folder.joinpath('BDSIM'),
-           docs_folder.joinpath('Projects'),
-           docs_folder.joinpath('Presentations'),
-           docs_folder.joinpath('Editing'),
-           docs_folder.joinpath('Manuscripts'),
-           docs_folder.joinpath('Notebooks')]
+    if not config_file:
+        config_file = str(pathlib.Path.home().joinpath('paths.ini'))
+    if not isinstance(config_file, str): raise ValueError
+    if not pathlib.Path(config_file).is_file():
+        raise OSError(f'Cannot find config file: {config_file}')
+    path_config = configparser.ConfigParser()
+    path_config.read(config_file)
+    return path_config['Git'].get('repos').split('\n')
 
 def get_repo_status_list(branches=True):
     """Get status of all repos and return a list with status details"""
@@ -46,12 +29,12 @@ def get_repo_status_list(branches=True):
     for repo_path in repo_path_list:
         repo_status = {'path': repo_path}
         try:
-            if not repo_path.exists():
+            if not pathlib.Path(repo_path).exists():
                 repo_status['state'] = 'missing'
-            elif not repo_path.is_dir():
+            elif not pathlib.Path(repo_path).is_dir():
                 repo_status['state'] = 'not_folder'
             else:
-                repo = git.Repo(str(repo_path))
+                repo = git.Repo(repo_path)
                 if repo.is_dirty() or len(repo.untracked_files) > 0:
                     repo_status['state'] = 'dirty'
                 else:
@@ -81,17 +64,15 @@ def get_repo_status_list(branches=True):
 def list_remotes(repo):
     """List all remotes (with urls) of a given repo"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Remotes')
     remote_list = []
     for remote in repo.remotes:
         remote_list.append([str(remote.name) + ":",
                             str([url for url in remote.urls]).strip("'[]")])
-    print(tabulate(remote_list, tablefmt='plain'))
+    print(tabulate.tabulate(remote_list, tablefmt='plain'))
 
 def list_branches(repo):
     """List all branches of a given repo"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Branches')
     print(repo.git.branch(['-vv', '--all']))
 
 def get_branch_state(repo, branch_name):
@@ -161,7 +142,6 @@ def get_branch_report(branch_state_list):
 def show_status(repo):
     """Show the status of the given repo and its working tree"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
-    print('## Status')
     print(repo.git.status())
 
 def fetch_all_remotes(repo, show_progress=False):
@@ -177,12 +157,17 @@ def report(repo, fetch=True):
     """Report remotes, branches and status of given repo"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
     if not isinstance(fetch, bool): raise ValueError
-    print(f'Checking Git status at {repo.working_tree_dir}...\n')
+    print(termcolor.colored('Checking Git status at '
+                            f'{repo.working_tree_dir}...\n', 
+                            'blue', attrs=['bold']))
+    print(termcolor.colored('## Remotes', 'green'))
     list_remotes(repo)
     if fetch: fetch_all_remotes(repo, show_progress=True)
     print()
+    print(termcolor.colored('## Branches', 'green'))
     list_branches(repo)
     print()
+    print(termcolor.colored('## Status', 'green'))
     show_status(repo)
     print()
 
@@ -197,7 +182,6 @@ def show_all(branches=True):
     dirty_count = 0
     missing_count = 0
     error_count = 0
-    colorama.init()
     for repo in repo_status_list:
         if repo['state'] == 'clean':
             print(termcolor.colored(f'{repo["path"]} is clean.', 'green'))
@@ -260,18 +244,19 @@ def show_all(branches=True):
 def fetch_all(show_progress=False):
     """Fetch latest data from all remotes for all repos"""
     if not isinstance(show_progress, bool): raise ValueError
-    repo_path_list = get_repo_path_list()
-    for repo_path in repo_path_list:
+    repo_status_list = get_repo_status_list(branches=False)
+    fetch_list = [repo_status['path'] for repo_status in repo_status_list 
+                  if repo_status['state'] not in ('missing', 'not_folder', 
+                                                   'not_repo', 'error', 
+                                                   'check_failed')]
+    for repo_path in fetch_list:
         try:
-            if repo_path.is_dir():
-                repo = git.Repo(str(repo_path))
-                if show_progress: 
-                    print(f'Fetching remotes for {repo_path}...', end=' ')
-                fetch_all_remotes(repo, show_progress=False)
-                if show_progress: 
-                    print('done.')
-        except git.exc.InvalidGitRepositoryError:
-            continue
+            repo = git.Repo(repo_path)
+            if show_progress: 
+                print(f'Fetching remotes for {repo_path}...', end=' ')
+            fetch_all_remotes(repo, show_progress=False)
+            if show_progress: 
+                print('done.')
         except:
             if show_progress: 
                 print(termcolor.colored(f'{repo_path} gave an error.', 'red'))
@@ -300,13 +285,13 @@ def report_all(filter='none', fetch=True):
     elif filter == 'not clean':
         repo_path_list = [repo['path'] for repo in repo_list 
                           if repo['state'] in ('dirty', 'out-of-sync')]
-    for repo in repo_path_list:
+    for repo_path in repo_path_list:
         try:
-            if not repo.is_dir:
+            if not pathlib.Path(repo_path).is_dir:
                 print(f'\nCannot find folder {repo}. Continuing...\n')
                 continue
             else:
-                repo = git.Repo(str(repo))
+                repo = git.Repo(repo_path)
                 report(repo, fetch=fetch)
         except git.exc.InvalidGitRepositoryError:
             print(f'\nFolder {repo} is not a Git repository. Continuing...\n')
@@ -346,6 +331,7 @@ def main():
 
 # What to do when run as a script
 if __name__ == '__main__':
+    colorama.init()
     main()
     print()
     input('Press [Enter] to finish.')

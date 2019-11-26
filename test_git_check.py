@@ -37,11 +37,29 @@ class TestGitCheck:
         self.repo_path_list = git_check.get_repo_path_list()
         assert isinstance(self.repo_path_list, list)
         for repo_path in self.repo_path_list:
-            assert isinstance(repo_path, pathlib.Path)
+            assert isinstance(repo_path, str)
 
     def test_get_repo_path_list_contains_scripts(self):
         self.repo_path_list = git_check.get_repo_path_list()
-        assert pathlib.Path(self.scripts_dir) in self.repo_path_list
+        assert self.scripts_dir in self.repo_path_list
+
+    def test_get_repo_path_list_invalid_input(self):
+        with pytest.raises(ValueError):
+            git_check.get_repo_path_list(self.test_repo)
+        with pytest.raises(ValueError):
+            git_check.get_repo_path_list(3.142)
+        with pytest.raises(ValueError):
+            git_check.get_repo_path_list(99999999)
+        with pytest.raises(ValueError):
+            git_check.get_repo_path_list([self.test_dir, '/usr/bin/'])
+
+    def test_get_repo_path_list_invalid_file(self):
+        with pytest.raises(OSError):
+            git_check.get_repo_path_list('Random text')
+        with pytest.raises(OSError):
+            git_check.get_repo_path_list('/not/a/path/')
+        with pytest.raises(OSError):
+            git_check.get_repo_path_list('/')
 
     # Test get_repo_status_list method
     def test_get_repo_status_list_no_output(self, capsys):
@@ -53,7 +71,7 @@ class TestGitCheck:
         self.status_list = git_check.get_repo_status_list()
         self.found_scripts = False
         for repo_status in self.status_list:
-            if repo_status['path'] == pathlib.Path(self.scripts_dir):
+            if repo_status['path'] == self.scripts_dir:
                 self.found_scripts = True
         assert self.found_scripts == True
 
@@ -67,7 +85,7 @@ class TestGitCheck:
         for repo_status in self.status_list:
             assert 'path' in repo_status
             assert 'state' in repo_status
-            assert isinstance(repo_status['path'], pathlib.Path)
+            assert isinstance(repo_status['path'], str)
             assert isinstance(repo_status['state'], str)
             assert repo_status['state'] in ('clean', 'dirty', 'out-of-sync',
                                             'missing', 'not_folder', 'not_repo',
@@ -122,11 +140,6 @@ class TestGitCheck:
 
 
     # Test list_remotes method
-    def test_list_remotes_header(self, capsys):
-        git_check.list_remotes(self.test_repo)
-        captured = capsys.readouterr()
-        assert captured.out.startswith('## Remotes')
-
     def test_list_remotes_invalid_input(self):
         with pytest.raises(ValueError):
             git_check.list_remotes(self.test_dir)
@@ -148,11 +161,6 @@ class TestGitCheck:
             git_check.list_remotes(git.Repo('/'))
 
     # Test list_branches method
-    def test_list_branches_header(self, capsys):
-        git_check.list_branches(self.test_repo)
-        captured = capsys.readouterr()
-        assert captured.out.startswith('## Branches')
-
     def test_list_branches_contains_at_least_one_branch(self, capsys):
         git_check.list_branches(self.test_repo)
         captured = capsys.readouterr()
@@ -269,15 +277,10 @@ class TestGitCheck:
             git_check.get_branch_report('C:\\Windows\\')
 
     # Test show_status method
-    def test_show_status_header(self, capsys):
-        git_check.show_status(self.test_repo)
-        captured = capsys.readouterr()
-        assert captured.out.startswith('## Status')
-
     def test_show_status_contains_at_least_something(self, capsys):
         git_check.show_status(self.test_repo)
         captured = capsys.readouterr()
-        assert captured.out != '## Status\n'
+        assert len(captured.out) > 0
 
     def test_show_status_invalid_input(self):
         with pytest.raises(ValueError):
