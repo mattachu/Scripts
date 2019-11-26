@@ -6,37 +6,20 @@ import socket
 import tabulate
 import termcolor
 import colorama
+import configparser
 
 
 # Methods working with list of repos
-def get_repo_path_list():
+def get_repo_path_list(config_file=None):
     """Get lists of all paths to check Git status"""
-    home_folder = pathlib.Path.home()
-    code_folder = home_folder.joinpath('Code')
-    scripts_folder = code_folder.joinpath('Scripts')
-    hostname = socket.gethostname()
-    if hostname == 'MJEaston':
-        docs_folder = home_folder.joinpath('OneDrive/Documents')
-        sim_folder = pathlib.Path('D:/Simulations/Current')
-    elif 'MacBook Pro' in hostname:
-        docs_folder = home_folder.joinpath('OneDrive/Documents')
-        sim_folder = home_folder.joinpath('Code/CurrentSimulation')
-    elif hostname == 'ubuntu42':
-        docs_folder = home_folder.joinpath('Documents')
-        sim_folder = home_folder.joinpath('Simulations/Current')
-    return[scripts_folder,
-           sim_folder,
-           code_folder.joinpath('Impact'),
-           code_folder.joinpath('Reproducible'),
-           code_folder.joinpath('runLORASR'),
-           code_folder.joinpath('sweep'),
-           code_folder.joinpath('OPAL'),
-           code_folder.joinpath('BDSIM'),
-           docs_folder.joinpath('Projects'),
-           docs_folder.joinpath('Presentations'),
-           docs_folder.joinpath('Editing'),
-           docs_folder.joinpath('Manuscripts'),
-           docs_folder.joinpath('Notebooks')]
+    if not config_file:
+        config_file = str(pathlib.Path.home().joinpath('paths.ini'))
+    if not isinstance(config_file, str): raise ValueError
+    if not pathlib.Path(config_file).is_file():
+        raise OSError(f'Cannot find config file: {config_file}')
+    path_config = configparser.ConfigParser()
+    path_config.read(config_file)
+    return path_config['Git'].get('repos').split('\n')
 
 def get_repo_status_list(branches=True):
     """Get status of all repos and return a list with status details"""
@@ -46,12 +29,12 @@ def get_repo_status_list(branches=True):
     for repo_path in repo_path_list:
         repo_status = {'path': repo_path}
         try:
-            if not repo_path.exists():
+            if not pathlib.Path(repo_path).exists():
                 repo_status['state'] = 'missing'
-            elif not repo_path.is_dir():
+            elif not pathlib.Path(repo_path).is_dir():
                 repo_status['state'] = 'not_folder'
             else:
-                repo = git.Repo(str(repo_path))
+                repo = git.Repo(repo_path)
                 if repo.is_dirty() or len(repo.untracked_files) > 0:
                     repo_status['state'] = 'dirty'
                 else:
@@ -260,18 +243,19 @@ def show_all(branches=True):
 def fetch_all(show_progress=False):
     """Fetch latest data from all remotes for all repos"""
     if not isinstance(show_progress, bool): raise ValueError
-    repo_path_list = get_repo_path_list()
-    for repo_path in repo_path_list:
+    repo_status_list = get_repo_status_list(branches=False)
+    fetch_list = [repo_status['path'] for repo_status in repo_status_list 
+                  if repo_status['state'] not in ('missing', 'not_folder', 
+                                                   'not_repo', 'error', 
+                                                   'check_failed')]
+    for repo_path in fetch_list:
         try:
-            if repo_path.is_dir():
-                repo = git.Repo(str(repo_path))
-                if show_progress: 
-                    print(f'Fetching remotes for {repo_path}...', end=' ')
-                fetch_all_remotes(repo, show_progress=False)
-                if show_progress: 
-                    print('done.')
-        except git.exc.InvalidGitRepositoryError:
-            continue
+            repo = git.Repo(repo_path)
+            if show_progress: 
+                print(f'Fetching remotes for {repo_path}...', end=' ')
+            fetch_all_remotes(repo, show_progress=False)
+            if show_progress: 
+                print('done.')
         except:
             if show_progress: 
                 print(termcolor.colored(f'{repo_path} gave an error.', 'red'))
@@ -300,13 +284,13 @@ def report_all(filter='none', fetch=True):
     elif filter == 'not clean':
         repo_path_list = [repo['path'] for repo in repo_list 
                           if repo['state'] in ('dirty', 'out-of-sync')]
-    for repo in repo_path_list:
+    for repo_path in repo_path_list:
         try:
-            if not repo.is_dir:
+            if not pathlib.Path(repo_path).is_dir:
                 print(f'\nCannot find folder {repo}. Continuing...\n')
                 continue
             else:
-                repo = git.Repo(str(repo))
+                repo = git.Repo(repo_path)
                 report(repo, fetch=fetch)
         except git.exc.InvalidGitRepositoryError:
             print(f'\nFolder {repo} is not a Git repository. Continuing...\n')
