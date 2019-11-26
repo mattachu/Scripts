@@ -24,16 +24,23 @@ class TestGitCheck:
 
 
     # Test get_repo_path_list method
-    def test_get_repo_path_list_return_type(self):
+    def test_get_repo_path_list_no_output(self, capsys):
+        self.status_list = git_check.get_repo_path_list()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_get_repo_path_list_return_types(self):
         self.repo_path_list = git_check.get_repo_path_list()
         assert isinstance(self.repo_path_list, list)
+        for repo_path in self.repo_path_list:
+            assert isinstance(repo_path, pathlib.Path)
 
     def test_get_repo_path_list_contains_scripts(self):
         self.repo_path_list = git_check.get_repo_path_list()
         assert pathlib.Path(self.scripts_dir) in self.repo_path_list
 
     # Test get_repo_status_list method
-    def test_get_repo_status_list_output(self, capsys):
+    def test_get_repo_status_list_no_output(self, capsys):
         self.status_list = git_check.get_repo_status_list()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
@@ -56,12 +63,25 @@ class TestGitCheck:
         for repo_status in self.status_list:
             assert 'path' in repo_status
             assert 'state' in repo_status
+            assert isinstance(repo_status['path'], pathlib.Path)
+            assert isinstance(repo_status['state'], str)
+            assert repo_status['state'] in ('clean', 'dirty',
+                                            'missing', 'not_folder', 'not_repo',
+                                            'error', 'check_failed')
 
     def test_get_repo_status_list_contents_with_branches(self):
         self.status_list = git_check.get_repo_status_list(branches=True)
         for repo_status in self.status_list:
             if repo_status['state'] in ['clean', 'dirty']:
                 assert 'branches' in repo_status
+                assert isinstance(repo_status['branches'], list)
+                assert len(repo_status['branches']) > 0
+                for branch_info in repo_status['branches']:
+                    assert isinstance(branch_info, dict)
+                    assert isinstance(branch_info['name'], str)
+                    assert isinstance(branch_info['state'], str)
+                    assert branch_info['state'] in ('synced', 'behind', 'ahead',
+                                                    'out-of-sync', 'untracked')
 
     def test_get_repo_status_list_contents_no_branches(self):
         self.status_list = git_check.get_repo_status_list(branches=False)
@@ -155,16 +175,18 @@ class TestGitCheck:
             git_check.list_branches(git.Repo(pathlib.Path('/')))
 
     # Test get_branch_state method
-    def test_get_branch_state_output(self, capsys):
+    def test_get_branch_state_no_output(self, capsys):
         self.branch_status = git_check.get_branch_state(self.test_repo, 
                                                          'master')
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_get_branch_state_return_type(self):
+    def test_get_branch_state_return_value(self):
         self.branch_status = git_check.get_branch_state(self.test_repo, 
-                                                         'master')
+                                                        'master')
         assert isinstance(self.branch_status, str)
+        assert self.branch_status in ('synced', 'behind', 'ahead',
+                                      'out-of-sync', 'untracked')
 
     def test_get_branch_state_invalid_input(self):
         with pytest.raises(ValueError):
