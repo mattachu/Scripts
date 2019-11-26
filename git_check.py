@@ -10,6 +10,7 @@ import colorama
 
 # Methods working with list of repos
 def get_repo_path_list():
+    """Get lists of all paths to check Git status"""
     home_folder = pathlib.Path.home()
     code_folder = home_folder.joinpath('Code')
     scripts_folder = code_folder.joinpath('Scripts')
@@ -38,6 +39,7 @@ def get_repo_path_list():
            docs_folder.joinpath('Notebooks')]
 
 def get_repo_status_list(branches=True):
+    """Get status of all repos and return a list with status details"""
     repo_path_list = get_repo_path_list()
     repo_status_list = []
     for repo_path in repo_path_list:
@@ -111,6 +113,7 @@ def get_branch_state(repo, branch_name):
             return 'out-of-sync'
 
 def get_branch_report(branch_state_list):
+    """Summarise the branch status of a repo as a human-readable string"""
     if not isinstance(branch_state_list, list): raise ValueError
     if len(branch_state_list) == 0: raise ValueError
     for item in branch_state_list:
@@ -180,6 +183,7 @@ def report(repo, fetch=True):
 
 # Methods working through all repos
 def show_all(branches=True):
+    """Print out the status of all repos"""
     repo_status_list = get_repo_status_list()
     path_count = len(repo_status_list)
     clean_count = 0
@@ -257,6 +261,7 @@ def fetch_all(show_progress=False):
             continue
 
 def report_all(fetch=True):
+    """Report the full status of all repos"""
     repo_path_list = get_repo_path_list()
     for repo in repo_path_list:
         try:
@@ -276,6 +281,7 @@ def report_all(fetch=True):
 
 # Main routine
 def main():
+    """Main routine that runs through the check and report process"""
     print('Current status:\n')
     show_all(branches=False)
     print()
@@ -285,6 +291,8 @@ def main():
         print()
         show_all(branches=True)
 
+
+# What to do when run as a script
 if __name__ == '__main__':
     main()
     print()
