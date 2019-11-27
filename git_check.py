@@ -1,5 +1,7 @@
 # Check current _Git_ status
 
+import sys
+import os
 import git
 import pathlib
 import socket
@@ -13,7 +15,15 @@ import configparser
 def get_repo_path_list(config_file=None):
     """Get lists of all paths to check Git status"""
     if not config_file:
-        config_file = str(pathlib.Path.home().joinpath('paths.ini'))
+        if sys.platform.startswith('darwin'):
+            config_path = pathlib.Path.home().joinpath('Library')
+            config_path = config_path.joinpath('Scripts')
+        elif sys.platform.startswith('win'):
+            config_path = pathlib.Path(os.getenv('APPDATA'))
+            config_path = config_path.joinpath('Scripts')
+        else:
+            config_path = pathlib.Path.home()
+        config_file = str(config_path.joinpath('paths.ini'))
     if not isinstance(config_file, str): raise ValueError
     if not pathlib.Path(config_file).is_file():
         raise OSError(f'Cannot find config file: {config_file}')
