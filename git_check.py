@@ -311,8 +311,8 @@ def report_all(filter='none', fetch=True):
             continue
 
 
-# Main routine
-def main():
+# Overview routine
+def overview():
     """Main routine that runs through the check and report process"""
     print('Current status:\n')
     show_all(branches=False)
@@ -342,6 +342,20 @@ def main():
 # What to do when run as a script
 if __name__ == '__main__':
     colorama.init()
-    main()
-    print()
-    input('Press [Enter] to finish.')
+    if len(sys.argv) > 1:
+        try:
+            repo = git.Repo(sys.argv[1])
+        except git.exc.NoSuchPathError:
+            print(termcolor.colored('Path given as command-line argument '
+                                    'does not exist.\n', 'red'))
+            raise
+        except git.exc.InvalidGitRepositoryError:
+            print(termcolor.colored('Path given as command-line argument '
+                                    'is not a Git repo.\n', 'red'))
+            raise
+        else:
+            report(repo, fetch=True)
+    else:
+        overview()
+        print()
+        input('Press [Enter] to finish.')
