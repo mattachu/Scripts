@@ -9,6 +9,8 @@ alias beep="echo -e '\a'"
 alias transfer="rsync --archive --update --delete --max-size=50M --verbose ~/Simulations/Current/ ~/Simulations/Transfer/"
 alias run-tests="./run-tests.sh"
 alias sync-usb="unison -fat -rsrc false ${SYNC_FOLDER}/ ${USB_FOLDER}/"
+alias git-check="python3 ${SCRIPTS_FOLDER}/git_check.py ."
+alias git-check-all="python3 ${SCRIPTS_FOLDER}/git_check.py"
 
 # Load certain environments (machine specific)
 if [[ "$(uname)" == "Darwin" ]]; then

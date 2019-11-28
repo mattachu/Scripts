@@ -301,9 +301,6 @@ if [ -r "${HOME}/.bash_functions" ]; then
 fi
 
 # Personal scripts
-if [ -r "${SCRIPTS_FOLDER}/git.sh" ]; then
-    source "${SCRIPTS_FOLDER}/git.sh"
-fi
 if [ -r "${SCRIPTS_FOLDER}/tmate.sh" ]; then
     source "${SCRIPTS_FOLDER}/tmate.sh"
 fi
