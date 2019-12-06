@@ -38,7 +38,8 @@ const char    *_PHASE_CANVAS_NAME     = "impact_phase_plot";
 const char    *_PHASE_CANVAS_TITLE    = "Impact-T phase space plot";
 const Int_t    _PHASE_CANVAS_WIDTH    = 802;
 const Int_t    _PHASE_CANVAS_HEIGHT   = 825;
-// - settings for special phase space numbers
+// - settings for special file numbers
+const Int_t    _BUNCH_COUNT           = 11;
 const Int_t    _PHASE_START           = 40;
 const Int_t    _PHASE_END             = 50;
 // - settings for final energy plot
@@ -298,8 +299,20 @@ void TImpactData::Load(std::vector<Int_t> bpmList)
 // - wrapper method to load all data types
 void TImpactData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList)
 {
-    this->_LoadBunches(bunchCount);
-    this->_LoadPhaseSpaceData(this->_bunchCount, _PHASE_START);
+    std::string filename = "fort." + std::to_string(_BUNCH_COUNT);
+    if (this->_FileExists(filename)) {
+        this->_LoadBunches(bunchCount);
+    } 
+    else {
+        printf("Missing file: %s\n", filename.c_str());
+    }
+    filename = "fort." + std::to_string(_PHASE_START);
+    if (this->_FileExists(filename)) {
+        this->_LoadPhaseSpaceData(this->_bunchCount, _PHASE_START);
+    } 
+    else {
+        printf("Missing file: %s\n", filename.c_str());
+    }
     if (!bpmList.empty()) {
         for (
             std::vector<Int_t>::iterator it = bpmList.begin();
@@ -307,10 +320,22 @@ void TImpactData::_LoadAll(Int_t bunchCount, std::vector<Int_t> bpmList)
             ++it
         )
         {
-            this->_LoadPhaseSpaceData(this->_bunchCount, *it);
+            filename = "fort." + std::to_string(*it);
+            if (this->_FileExists(filename)) {
+                this->_LoadPhaseSpaceData(this->_bunchCount, *it);
+            }
+            else {
+                printf("Missing file: %s\n", filename.c_str());
+            }
         }
     }
-    this->_LoadPhaseSpaceData(this->_bunchCount, _PHASE_END);
+    filename = "fort." + std::to_string(_PHASE_END);
+    if (this->_FileExists(filename)) {
+        this->_LoadPhaseSpaceData(this->_bunchCount, _PHASE_END);
+    }
+    else {
+        printf("Missing file: %s\n", filename.c_str());
+    }
     if (this->_FileExists("rfq1.dst")) {
         this->_CreateEndTree();
         this->_LoadEndSlice(bunchCount);
@@ -333,7 +358,7 @@ void TImpactData::_LoadBunches(Int_t bunchCount)
     }
 
     // Check for file
-    std::string filename = "fort.11";
+    std::string filename = "fort." + std::to_string(_BUNCH_COUNT);
     if (!this->_FileExists(filename)) {
         throw std::runtime_error("Cannot find file " + filename);
     }
