@@ -1,4 +1,3 @@
-*.xcodeproj
 .vs/
 __pycache__
 .cache
