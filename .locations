@@ -16,6 +16,7 @@ case ${COMPUTER_NAME} in
         export RUN_FOLDER="${HOME}/Code/CurrentSimulation"
         export SYNC_FOLDER="${HOME}/OneDrive/Documents"
         export USB_FOLDER="/Volumes/MJEASTON/Documents/Work/PKU"
+        export STOW_FOLDER="/usr/local/stow"
         ;;
     "MJEaston")
         export CODE_FOLDER="${HOME}/Code"
