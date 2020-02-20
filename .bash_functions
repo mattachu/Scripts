@@ -2,7 +2,7 @@
 # Shortcut functions
 
 # Load machine-specific locations
-source "${HOME}/.bash_locations"
+source "${HOME}/.locations"
 
 # Pause
 function pause() {

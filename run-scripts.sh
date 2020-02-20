@@ -2,8 +2,8 @@
 # Functions for running programs
 
 # Load machine-specific locations
-if [ -r "${HOME}/.bash_locations" ]; then
-    source "${HOME}/.bash_locations"
+if [ -r "${HOME}/.locations" ]; then
+    source "${HOME}/.locations"
 fi
 
 # Report the time taken since $SECONDS was reset

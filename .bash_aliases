@@ -2,7 +2,7 @@
 # Shortcuts for various work-related programs and environments
 
 # Load machine-specific locations
-source "${HOME}/.bash_locations"
+source "${HOME}/.locations"
 
 # Shortcuts for common actions
 alias beep="echo -e '\a'"
