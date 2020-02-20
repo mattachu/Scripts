@@ -6,7 +6,7 @@
 #  Created by Matt Easton on 2018.08.24.
 #  Note that this needs to run under `sh` for the `cron` job, so it cannot use
 #   any `bash` syntax nor any aliases or functions from the interactive scripts
-#   such as `.locations` or `.bash_functions`
+#   such as `.aliases` or `.locations`
 #
 
 # Variables
