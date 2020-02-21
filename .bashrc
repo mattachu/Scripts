@@ -1,7 +1,6 @@
 # File: .bashrc
 # Created: 25/06/2014 by Matt Easton
-# Version: 0.3
-# Modified: 07/09/2018 by Matt Easton
+# Modified: 20/02/2020 by Matt Easton
 #
 # This script is run whenever a new interactive bash session begins,
 #   unless it is a login session. I have modified .bash_profile to run
@@ -19,16 +18,17 @@
 #  - set options for specific commands
 #  - define common aliases and functions
 #  - define user aliases and functions
-#    - source .bash_aliases and .bash_functions
+#    - source .aliases
 #    - source user scripts:
 #      - run-scripts.sh
 #      - tmate.sh
+#      - notebooks.sh
 
 # If not running interactively, don't do anything
 [[ "$-" != *i* ]] && return
 
 # Load machine-specific locations
-source "${HOME}/.bash_locations"
+source "${HOME}/.locations"
 
 # Add environment variable for stow directory
 export STOW_DIR="/usr/local/stow"
@@ -292,12 +292,9 @@ settitle ()
 #
 # alias cd=cd_func
 
-# Load any aliases and functions from separate files
-if [ -r "${HOME}/.bash_aliases" ]; then
-    source "${HOME}/.bash_aliases"
-fi
-if [ -r "${HOME}/.bash_functions" ]; then
-    source "${HOME}/.bash_functions"
+# Personal aliases
+if [ -r "${HOME}/.aliases" ]; then
+    source "${HOME}/.aliases"
 fi
 
 # Personal scripts

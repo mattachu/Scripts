@@ -14,8 +14,8 @@
 [[ "$1" == "--paths" ]] && SHOWPATHS=1 || unset SHOWPATHS
 
 # Load machine-specific locations
-if [ -r "${HOME}/.bash_locations" ]; then
-    source "${HOME}/.bash_locations"
+if [ -r "${HOME}/.locations" ]; then
+    source "${HOME}/.locations"
 fi
 
 # Colour definitions

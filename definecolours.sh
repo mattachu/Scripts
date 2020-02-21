@@ -1,8 +1,6 @@
-#!/bin/bash
 # File: definecolours.sh
 # Created: 03/07/2014 by Matt Easton
-# Version: 0.2
-# Modified: 07/09/2018 by Matt Easton
+# Modified: 20/02/2020 by Matt Easton
 #
 # Define colours for shell scripts.
 #

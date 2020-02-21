@@ -1,20 +1,13 @@
-#!/bin/bash
 # File: .greeting
 # Created: 07/09/2018 by Matt Easton
-# Modified: 19/09/2018 by Matt Easton
+# Modified: 20/02/2020 by Matt Easton
 #
 # This script is called by other scripts to display a greeting.
 # The greeting is different depending on the environment.
-#
-# Actions taken by this script are:
-#  - define colours
-#  - find computer name
-#  - find OS type
-#  - show computer name, program versions and date/time
 
 # Load machine-specific locations
-if [ -r "${HOME}/.bash_locations" ]; then
-    source "${HOME}/.bash_locations"
+if [ -r "${HOME}/.locations" ]; then
+    source "${HOME}/.locations"
 fi
 
 # Define colours
@@ -38,12 +31,20 @@ case ${COMPUTER_NAME} in
 esac
 
 # Show computer name
-echo -e "${Cyan}${COMPUTER_FULLNAME}${NC}"
+echo -e "$Cyan$COMPUTER_FULLNAME$NC"
 
-# Show program versions
-echo -e "${Cyan} - OS ${Yellow}$(uname -sr)${NC}"
-echo -e "${Cyan} - BASH ${Yellow}v${BASH_VERSION%.*}${NC}"
-echo -e "${Cyan} - Compiler ${Yellow}$(cc --version 2>/dev/null | head -n1)${NC}"
+# Show operating system and version
+echo -e "$Cyan - OS: $Yellow$(uname -sr)$NC"
+
+# Show current shell and version
+if [[ -n $BASH ]] ; then
+    echo -e "$Cyan - Shell: ${Yellow}BASH v${BASH_VERSION%.*}$NC"
+elif [[ -n $ZSH_NAME ]] ; then
+    echo -e "$Cyan - Shell: ${Yellow}ZSH v$ZSH_VERSION"
+fi
+
+# Show main compiler and version
+echo -e "$Cyan - Compiler: $Yellow$(cc --version 2>/dev/null | head -n1)$NC"
 
 # Show date and time
-echo -e "\n${Cyan}$(date)${NC}\n"
+echo -e "\n$Cyan$(date)$NC\n"

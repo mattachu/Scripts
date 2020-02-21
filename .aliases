@@ -1,16 +1,13 @@
-#!/bin/bash
 # Shortcuts for various work-related programs and environments
 
 # Load machine-specific locations
-source "${HOME}/.bash_locations"
+source "${HOME}/.locations"
 
 # Shortcuts for common actions
 alias beep="echo -e '\a'"
-alias transfer="rsync --archive --update --delete --max-size=50M --verbose ~/Simulations/Current/ ~/Simulations/Transfer/"
-alias run-tests="./run-tests.sh"
-alias sync-usb="unison -fat -rsrc false ${SYNC_FOLDER}/ ${USB_FOLDER}/"
-alias git-check="python3 ${SCRIPTS_FOLDER}/git_check.py ."
-alias git-check-all="python3 ${SCRIPTS_FOLDER}/git_check.py"
+alias sync-usb="unison -fat -rsrc false $SYNC_FOLDER/ $USB_FOLDER/"
+alias git-check="python3 $SCRIPTS_FOLDER/git_check.py ."
+alias git-check-all="python3 $SCRIPTS_FOLDER/git_check.py"
 
 # Load certain environments (machine specific)
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -35,14 +32,14 @@ case ${computer_name} in
 esac
 
 # Shortcuts for Impact-T
-alias ImpactGUI="~/Code/Impact/GUI/ImpactGUI.py"
-alias impactgui="~/Code/Impact/GUI/ImpactGUI.py"
+alias ImpactGUI="$CODE_FOLDER/Impact/GUI/ImpactGUI.py"
+alias impactgui="$CODE_FOLDER/Impact/GUI/ImpactGUI.py"
 
 # Shortcuts for Reproducible
-alias reproduce="~/Code/Reproducible/reproduce"
+alias reproduce="$CODE_FOLDER/Reproducible/reproduce"
 
 # Shortcuts for BDSIM
-alias load-bdsim="source ${SCRIPTS_FOLDER}/bdsim.sh"
+alias load-bdsim="source $SCRIPTS_FOLDER/bdsim.sh"
 
 # Settings for EPOCH
 export COMPILER=gfortran
