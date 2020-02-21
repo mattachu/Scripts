@@ -73,7 +73,8 @@ HIST_STAMPS="yyyy-mm-dd"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git brew colorize colored-man-pages command-not-found extract)
+plugins=(git brew colorize colored-man-pages command-not-found extract
+         zsh-autosuggestions zsh-syntax-highlighting)
 
 source "$ZSH/oh-my-zsh.sh"
 
@@ -86,7 +87,7 @@ source "$ZSH/oh-my-zsh.sh"
 
 # Preferred editor for local and remote sessions
 if [[ -n $SSH_CONNECTION ]]; then
-    export EDITOR='nano'
+    export EDITOR='micro'
 else
     export EDITOR='nano'
 fi
