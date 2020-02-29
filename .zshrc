@@ -134,6 +134,14 @@ if [ -r "$HOME/.aliases" ]; then
     source "$HOME/.aliases"
 fi
 
+# Setup Python environments
+if command -v pyenv 1>/dev/null 2>&1; then
+    eval "$(pyenv init -)"
+fi
+if which pyenv-virtualenv-init > /dev/null; then
+    eval "$(pyenv virtualenv-init -)"
+fi
+
 # Show greeting
 if [ -r "$HOME/.greeting" ] ; then
     source "$HOME/.greeting"
