@@ -9,7 +9,15 @@ fi
 
 # Set the locations based on the computer name
 case ${COMPUTER_NAME} in
-    "Matt's MacBook Pro"|"MacBook Pro")
+    "Matt’s MacBook Pro"|"MattBookPro"|"MattBookPro.local")
+        export CODE_FOLDER="${HOME}/Code"
+        export SCRIPTS_FOLDER="${HOME}/Code/Scripts"
+        export PKU_FOLDER="${HOME}/OneDrive/Documents"
+        export RUN_FOLDER="${HOME}/Simulations/Current"
+        export SYNC_FOLDER="${HOME}/OneDrive/Documents"
+        export USB_FOLDER="/Volumes/MJEASTON/Documents/Work/PKU"
+        ;;
+    "Farrah’s MacBook Pro"|"FarrahBook"|"FarrahBook.local")
         export CODE_FOLDER="${HOME}/Code"
         export SCRIPTS_FOLDER="${HOME}/Code/Scripts"
         export PKU_FOLDER="${HOME}/OneDrive/Documents"
