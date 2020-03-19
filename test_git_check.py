@@ -1,4 +1,4 @@
-# Tests git-check.py
+# Tests git_check.py
 
 import git_check
 import pytest
@@ -16,6 +16,8 @@ class TestGitCheck:
             scripts_dir = '/home/matt/Code/Scripts'
         else:
             scripts_dir = 'C:\\Users\\Matt\\Code\\Scripts'
+    elif hostname == 'MattBookPro':
+        scripts_dir = '/Users/matt/Code/Scripts'
     elif 'MacBook' in hostname:
         scripts_dir = '/Users/matt/Code/Scripts'
     elif hostname == 'ubuntu42':

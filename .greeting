@@ -22,12 +22,14 @@ else
     export COMPUTER_NAME=$(hostname)
 fi
 case ${COMPUTER_NAME} in
-    "Matts-MacBook-Pro.local"|"Matt's MacBook Pro"|"MacBook Pro")
-        export COMPUTER_FULLNAME="Matt's MacBook Pro" ;;
+    "Matt’s MacBook Pro"|"MattBookPro"|"MattBookPro.local")
+        export COMPUTER_FULLNAME="MattBookPro: Matt’s 2020 MacBook Pro" ;;
+    "Farrah’s MacBook Pro"|"FarrahBook"|"FarrahBook.local")
+        export COMPUTER_FULLNAME="FarrahBook: Farrah’s 2014 MacBook Pro" ;;
     "MJEaston")
-        export COMPUTER_FULLNAME="MJEaston: Matt's Work PC" ;;
+        export COMPUTER_FULLNAME="MJEaston: Matt’s Work PC" ;;
     "ubuntu42")
-        export COMPUTER_FULLNAME="ubuntu42: Matt's Work PC" ;;
+        export COMPUTER_FULLNAME="ubuntu42: Matt’s Work PC" ;;
 esac
 
 # Show computer name
