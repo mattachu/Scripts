@@ -3,7 +3,15 @@
 #
 # Based on the default Oh My ZSH script, with additions based on my .bashrc
 
-# If you come from bash you might have to change your $PATH.
+# Add environment and path for pyenv
+if [ -r "$HOME/.pyenv" ]; then
+    export PYENV_ROOT="$HOME/.pyenv"
+fi
+if [ -r "$PYENV_ROOT/bin" ]; then
+    export PATH="$PYENV_ROOT/bin:$PATH"
+fi
+
+# Add user bin folder to path
 export PATH="$HOME/bin:$PATH"
 
 # Path to your oh-my-zsh installation.
@@ -74,6 +82,11 @@ HIST_STAMPS="yyyy-mm-dd"
 
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
+
+# Don't check permissions on WorkPC (using WSL)
+if [[ "$(hostname)" == "MJEaston" ]]; then
+    ZSH_DISABLE_COMPFIX="true"
+fi
 
 # Which plugins would you like to load?
 # Standard plugins can be found in ~/.oh-my-zsh/plugins/*
