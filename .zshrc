@@ -75,6 +75,11 @@ HIST_STAMPS="yyyy-mm-dd"
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
 
+# Don't check permissions on WorkPC (using WSL)
+if [[ "$(hostname)" == "MJEaston" ]]; then
+    ZSH_DISABLE_COMPFIX="true"
+fi
+
 # Which plugins would you like to load?
 # Standard plugins can be found in ~/.oh-my-zsh/plugins/*
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
