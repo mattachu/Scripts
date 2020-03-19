@@ -40,6 +40,9 @@ alias impactgui="$CODE_FOLDER/Impact/GUI/ImpactGUI.py"
 # Shortcuts for Reproducible
 alias reproduce="$CODE_FOLDER/Reproducible/reproduce"
 
+# Shortcut to run_batch.py
+alias run_batch="python3 $SCRIPTS_FOLDER/run_batch.py"
+
 # Shortcuts for BDSIM
 alias load-bdsim="source $SCRIPTS_FOLDER/bdsim.sh"
 
