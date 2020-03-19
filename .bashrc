@@ -292,6 +292,14 @@ settitle ()
 #
 # alias cd=cd_func
 
+# Add environment and path for pyenv
+if [ -r "$HOME/.pyenv" ]; then
+    export PYENV_ROOT="$HOME/.pyenv"
+fi
+if [ -r "$PYENV_ROOT/bin" ]; then
+    export PATH="$PYENV_ROOT/bin:$PATH"
+fi
+
 # Personal aliases
 if [ -r "${HOME}/.aliases" ]; then
     source "${HOME}/.aliases"
