@@ -41,6 +41,7 @@ class TestRunBatch:
             '--class': None,
             '--input_branch': None,
             '--results_branch': None,
+            '--post': False,
             '--config': False,
             '--logfile': False,
             '--runlog': False,
@@ -621,6 +622,34 @@ class TestRunBatch:
             run_batch.get_commit_message(self.single_run, 'extra parameter')
         with pytest.raises(TypeError):
             run_batch.get_commit_files('not a dict')
+
+
+    # Post-processing methods
+    # Test post_process method
+    def test_post_process_output(self, capfd, protect_log):
+        test_message = 'Post-processing output'
+        test_command = f'echo {test_message}'
+        result = run_batch.post_process(self.settings, test_command)
+        captured = capfd.readouterr()
+        assert result.returncode == 0
+        assert test_message in captured.out
+
+    def test_post_process_invalid_input(self):
+        test_message = 'Post-processing output'
+        test_command = f'echo {test_message}'
+        with pytest.raises(TypeError):
+            run_batch.post_process(self.settings)
+        with pytest.raises(TypeError):
+            run_batch.post_process(self.settings, test_command,
+                                   'extra parameter')
+        with pytest.raises(TypeError):
+            run_batch.post_process('not settings', test_command)
+        with pytest.raises(AttributeError):
+            run_batch.post_process(self.settings, ['not', 'a', 'command'])
+        with pytest.raises(TypeError):
+            run_batch.post_process(['not', 'a', 'dict'], test_command)
+        with pytest.raises(FileNotFoundError):
+            run_batch.post_process(self.settings, 'not a command')
 
 
     # Archive methods
@@ -1557,6 +1586,19 @@ class TestRunBatch:
         assert self.reproduce_message in captured.err
         assert self.repo.heads[self.results_branch].commit != old_commit
         assert self.run_folder.joinpath(self.settings['logfile']).is_file()
+
+    @pytest.mark.slow
+    def test_run_single_with_post_process(self, capfd, protect_log):
+        test_message = 'Post-processing output'
+        test_command = f'echo {test_message}'
+        test_run = self.single_run.copy()
+        test_run['--post'] = test_command
+        run_batch.run_single(self.settings, test_run)
+        captured = capfd.readouterr()
+        assert test_run['title'] in captured.out
+        assert self.reproduce_message in captured.err
+        assert self.run_folder.joinpath(self.settings['logfile']).is_file()
+        assert test_message in captured.out
 
     @pytest.mark.slow
     def test_run_single_with_archive(self, capfd,

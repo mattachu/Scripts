@@ -13,6 +13,7 @@ Options:
                             input branches.
   --results_branch=<branch> Specify a results branch in Git.
                             Does not allow multiple branches.
+  --post=<command>          Specify a post-processing command.
 
 Options passed to Reproducible:
   --config <configfile>     Overwrite the location of Reproducible config file.
@@ -194,6 +195,11 @@ def get_commit_message(this_run):
     """Create a message string to commit results of the current run"""
     return 'Results for ' + this_run['title']
 
+# Post-processing methods
+def post_process(settings, command):
+    """Run the given post-processing command in the run folder"""
+    return subprocess.run(command.split(), cwd=settings['current_folder'])
+
 # Archive methods
 def create_archive_folder(archive_folder):
     """Make a new folder at the given location, or access an existing folder"""
@@ -215,14 +221,13 @@ def get_copy_list(simulation_class):
 
 def get_move_list(simulation_class):
     """Get list of file patterns to move for a particular simulation type"""
+    move_list = ['*.png', '*.eps', '*.ps', '*.jpg']
     if simulation_class == 'impact':
-        move_list = ['fort.*', '*.dst', '*.plt']
+        move_list.extend(['fort.*', '*.dst', '*.plt'])
     elif simulation_class == 'bdsim':
-        move_list = ['*.root', '*.png', '*.eps']
+        move_list.append('*.root')
     elif simulation_class == 'opal':
-        move_list = ['*.h5', '*.lbal', '*.stat', '*.dat', 'data']
-    else:
-        move_list = []
+        move_list.extend(['*.h5', '*.lbal', '*.stat', '*.dat', 'data'])
     move_list.append('reproduce-*.log')
     return move_list
 
@@ -364,6 +369,8 @@ def run_single(settings, this_run):
         git_checkout(repo, this_run['--input_branch'])
         git_get_file(repo, this_run['--results_branch'], settings['logfile'])
     reproducible_run(settings, this_run)
+    if this_run['--post']:
+        post_process(settings, this_run['--post'])
     if this_run['--git']:
         git_switch(repo, this_run['--results_branch'])
         git_commit(repo, this_run['commit_files'], this_run['commit_message'])
