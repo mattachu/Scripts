@@ -41,6 +41,7 @@ class TestRunBatch:
             '--class': None,
             '--input_branch': None,
             '--results_branch': None,
+            '--param': None,
             '--post': False,
             '--config': False,
             '--logfile': False,

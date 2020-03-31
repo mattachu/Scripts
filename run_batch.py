@@ -1,7 +1,13 @@
 """Run a batch of simulations reproducibly.
 
 Usage:
+  run_batch.py <command>
   run_batch.py [options] [--] <command>
+  run_batch.py [--git [--input_branch=<branch>]... [--results_branch=<branch>]]
+               [--archive] [--class=<class>]
+               [--param=<sweep>]... [--post=<command>]
+               [options] [--] <command>
+  run_batch.py --help
 
 Options:
   -h --help                 Show this screen.
@@ -14,6 +20,10 @@ Options:
   --results_branch=<branch> Specify a results branch in Git.
                             Does not allow multiple branches.
   --post=<command>          Specify a post-processing command.
+  --param=<key:v1,v2,v3...> Specify a parametric sweep with multiple values for
+                            a single parameter leading to multiple runs.
+                            Can be specified multiple times to sweep multiple
+                            parameters.
 
 Options passed to Reproducible:
   --config <configfile>     Overwrite the location of Reproducible config file.
@@ -22,27 +32,74 @@ Options passed to Reproducible:
   -d --devel                Run Reproducible in developer mode.
 
 Options passed to Reproducible run:
-  --template <template>  the name of the file(s) that should be treated
-                         as a template inside the command;
-                         for multiple templates separate with commas
-  --src <sourcedir>      check the source code at <sourcedir>
-  --build                build the code from source using `make install`
-  --hash <oldhash>       pre-load parameters from this run
-  --show                 print out rendered template
-  --save                 save the rendered template to file
-  --list-parameters      list all parameters that need to be set
-  -p <key:value>         for several parameters use k1:v1,k2:v2 syntax
+  --template <template>     the name of the file(s) that should be treated
+                            as a template inside the command;
+                            for multiple templates separate with commas
+  --src <sourcedir>         check the source code at <sourcedir>
+  --build                   build the code from source using `make install`
+  --hash <oldhash>          pre-load parameters from this run
+  --show                    print out rendered template
+  --save                    save the rendered template to file
+  --list-parameters         list all parameters that need to be set
+  -p <key:value>            for several parameters use k1:v1,k2:v2 syntax
 
 Simulation classes:
-impact                    Simulations with Impact-T or Impact-Z.
-                          Input files: *.in *.data *.txt *.xlsx
-                          Output files: fort.* *.dst *.plt
-bdsim                     Simulations with BDSIM.
-                          Input files: *.gmad *.data *.txt *.xlsx
-                          Output files: *.root *.png *.eps
-opal                      Simulations with OPAL.
-                          Input files: *.in *.data *.txt *.xlsx
-                          Output files: *.h5 *.lbal *.stat *.dat data
+  impact                    Simulations with Impact-T or Impact-Z.
+                            Input files: *.in *.data *.txt *.xlsx
+                            Output files: fort.* *.dst *.plt
+  bdsim                     Simulations with BDSIM.
+                            Input files: *.gmad *.data *.txt *.xlsx
+                            Output files: *.root *.png *.eps
+  opal                      Simulations with OPAL.
+                            Input files: *.in *.data *.txt *.xlsx
+                            Output files: *.h5 *.lbal *.stat *.dat data
+
+Examples:
+
+run_batch.py "echo Hello world"
+
+    Run a single command reproducibly.
+    This will call `reproduce -- "echo Hello world"` without any other options.
+
+run_batch.py -l "echo Hello world"
+
+    Pass a command to the reproduce script.
+    This will call `reproduce --runlog -- "echo Hello world"`.
+
+run_batch.py --class=impact -- ImpactTexe
+
+    Run a simulation reproducibly in Impact-T.
+    This will call `reproduce -- ImpactTexe` without any other options.
+
+run_batch.py --git --input_branch=develop --results_branch=results \
+             --class=impact -- ImpactTexe
+
+    First checkout input files from the 'develop' branch and 'simulations.log'
+    from the 'results' branch, then run the simulation in Impact, then check
+    in 'simulations.log' as a new commit on the 'results' branch.
+    The simulation will be run as `reproduce -- ImpactTexe`.
+
+run_batch.py --git --input_branch=input/full --input_branch=input/nospacecharge
+             --results_branch=results --class=impact -- ImpactTexe
+
+    Run the same simulation reproducibly using two different input branches.
+    This will result in two separate commits in the results branch.
+
+run_batch.py --template=ImpactT.in --param=I:0.0,0.2,0.4,0.6 \
+             --class=impact -- ImpactTexe
+
+    Sweep through the parameter options for beam current I.
+    The input file 'ImpactT.in' should be set up as a template with {{I}} in
+    place of the beam current, and a separate simulation will be run for each
+    parameter value:
+        reproduce --template ImpactT -p I:0.0 -- ImpactTexe
+        reproduce --template ImpactT -p I:0.2 -- ImpactTexe
+        reproduce --template ImpactT -p I:0.4 -- ImpactTexe
+        reproduce --template ImpactT -p I:0.5 -- ImpactTexe
+        reproduce --template ImpactT -p I:0.6 -- ImpactTexe
+    If `--git` is specified, each run result will be in a separate commit.
+    If `--archive` is specified, each run will be archived to a separate folder.
+    If `--runlog` is specified, each run will produce a separate log.
 
 """
 
@@ -363,9 +420,9 @@ def reproducible_run(settings, this_run):
 
 def run_single(settings, this_run):
     """What to do for each individual run"""
-    repo = get_git_repo(settings['current_folder'])
     announce_start(this_run)
     if this_run['--git']:
+        repo = get_git_repo(settings['current_folder'])
         git_checkout(repo, this_run['--input_branch'])
         git_get_file(repo, this_run['--results_branch'], settings['logfile'])
     reproducible_run(settings, this_run)
