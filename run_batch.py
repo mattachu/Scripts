@@ -110,6 +110,7 @@ import subprocess
 import shutil
 from datetime import datetime
 from docopt import docopt
+import itertools
 
 # User settings
 REPRODUCIBLE = '~/Code/Reproducible'
@@ -337,6 +338,33 @@ def archive_output(settings, this_run):
                     this_run['archive_move'])
     archive_log(settings, this_run['archive'])
 
+# Sweep methods
+def get_sweep_parameter(sweep_definition):
+    """Return the parameter name for a given sweep string"""
+    if not ':' in sweep_definition:
+        raise ValueError('Invalid sweep definition: ' + sweep_definition)
+    return sweep_definition.split(':')[0]
+
+def get_sweep_values(sweep_definition):
+    """Return the parameter name for a given sweep string"""
+    if not ':' in sweep_definition:
+        raise ValueError('Invalid sweep definition: ' + sweep_definition)
+    return sweep_definition.split(':')[1].split(',')
+
+def get_sweep_strings(sweep_definition):
+    """Get all single-value paramter strings for a given sweep string"""
+    if not ':' in sweep_definition:
+        raise ValueError('Invalid sweep definition: ' + sweep_definition)
+    return [get_sweep_parameter(sweep_definition) + ':' + value
+           for value in get_sweep_values(sweep_definition)]
+
+def get_sweep_combinations(sweeps):
+    """Get all combinations of parameter values for multiple sweeps"""
+    sweep_strings = [get_sweep_strings(sweep) for sweep in sweeps]
+    combinations = itertools.product(*sweep_strings)
+    combination_strings = [','.join(item) for item in combinations]
+    return combination_strings
+
 # Define run settings and parameters
 def get_settings(arguments):
     """Get the required settings as a dictionary"""
@@ -419,7 +447,7 @@ def reproducible_run(settings, this_run):
     return subprocess.run(command, cwd=settings['current_folder'])
 
 def run_single(settings, this_run):
-    """What to do for each individual run"""
+    """Work through the simulation steps for each individual run"""
     announce_start(this_run)
     if this_run['--git']:
         repo = get_git_repo(settings['current_folder'])
@@ -436,28 +464,50 @@ def run_single(settings, this_run):
         archive_output(settings, this_run)
     announce_end(this_run)
 
+def run_with_git(settings, this_run):
+    """Run for a single or multiple input branches"""
+    this_run['commit_files'] = get_commit_files(settings, this_run)
+    this_run['commit_message'] = get_commit_message(this_run)
+    if isinstance(this_run['--input_branch'], list):
+        for this_branch in this_run['--input_branch']:
+            branch_run = this_run.copy()
+            branch_run['--input_branch'] = this_branch
+            branch_run['title'] = (
+                this_run['title'] + ' for branch ' + this_branch)
+            branch_run['commit_message'] = (
+                this_run['commit_message'] + ' for branch ' + this_branch)
+            if branch_run['--archive']:
+                branch_run['archive'] = this_run['archive'].joinpath(
+                    this_branch.replace('input/', ''))
+            run_single(settings, branch_run)
+    else:
+        run_single(settings, this_run)
+
 # Main batch method
 def run_batch(settings, parameters):
     """Run through the batch for different parameter values and input files"""
     this_run = parameters.copy()
     this_run['title'] = get_title(this_run)
-    if not this_run['--git']:
-        run_single(settings, this_run)
+    if this_run['--param']:
+        for this_combination in get_sweep_combinations(this_run['--param']):
+            sweep_run = this_run.copy()
+            sweep_run['title'] = this_run['title'] + ' for ' + this_combination
+            if sweep_run['-p']:
+                sweep_run['-p'] += ',' + this_combination
+            else:
+                sweep_run['-p'] = this_combination
+            if sweep_run['--archive']:
+                sweep_run['archive'] = this_run['archive'].joinpath(
+                    this_combination)
+            if sweep_run['--git']:
+                sweep_run['commit_message'] = (
+                    this_run['commit_message'] + ' for ' + this_combination)
+                run_with_git(settings, sweep_run)
+            else:
+                run_single(settings, sweep_run)
     else:
-        this_run['commit_files'] = get_commit_files(settings, this_run)
-        this_run['commit_message'] = get_commit_message(this_run)
-        if isinstance(this_run['--input_branch'], list):
-            for this_branch in this_run['--input_branch']:
-                branch_run = this_run.copy()
-                branch_run['--input_branch'] = this_branch
-                branch_run['title'] = (
-                    this_run['title'] + ' for branch ' + this_branch)
-                branch_run['commit_message'] = (
-                    this_run['commit_message'] + ' for branch ' + this_branch)
-                if branch_run['--archive']:
-                    branch_run['archive'] = this_run['archive'].joinpath(
-                        this_branch.replace('input/', ''))
-                run_single(settings, branch_run)
+        if this_run['--git']:
+            run_with_git(settings, this_run)
         else:
             run_single(settings, this_run)
 
