@@ -41,6 +41,7 @@ class TestRunBatch:
             '--class': None,
             '--input_branch': None,
             '--results_branch': None,
+            '--param': None,
             '--post': False,
             '--config': False,
             '--logfile': False,
@@ -1171,6 +1172,139 @@ class TestRunBatch:
             assert not self.run_folder.joinpath(filename).is_file()
             with open(tmp_path.joinpath(filename), 'r') as f:
                 assert f.readline() == self.test_message
+
+
+    # Sweep methods
+    # Test get_sweep_parameter method
+    def test_get_sweep_parameter(self):
+        test_sweep_parameter = 'I'
+        test_sweep_values = [0.0, 0.2, 0.4, 0.6]
+        test_sweep = (test_sweep_parameter + ':'
+                      + ','.join([str(v) for v in test_sweep_values]))
+        parameter = run_batch.get_sweep_parameter(test_sweep)
+        assert isinstance(parameter, str)
+        assert parameter == test_sweep_parameter
+
+    def test_get_sweep_parameter_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_parameter()
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_parameter('I:0.0,0.2,0.4', 'extra parameter')
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_parameter(3.142)
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_parameter(['not', 'a', 'sweep', 'definition'])
+        with pytest.raises(ValueError):
+            run_batch.get_sweep_parameter('not a sweep definition')
+
+    # Test get_sweep_values method
+    def test_get_sweep_values(self):
+        test_sweep_parameter = 'I'
+        test_sweep_values = [0.0, 0.2, 0.4, 0.6]
+        test_sweep = (test_sweep_parameter + ':'
+                      + ','.join([str(v) for v in test_sweep_values]))
+        values = run_batch.get_sweep_values(test_sweep)
+        assert isinstance(values, list)
+        assert len(values) == len(test_sweep_values)
+        assert all([isinstance(value, str) for value in values])
+        assert all([str(value) in values for value in test_sweep_values])
+
+    def test_get_sweep_values_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_values()
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_values('I:0.0,0.2,0.4', 'extra parameter')
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_values(3.142)
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_values(['not', 'a', 'sweep', 'definition'])
+        with pytest.raises(ValueError):
+            run_batch.get_sweep_values('not a sweep definition')
+
+    # Test get_sweep_strings method
+    def test_get_sweep_strings(self):
+        test_sweep_parameter = 'I'
+        test_sweep_values = [0.0, 0.2, 0.4, 0.6]
+        test_sweep = (test_sweep_parameter + ':'
+                      + ','.join([str(v) for v in test_sweep_values]))
+        sweeps = run_batch.get_sweep_strings(test_sweep)
+        assert isinstance(sweeps, list)
+        assert len(sweeps) == len(test_sweep_values)
+        assert all([isinstance(sweep, str) for sweep in sweeps])
+        assert all([sweep in sweeps
+                    for sweep in [test_sweep_parameter + ':' + str(v)
+                                  for v in test_sweep_values]])
+
+    def test_get_sweep_strings_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_strings()
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_strings('I:0.0,0.2,0.4', 'extra parameter')
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_strings(3.142)
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_strings(['not', 'a', 'sweep', 'definition'])
+        with pytest.raises(ValueError):
+            run_batch.get_sweep_strings('not a sweep definition')
+
+    # Test get_sweep_combinations method
+    def test_get_sweep_combinations_single_sweep(self):
+        test_sweep_parameter = 'I'
+        test_sweep_values = [0.0, 0.2, 0.4, 0.6]
+        test_sweep = [test_sweep_parameter + ':'
+                      + ','.join([str(v) for v in test_sweep_values])]
+        combinations = run_batch.get_sweep_combinations(test_sweep)
+        assert isinstance(combinations, list)
+        assert len(combinations) == len(test_sweep_values)
+        assert all([isinstance(sweep, str) for sweep in combinations])
+        assert all([sweep in combinations
+                    for sweep in [test_sweep_parameter + ':' + str(v)
+                                  for v in test_sweep_values]])
+
+    def test_get_sweep_combinations_double_sweep(self):
+        test_sweep_parameters = ['I', 'E']
+        test_sweep_values = [[0.0, 0.2, 0.4, 0.6], [0.5, 1.0, 1.5]]
+        test_sweep = [test_sweep_parameters[i] + ':'
+                      + ','.join([str(v) for v in test_sweep_values[i]])
+                                  for i in range(len(test_sweep_parameters))]
+        combinations = run_batch.get_sweep_combinations(test_sweep)
+        assert isinstance(combinations, list)
+        assert len(combinations) == (len(test_sweep_values[0])
+                                     * len(test_sweep_values[1]))
+        assert all([isinstance(sweep, str) for sweep in combinations])
+        assert all([[sweep in combinations
+                     for sweep in [test_sweep_parameters[i] + ':' + str(v)
+                                   for v in test_sweep_values[i]]]
+                    for i in range(len(test_sweep_parameters))])
+
+    def test_get_sweep_combinations_triple_sweep(self):
+        test_sweep_parameters = ['I', 'E', 'z']
+        test_sweep_values = [[0.0, 0.2, 0.4, 0.6], [0.5, 1.0, 1.5], [0,1]]
+        test_sweep = [test_sweep_parameters[i] + ':'
+                      + ','.join([str(v) for v in test_sweep_values[i]])
+                                  for i in range(len(test_sweep_parameters))]
+        combinations = run_batch.get_sweep_combinations(test_sweep)
+        assert isinstance(combinations, list)
+        assert len(combinations) == (len(test_sweep_values[0])
+                                     * len(test_sweep_values[1])
+                                     * len(test_sweep_values[2]))
+        assert all([isinstance(sweep, str) for sweep in combinations])
+        assert all([[sweep in combinations
+                     for sweep in [test_sweep_parameters[i] + ':' + str(v)
+                                   for v in test_sweep_values[i]]]
+                    for i in range(len(test_sweep_parameters))])
+
+    def test_sweep_combinations_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_combinations()
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_combinations(['I:0.0,0.2'], 'extra parameter')
+        with pytest.raises(TypeError):
+            run_batch.get_sweep_combinations(3.142)
+        with pytest.raises(ValueError):
+            run_batch.get_sweep_combinations('not a sweep list')
+        with pytest.raises(ValueError):
+            run_batch.get_sweep_combinations(['not', 'a', 'sweep', 'list'])
 
 
     # Run settings and parameters methods
