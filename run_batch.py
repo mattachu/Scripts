@@ -59,17 +59,17 @@ Examples:
 run_batch.py "echo Hello world"
 
     Run a single command reproducibly.
-    This will call `reproduce -- "echo Hello world"` without any other options.
+    This will call `reproduce run -- "echo Hello world"` without other options.
 
 run_batch.py -l "echo Hello world"
 
     Pass a command to the reproduce script.
-    This will call `reproduce --runlog -- "echo Hello world"`.
+    This will call `reproduce --runlog run -- "echo Hello world"`.
 
 run_batch.py --class=impact -- ImpactTexe
 
     Run a simulation reproducibly in Impact-T.
-    This will call `reproduce -- ImpactTexe` without any other options.
+    This will call `reproduce run -- ImpactTexe` without any other options.
 
 run_batch.py --git --input_branch=develop --results_branch=results \
              --class=impact -- ImpactTexe
@@ -77,7 +77,7 @@ run_batch.py --git --input_branch=develop --results_branch=results \
     First checkout input files from the 'develop' branch and 'simulations.log'
     from the 'results' branch, then run the simulation in Impact, then check
     in 'simulations.log' as a new commit on the 'results' branch.
-    The simulation will be run as `reproduce -- ImpactTexe`.
+    The simulation will be run as `reproduce run -- ImpactTexe`.
 
 run_batch.py --git --input_branch=input/full --input_branch=input/nospacecharge
              --results_branch=results --class=impact -- ImpactTexe
@@ -92,11 +92,11 @@ run_batch.py --template=ImpactT.in --param=I:0.0,0.2,0.4,0.6 \
     The input file 'ImpactT.in' should be set up as a template with {{I}} in
     place of the beam current, and a separate simulation will be run for each
     parameter value:
-        reproduce --template ImpactT -p I:0.0 -- ImpactTexe
-        reproduce --template ImpactT -p I:0.2 -- ImpactTexe
-        reproduce --template ImpactT -p I:0.4 -- ImpactTexe
-        reproduce --template ImpactT -p I:0.5 -- ImpactTexe
-        reproduce --template ImpactT -p I:0.6 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.0 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.2 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.4 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.5 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.6 -- ImpactTexe
     If `--git` is specified, each run result will be in a separate commit.
     If `--archive` is specified, each run will be archived to a separate folder.
     If `--runlog` is specified, each run will produce a separate log.
