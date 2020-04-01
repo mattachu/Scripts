@@ -317,6 +317,17 @@ def move_to_archive(run_folder, archive_folder, move_patterns):
     for file in file_list:
         shutil.move(str(file), str(archive_folder))
 
+def move_rendered_templates(run_folder, archive_folder):
+    """Save rendered template files to archive folder"""
+    if not run_folder.is_dir():
+        raise OSError(f'Cannot access source folder: {run_folder}')
+    if not archive_folder.is_dir():
+        raise OSError(f'Cannot access archive folder: {archive_folder}')
+    file_list = run_folder.glob('*.rendered')
+    for file in file_list:
+        new_filename = str(file.name).replace('.rendered','')
+        shutil.move(str(file), str(archive_folder.joinpath(new_filename)))
+
 def archive_log(settings, archive_folder):
     """Get a log of the last run and save it to the archive folder"""
     log_command = [str(settings['python']),
@@ -336,6 +347,7 @@ def archive_output(settings, this_run):
     move_to_archive(settings['current_folder'],
                     this_run['archive'],
                     this_run['archive_move'])
+    move_rendered_templates(settings['current_folder'], this_run['archive'])
     archive_log(settings, this_run['archive'])
 
 # Sweep methods

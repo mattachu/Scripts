@@ -995,6 +995,44 @@ class TestRunBatch:
         with pytest.raises(ValueError):
             run_batch.move_to_archive(source, destination, 'not a list')
 
+    # Test move_rendered_templates method
+    def test_move_rendered_templates_no_output(self, capsys, tmp_path_factory):
+        source = tmp_path_factory.mktemp('from')
+        destination = tmp_path_factory.mktemp('to')
+        run_batch.move_rendered_templates(source, destination)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_move_rendered_templates(self, tmp_path_factory):
+        source = tmp_path_factory.mktemp('from')
+        destination = tmp_path_factory.mktemp('to')
+        test_file = 'file1.tmp'
+        test_render = 'file1.tmp.rendered'
+        with open(source.joinpath(test_render), 'w') as f:
+            f.write(self.test_message)
+        run_batch.move_rendered_templates(source, destination)
+        assert destination.joinpath(test_file).is_file()
+        assert not source.joinpath(test_file).is_file()
+        assert not destination.joinpath(test_render).is_file()
+        assert not source.joinpath(test_render).is_file()
+        with open(destination.joinpath(test_file), 'r') as f:
+            assert f.readline() == self.test_message
+
+    def test_move_rendered_templates_invalid_input(self, tmp_path_factory):
+        source = tmp_path_factory.mktemp('from')
+        destination = tmp_path_factory.mktemp('to')
+        with pytest.raises(TypeError):
+            run_batch.move_rendered_templates()
+        with pytest.raises(TypeError):
+            run_batch.move_rendered_templates(source)
+        with pytest.raises(TypeError):
+            run_batch.move_rendered_templates(source, destination,
+                                              'extra parameter')
+        with pytest.raises(AttributeError):
+            run_batch.move_rendered_templates('not a path', destination)
+        with pytest.raises(AttributeError):
+            run_batch.move_rendered_templates(source, 'not a path')
+
     # Test archive_log method
     @pytest.mark.slow
     def test_archive_log_no_output(self, capsys, tmp_path):
@@ -1172,6 +1210,23 @@ class TestRunBatch:
             assert not self.run_folder.joinpath(filename).is_file()
             with open(tmp_path.joinpath(filename), 'r') as f:
                 assert f.readline() == self.test_message
+
+    @pytest.mark.slow
+    def test_archive_output_move_rendered_templates(self, tmp_file_factory,
+                                                    tmp_path):
+        test_file = 'file1.tmp'
+        test_render = 'file1.tmp.rendered'
+        tmp_file_factory(test_render)
+        test_run = self.single_run.copy()
+        test_run.update({'--archive': True,
+                         'archive': tmp_path,
+                         'archive_copy': [],
+                         'archive_move': []})
+        run_batch.archive_output(self.settings, test_run)
+        assert tmp_path.joinpath(test_file).is_file()
+        assert not tmp_path.joinpath(test_render).is_file()
+        assert not self.run_folder.joinpath(test_file).is_file()
+        assert not self.run_folder.joinpath(test_render).is_file()
 
 
     # Sweep methods
