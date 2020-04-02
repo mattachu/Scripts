@@ -512,8 +512,6 @@ def run_batch(settings, parameters):
                 sweep_run['archive'] = this_run['archive'].joinpath(
                     this_combination)
             if sweep_run['--git']:
-                sweep_run['commit_message'] = (
-                    this_run['commit_message'] + ' for ' + this_combination)
                 run_with_git(settings, sweep_run)
             else:
                 run_single(settings, sweep_run)
