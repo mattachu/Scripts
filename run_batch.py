@@ -4,8 +4,9 @@ Usage:
   run_batch.py <command>
   run_batch.py [options] [--] <command>
   run_batch.py [--git [--input_branch=<branch>]... [--results_branch=<branch>]]
-               [--archive] [--class=<class>]
-               [--param=<sweep>]... [--post=<command>]
+               [--archive [--full]] [--class=<class>]
+               [--param=<sweep>]...
+               [--post=<command>]
                [options] [--] <command>
   run_batch.py --help
 
@@ -13,6 +14,7 @@ Options:
   -h --help                 Show this screen.
   -g --git                  Use Git to checkout input files and record results.
   -a --archive              Save the results of each run in an archive folder.
+  -f --full                 Save full data files to archive folder.
   --class=<class>           Specify the simulation class (see below)
   --input_branch=<branch>   Specify an input branch in Git.
                             Can be specified multiple times to run for multiple
@@ -277,15 +279,19 @@ def get_copy_list(simulation_class):
         copy_list.append('*.in')
     return copy_list
 
-def get_move_list(simulation_class):
+def get_move_list(simulation_class, is_full_archive):
     """Get list of file patterns to move for a particular simulation type"""
     move_list = ['*.png', '*.eps', '*.ps', '*.jpg']
     if simulation_class == 'impact':
-        move_list.extend(['fort.*', '*.dst', '*.plt'])
+        move_list.extend(['*.dst', '*.plt'])
+        if is_full_archive:
+            move_list.append('fort.*')
     elif simulation_class == 'bdsim':
-        move_list.append('*.root')
+        if is_full_archive:
+            move_list.append('*.root')
     elif simulation_class == 'opal':
-        move_list.extend(['*.h5', '*.lbal', '*.stat', '*.dat', 'data'])
+        if is_full_archive:
+            move_list.extend(['*.h5', '*.lbal', '*.stat', '*.dat', 'data'])
     move_list.append('reproduce-*.log')
     return move_list
 
@@ -399,7 +405,8 @@ def get_parameters(settings, arguments):
         parameters['archive'] = (
             get_archive_folder(settings['archive_root']))
         parameters['archive_copy'] = get_copy_list(parameters['--class'])
-        parameters['archive_move'] = get_move_list(parameters['--class'])
+        parameters['archive_move'] = (
+            get_move_list(parameters['--class'], parameters['--full']))
     else:
         parameters['archive'] = None
     if parameters['--git']:

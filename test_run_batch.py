@@ -38,6 +38,7 @@ class TestRunBatch:
             '--help': False,
             '--git': False,
             '--archive': False,
+            '--full': False,
             '--class': None,
             '--input_branch': None,
             '--results_branch': None,
@@ -736,17 +737,25 @@ class TestRunBatch:
 
     # Test get_move_list method
     def test_get_move_list_no_output(self, capsys):
-        run_batch.get_move_list(self.arguments['--class'])
+        run_batch.get_move_list(None, False)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     def test_get_move_list_default(self):
-        move_list = run_batch.get_move_list(None)
+        move_list = run_batch.get_move_list(None, False)
         assert isinstance(move_list, list)
         assert 'reproduce-*.log' in move_list
 
     def test_get_move_list_impact(self):
-        move_list = run_batch.get_move_list('impact')
+        move_list = run_batch.get_move_list('impact', False)
+        assert isinstance(move_list, list)
+        assert 'fort.*' not in move_list
+        assert '*.dst' in move_list
+        assert '*.plt' in move_list
+        assert 'reproduce-*.log' in move_list
+
+    def test_get_move_list_impact_full(self):
+        move_list = run_batch.get_move_list('impact', True)
         assert isinstance(move_list, list)
         assert 'fort.*' in move_list
         assert '*.dst' in move_list
@@ -754,7 +763,15 @@ class TestRunBatch:
         assert 'reproduce-*.log' in move_list
 
     def test_get_move_list_bdsim(self):
-        move_list = run_batch.get_move_list('bdsim')
+        move_list = run_batch.get_move_list('bdsim', False)
+        assert isinstance(move_list, list)
+        assert '*.root' not in move_list
+        assert '*.png' in move_list
+        assert '*.eps' in move_list
+        assert 'reproduce-*.log' in move_list
+
+    def test_get_move_list_bdsim_full(self):
+        move_list = run_batch.get_move_list('bdsim', True)
         assert isinstance(move_list, list)
         assert '*.root' in move_list
         assert '*.png' in move_list
@@ -762,7 +779,17 @@ class TestRunBatch:
         assert 'reproduce-*.log' in move_list
 
     def test_get_move_list_opal(self):
-        move_list = run_batch.get_move_list('opal')
+        move_list = run_batch.get_move_list('opal', False)
+        assert isinstance(move_list, list)
+        assert '*.h5' not in move_list
+        assert '*.lbal' not in move_list
+        assert '*.stat' not in move_list
+        assert '*.dat' not in move_list
+        assert 'data' not in move_list
+        assert 'reproduce-*.log' in move_list
+
+    def test_get_move_list_opal_full(self):
+        move_list = run_batch.get_move_list('opal', True)
         assert isinstance(move_list, list)
         assert '*.h5' in move_list
         assert '*.lbal' in move_list
@@ -775,8 +802,13 @@ class TestRunBatch:
         with pytest.raises(TypeError):
             run_batch.get_move_list()
         with pytest.raises(TypeError):
-            run_batch.get_move_list(self.arguments['--class'], 'extra parameter')
-        move_list = run_batch.get_move_list('not a class')
+            run_batch.get_move_list(self.arguments['--class'])
+        with pytest.raises(TypeError):
+            run_batch.get_move_list(self.arguments['--class'],
+                                    self.arguments['--full'],
+                                    'extra parameter')
+        move_list = run_batch.get_move_list('not a class',
+                                            self.arguments['--full'])
         assert isinstance(move_list, list)
 
     # Test copy_to_archive method
