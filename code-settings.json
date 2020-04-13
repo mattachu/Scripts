@@ -13,6 +13,7 @@
     "terminal.integrated.fontFamily": "'SourceCodePro+Powerline+Awesome Regular', Furamono Nerd Font, MesloLGS NF, monospace",
     "terminal.external.osxExec": "iTerm.app",
     "python.pythonPath": "/Users/matt/.pyenv/shims/python",
+    "git.autofetch": true,
     "[markdown]": {
         "editor.wordWrap": "off",
         "files.trimTrailingWhitespace": false
