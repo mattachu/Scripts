@@ -19,7 +19,9 @@
         "files.trimTrailingWhitespace": false
     },
     "markdownlint.config": {
-        "MD041": false,
-        "MD012": false
-    }
+        "MD004": { "style": "sublist" },
+        "MD012": false,
+        "MD041": false
+    },
+    "latex-workshop.view.pdf.viewer": "tab"
 }
