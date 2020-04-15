@@ -23,5 +23,12 @@
         "MD012": false,
         "MD041": false
     },
-    "latex-workshop.view.pdf.viewer": "tab"
+    "latex-workshop.view.pdf.viewer": "tab",
+    "cSpell.language": "en-GB",
+    "cSpell.enableFiletypes": [
+        "markdown"
+    ],
+    "cSpell.userWords": [
+        "unphysical"
+    ]
 }
