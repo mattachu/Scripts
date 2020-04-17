@@ -7,6 +7,7 @@ Usage:
                [--archive [--full]] [--class=<class>]
                [--param=<sweep>]...
                [--post=<command>]
+               [--clean]
                [options] [--] <command>
   run_batch.py --help
 
@@ -15,6 +16,7 @@ Options:
   -g --git                  Use Git to checkout input files and record results.
   -a --archive              Save the results of each run in an archive folder.
   -f --full                 Save full data files to archive folder.
+  -d --clean                Clean up by deleting results files after completion.
   --class=<class>           Specify the simulation class (see below)
   --input_branch=<branch>   Specify an input branch in Git.
                             Can be specified multiple times to run for multiple
@@ -295,6 +297,10 @@ def get_move_list(simulation_class, is_full_archive):
     move_list.append('reproduce-*.log')
     return move_list
 
+def get_delete_list(simulation_class):
+    """Get list of file patterns to delete - same as full archive list."""
+    return get_move_list(simulation_class, True)
+
 def copy_to_archive(run_folder, archive_folder, copy_patterns):
     """Copy files to the given archive folder based on glob patterns"""
     if not run_folder.is_dir():
@@ -355,6 +361,14 @@ def archive_output(settings, this_run):
                     this_run['archive_move'])
     move_rendered_templates(settings['current_folder'], this_run['archive'])
     archive_log(settings, this_run['archive'])
+
+def delete_output(settings, this_run):
+    """Delete any output files that haven't been archived."""
+    delete_list = get_delete_list(this_run['--class'])
+    for pattern in delete_list:
+        files = settings['current_folder'].glob(pattern)
+        for file in files:
+            file.unlink()
 
 # Sweep methods
 def get_sweep_parameter(sweep_definition):
@@ -481,6 +495,8 @@ def run_single(settings, this_run):
         git_switch(repo, this_run['--input_branch'])
     if this_run['--archive']:
         archive_output(settings, this_run)
+    if this_run['--clean']:
+        delete_output(settings, this_run)
     announce_end(this_run)
 
 def run_with_git(settings, this_run):
