@@ -39,6 +39,7 @@ class TestRunBatch:
             '--git': False,
             '--archive': False,
             '--full': False,
+            '--clean': False,
             '--class': None,
             '--input_branch': None,
             '--results_branch': None,
@@ -811,6 +812,52 @@ class TestRunBatch:
                                             self.arguments['--full'])
         assert isinstance(move_list, list)
 
+    # Test get_delete_list method
+    def test_get_delete_list_no_output(self, capsys):
+        run_batch.get_delete_list(None)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_get_delete_list_default(self):
+        delete_list = run_batch.get_delete_list(None)
+        assert isinstance(delete_list, list)
+        assert 'reproduce-*.log' in delete_list
+
+    def test_get_delete_list_impact(self):
+        delete_list = run_batch.get_delete_list('impact')
+        assert isinstance(delete_list, list)
+        assert 'fort.*' in delete_list
+        assert '*.dst' in delete_list
+        assert '*.plt' in delete_list
+        assert 'reproduce-*.log' in delete_list
+
+    def test_get_delete_list_bdsim(self):
+        delete_list = run_batch.get_delete_list('bdsim')
+        assert isinstance(delete_list, list)
+        assert '*.root' in delete_list
+        assert '*.png' in delete_list
+        assert '*.eps' in delete_list
+        assert 'reproduce-*.log' in delete_list
+
+    def test_get_delete_list_opal(self):
+        delete_list = run_batch.get_delete_list('opal')
+        assert isinstance(delete_list, list)
+        assert '*.h5' in delete_list
+        assert '*.lbal' in delete_list
+        assert '*.stat' in delete_list
+        assert '*.dat' in delete_list
+        assert 'data' in delete_list
+        assert 'reproduce-*.log' in delete_list
+
+    def test_get_delete_list_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.get_delete_list()
+        with pytest.raises(TypeError):
+            run_batch.get_delete_list(self.arguments['--class'],
+                                      'extra parameter')
+        delete_list = run_batch.get_delete_list('not a class')
+        assert isinstance(delete_list, list)
+
     # Test copy_to_archive method
     def test_copy_to_archive_no_output(self, capsys, tmp_path_factory):
         source = tmp_path_factory.mktemp('from')
@@ -1259,6 +1306,68 @@ class TestRunBatch:
         assert not tmp_path.joinpath(test_render).is_file()
         assert not self.run_folder.joinpath(test_file).is_file()
         assert not self.run_folder.joinpath(test_render).is_file()
+
+    # Test delete_output method
+    def test_delete_output_no_output(self, capsys, tmp_path):
+        run_batch.delete_output(self.settings, self.single_run)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_delete_output_invalid_input(self, tmp_path):
+        with pytest.raises(TypeError):
+            run_batch.delete_output(self.settings)
+        with pytest.raises(TypeError):
+            run_batch.delete_output(self.settings, self.single_run,
+                                    'extra parameter')
+        with pytest.raises(TypeError):
+            run_batch.delete_output('not a dict', self.single_run)
+        with pytest.raises(TypeError):
+            run_batch.delete_output(self.settings, 'not a dict')
+
+    def test_delete_output_default(self, tmp_file_factory):
+        temp_files = ['tmp.png', 'tmp.eps', 'tmp.ps', 'tmp.jpg',
+                      'reproduce-temp.log']
+        for filename in temp_files:
+            tmp_file_factory(filename)
+        test_run = self.single_run.copy()
+        test_run['--class'] = None
+        run_batch.delete_output(self.settings, test_run)
+        for filename in temp_files:
+            assert not self.run_folder.joinpath(filename).is_file()
+
+    def test_delete_output_impact(self, tmp_file_factory):
+        temp_files = ['tmp.png', 'tmp.eps', 'tmp.ps', 'tmp.jpg',
+                      'reproduce-temp.log', 'fort.tmp', 'tmp.dst', 'tmp.plt']
+        for filename in temp_files:
+            tmp_file_factory(filename)
+        test_run = self.single_run.copy()
+        test_run['--class'] = 'impact'
+        run_batch.delete_output(self.settings, test_run)
+        for filename in temp_files:
+            assert not self.run_folder.joinpath(filename).is_file()
+
+    def test_delete_output_bdsim(self, tmp_file_factory):
+        temp_files = ['tmp.png', 'tmp.eps', 'tmp.ps', 'tmp.jpg',
+                      'reproduce-temp.log', 'tmp.root']
+        for filename in temp_files:
+            tmp_file_factory(filename)
+        test_run = self.single_run.copy()
+        test_run['--class'] = 'bdsim'
+        run_batch.delete_output(self.settings, test_run)
+        for filename in temp_files:
+            assert not self.run_folder.joinpath(filename).is_file()
+
+    def test_delete_output_opal(self, tmp_file_factory):
+        temp_files = ['tmp.png', 'tmp.eps', 'tmp.ps', 'tmp.jpg',
+                      'reproduce-temp.log',
+                      'tmp.h5', 'tmp.lbal', 'tmp.stat', 'tmp.dat', 'data']
+        for filename in temp_files:
+            tmp_file_factory(filename)
+        test_run = self.single_run.copy()
+        test_run['--class'] = 'opal'
+        run_batch.delete_output(self.settings, test_run)
+        for filename in temp_files:
+            assert not self.run_folder.joinpath(filename).is_file()
 
 
     # Sweep methods
@@ -1777,7 +1886,7 @@ class TestRunBatch:
         assert 'INFO: Parameters' in second_captured.err
         for p in tmp_template['parameters']:
             assert f'{p} -> ' in second_captured.err
-        
+
 
     # Test run_single method
     @pytest.mark.slow
@@ -1853,3 +1962,19 @@ class TestRunBatch:
         assert self.reproduce_message in captured.err
         assert self.run_folder.joinpath(self.settings['logfile']).is_file()
         assert len(set(self.run_folder.glob('reproduce-*.log'))) == 1
+
+    @pytest.mark.slow
+    def test_run_single_with_cleanup(self, capfd, tmp_file_factory, protect_log):
+        test_run = self.single_run.copy()
+        test_run['--clean'] = True
+        temp_files = ['tmp.png', 'tmp.eps', 'tmp.ps', 'tmp.jpg',
+                      'reproduce-temp.log']
+        for filename in temp_files:
+            tmp_file_factory(filename)
+        run_batch.run_single(self.settings, test_run)
+        captured = capfd.readouterr()
+        assert self.single_run['title'] in captured.out
+        assert self.test_message in captured.out
+        assert self.reproduce_message in captured.err
+        for filename in temp_files:
+            assert not self.run_folder.joinpath(filename).is_file()
