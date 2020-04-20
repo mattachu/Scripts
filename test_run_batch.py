@@ -203,6 +203,42 @@ class TestRunBatch:
         test_folder = run_batch.get_date_as_folder_name()
         assert test_folder == datetime.today().strftime('%Y-%m-%d')
 
+    # Test get_safe_folder_name method
+    def test_get_safe_folder_name_no_output(self, capsys):
+        run_batch.get_safe_folder_name('test')
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_get_safe_folder_name_return_type(self):
+        test_folder = run_batch.get_safe_folder_name('test')
+        assert isinstance(test_folder, str)
+
+    def test_get_safe_folder_name_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.get_safe_folder_name()
+        with pytest.raises(TypeError):
+            run_batch.get_safe_folder_name('test', 'extra parameter')
+        with pytest.raises(TypeError):
+            run_batch.get_safe_folder_name(self.settings)
+
+    def test_get_safe_folder_name_results(self):
+        test_folder = run_batch.get_safe_folder_name('test')
+        assert test_folder == 'test'
+        test_folder = run_batch.get_safe_folder_name('test123')
+        assert test_folder == 'test123'
+        test_folder = run_batch.get_safe_folder_name('test with spaces')
+        assert test_folder == 'test-with-spaces'
+        test_folder = run_batch.get_safe_folder_name('test, incl. punctuation')
+        assert test_folder == 'test-incl-punctuation'
+        test_folder = run_batch.get_safe_folder_name('test with value 12.4')
+        assert test_folder == 'test-with-value-12.4'
+        test_folder = run_batch.get_safe_folder_name('test: even_stranger;((')
+        assert test_folder == 'test-even_stranger'
+        test_folder = run_batch.get_safe_folder_name('有中文的test')
+        assert test_folder == '____test'
+        test_folder = run_batch.get_safe_folder_name('E:1.5,I:1.0E-3,q:-1.0')
+        assert test_folder == 'E-1.5-I-1.0E-3-q-1.0'
+
     # Test get_archive_folder method
     def test_get_archive_folder_no_output(self, capsys):
         run_batch.get_archive_folder(self.archive_location)
