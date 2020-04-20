@@ -521,28 +521,28 @@ def run_with_git(settings, this_run):
 # Main batch method
 def run_batch(settings, parameters):
     """Run through the batch for different parameter values and input files"""
-    this_run = parameters.copy()
-    this_run['title'] = get_title(this_run)
-    if this_run['--param']:
-        for this_combination in get_sweep_combinations(this_run['--param']):
-            sweep_run = this_run.copy()
-            sweep_run['title'] = this_run['title'] + ' for ' + this_combination
-            if sweep_run['-p']:
-                sweep_run['-p'] += ',' + this_combination
+    batch_run = parameters.copy()
+    batch_run['title'] = get_title(batch_run)
+    if batch_run['--param']:
+        for this_combination in get_sweep_combinations(batch_run['--param']):
+            this_run = batch_run.copy()
+            this_run['title'] = batch_run['title'] + ' for ' + this_combination
+            if this_run['-p']:
+                this_run['-p'] += ',' + this_combination
             else:
-                sweep_run['-p'] = this_combination
-            if sweep_run['--archive']:
-                sweep_run['archive'] = this_run['archive'].joinpath(
+                this_run['-p'] = this_combination
+            if this_run['--archive']:
+                this_run['archive'] = batch_run['archive'].joinpath(
                     this_combination)
-            if sweep_run['--git']:
-                run_with_git(settings, sweep_run)
+            if this_run['--git']:
+                run_with_git(settings, this_run)
             else:
-                run_single(settings, sweep_run)
+                run_single(settings, this_run)
     else:
-        if this_run['--git']:
-            run_with_git(settings, this_run)
+        if batch_run['--git']:
+            run_with_git(settings, batch_run)
         else:
-            run_single(settings, this_run)
+            run_single(settings, batch_run)
 
 
 # What to do when run as a script
