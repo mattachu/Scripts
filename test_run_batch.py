@@ -319,6 +319,19 @@ class TestRunBatch:
 
 
     # Communication methods
+    # Test announce method
+    def test_announce_output(self, capsys):
+        run_batch.announce(self.test_message)
+        captured = capsys.readouterr()
+        assert len(captured.out) > 0
+        assert self.test_message in captured.out
+
+    def test_announce_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.announce()
+        with pytest.raises(TypeError):
+            run_batch.announce(self.test_message, 'extra parameter')
+
     # Test announce_start method
     def test_announce_start_output(self, capsys):
         test_run = {'title': 'Test run'}
@@ -354,6 +367,19 @@ class TestRunBatch:
             run_batch.announce_end('nothing')
         with pytest.raises(TypeError):
             run_batch.announce_end(3.142)
+
+    # Test announce_error method
+    def test_announce_error_output(self, capsys):
+        run_batch.announce_error(self.test_message)
+        captured = capsys.readouterr()
+        assert len(captured.err) > 0
+        assert self.test_message in captured.err
+
+    def test_announce_error_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.announce_error()
+        with pytest.raises(TypeError):
+            run_batch.announce_error(self.test_message, 'extra parameter')
 
 
     # Git methods

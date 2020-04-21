@@ -167,15 +167,24 @@ def get_python_for_reproducible(reproducible_folder, pyenv_folder):
         return 'python3'
 
 # Communication methods
+def announce(message):
+    """Announce a given message."""
+    print(str(message))
+
+def announce_error(message):
+    """Announce a given error message."""
+    print(str(message), file=sys.stderr)
+
 def announce_start(this_run):
     """Announce that a particular run is about to start"""
     print('-----------------------------------------------------------------')
-    print(f'Start of run: {this_run["title"]}')
+    announce(f'Start of run: {this_run["title"]}')
     print()
 
 def announce_end(this_run):
     """Announce that a particular run has finished"""
-    print(f'\nEnd of run: {this_run["title"]}')
+    print()
+    announce(f'End of run: {this_run["title"]}')
     print('-----------------------------------------------------------------')
 
 # Git methods
