@@ -22,6 +22,7 @@
     },
     "markdownlint.config": {
         "MD004": { "style": "sublist" },
+        "MD007": { "indent": 4 },
         "MD012": false,
         "MD041": false
     },
