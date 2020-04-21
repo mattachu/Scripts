@@ -319,6 +319,19 @@ class TestRunBatch:
 
 
     # Communication methods
+    # Test announce method
+    def test_announce_output(self, capsys):
+        run_batch.announce(self.test_message)
+        captured = capsys.readouterr()
+        assert len(captured.out) > 0
+        assert self.test_message in captured.out
+
+    def test_announce_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.announce()
+        with pytest.raises(TypeError):
+            run_batch.announce(self.test_message, 'extra parameter')
+
     # Test announce_start method
     def test_announce_start_output(self, capsys):
         test_run = {'title': 'Test run'}
@@ -354,6 +367,19 @@ class TestRunBatch:
             run_batch.announce_end('nothing')
         with pytest.raises(TypeError):
             run_batch.announce_end(3.142)
+
+    # Test announce_error method
+    def test_announce_error_output(self, capsys):
+        run_batch.announce_error(self.test_message)
+        captured = capsys.readouterr()
+        assert len(captured.err) > 0
+        assert self.test_message in captured.err
+
+    def test_announce_error_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.announce_error()
+        with pytest.raises(TypeError):
+            run_batch.announce_error(self.test_message, 'extra parameter')
 
 
     # Git methods
@@ -661,6 +687,83 @@ class TestRunBatch:
             run_batch.get_commit_message(self.single_run, 'extra parameter')
         with pytest.raises(TypeError):
             run_batch.get_commit_files('not a dict')
+
+
+    # Template methods
+    # Test get_valid_templates method
+    def test_get_valid_templates_no_output(self, capsys):
+        run_batch.get_valid_templates(self.run_folder, 'not_a_file.in')
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_get_valid_templates_single_invalid_template(self):
+        valid, invalid = run_batch.get_valid_templates(self.run_folder,
+                                                       'not_a_file.in')
+        assert valid is None
+        assert isinstance(invalid, str)
+        assert invalid == 'not_a_file.in'
+        assert len(invalid.split(',')) == 1
+
+    def test_get_valid_templates_single_valid_template(self, tmp_file):
+        valid, invalid = run_batch.get_valid_templates(self.run_folder, tmp_file)
+        assert isinstance(valid, str)
+        assert invalid is None
+        assert len(valid.split(',')) == 1
+        assert valid == tmp_file
+
+    def test_get_valid_templates_multiple_invalid_templates(self):
+        invalid_template_list = ['not_a_file1.in', 'not_a_file1.in']
+        template_list = ','.join(invalid_template_list)
+        valid, invalid = run_batch.get_valid_templates(self.run_folder,
+                                                       template_list)
+        assert valid is None
+        assert isinstance(invalid, str)
+        assert len(invalid.split(',')) == len(invalid_template_list)
+        for template in invalid.split(','):
+            assert template in invalid_template_list
+
+    def test_get_valid_templates_multiple_valid_templates(self, tmp_file_factory):
+        valid_template_list = ['template1.in', 'template2.in']
+        template_list = ','.join(valid_template_list)
+        for template in valid_template_list:
+            tmp_file_factory(template)
+        valid, invalid = run_batch.get_valid_templates(self.run_folder,
+                                                       template_list)
+        assert isinstance(valid, str)
+        assert invalid is None
+        assert len(valid.split(',')) == len(valid_template_list)
+        for template in valid.split(','):
+            assert template in valid_template_list
+
+    def test_get_valid_templates_mixed_templates(self, tmp_file_factory):
+        valid_template_list = ['template1.in', 'template2.in']
+        invalid_template_list = ['not_a_file1.in', 'not_a_file1.in']
+        template_list = ','.join(valid_template_list + invalid_template_list)
+        for template in valid_template_list:
+            tmp_file_factory(template)
+        valid, invalid = run_batch.get_valid_templates(self.run_folder,
+                                                       template_list)
+        assert isinstance(valid, str)
+        assert isinstance(invalid, str)
+        assert len(valid.split(',')) == len(valid_template_list)
+        assert len(invalid.split(',')) == len(invalid_template_list)
+        for template in valid.split(','):
+            assert template in valid_template_list
+        for template in invalid.split(','):
+            assert template in invalid_template_list
+
+    def test_get_valid_templates_invalid_input(self):
+        with pytest.raises(TypeError):
+            run_batch.get_valid_templates()
+        with pytest.raises(TypeError):
+            run_batch.get_valid_templates(self.run_folder)
+        with pytest.raises(TypeError):
+            run_batch.get_valid_templates(self.run_folder, None,
+                                          'extra parameter')
+        with pytest.raises(TypeError):
+            run_batch.get_commit_files('not a folder', None)
+        with pytest.raises(TypeError):
+            run_batch.get_commit_files(self.run_folder, ['not', 'a', 'string'])
 
 
     # Post-processing methods
@@ -1998,6 +2101,23 @@ class TestRunBatch:
         assert self.reproduce_message in captured.err
         assert self.run_folder.joinpath(self.settings['logfile']).is_file()
         assert len(set(self.run_folder.glob('reproduce-*.log'))) == 1
+
+    @pytest.mark.slow
+    def test_run_single_with_templates(self, capfd, protect_log):
+        valid_template_list = ['README.md']
+        invalid_template_list = ['not_a_file1.in', 'not_a_file2.in']
+        template_list = ','.join(valid_template_list + invalid_template_list)
+        test_run = self.single_run.copy()
+        test_run['--template'] = template_list
+        run_batch.run_single(self.settings, test_run)
+        captured = capfd.readouterr()
+        assert test_run['title'] in captured.out
+        assert self.test_message in captured.out
+        assert self.reproduce_message in captured.err
+        assert self.run_folder.joinpath(self.settings['logfile']).is_file()
+        assert 'Skipping missing templates' in captured.err
+        for template in invalid_template_list:
+            assert template in captured.err
 
     @pytest.mark.slow
     def test_run_single_with_cleanup(self, capfd, tmp_file_factory, protect_log):

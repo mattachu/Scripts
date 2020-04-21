@@ -167,15 +167,24 @@ def get_python_for_reproducible(reproducible_folder, pyenv_folder):
         return 'python3'
 
 # Communication methods
+def announce(message):
+    """Announce a given message."""
+    print(str(message))
+
+def announce_error(message):
+    """Announce a given error message."""
+    print(str(message), file=sys.stderr)
+
 def announce_start(this_run):
     """Announce that a particular run is about to start"""
     print('-----------------------------------------------------------------')
-    print(f'Start of run: {this_run["title"]}')
+    announce(f'Start of run: {this_run["title"]}')
     print()
 
 def announce_end(this_run):
     """Announce that a particular run has finished"""
-    print(f'\nEnd of run: {this_run["title"]}')
+    print()
+    announce(f'End of run: {this_run["title"]}')
     print('-----------------------------------------------------------------')
 
 # Git methods
@@ -267,6 +276,19 @@ def get_commit_files(settings, parameters):
 def get_commit_message(this_run):
     """Create a message string to commit results of the current run"""
     return 'Results for ' + this_run['title']
+
+# Template methods
+def get_valid_templates(run_folder, templates):
+    """Check which files exist and return lists of valid and invalid files."""
+    valid_templates = []
+    invalid_templates = []
+    for template in templates.split(','):
+        if run_folder.joinpath(template).is_file():
+            valid_templates.append(template)
+        else:
+            invalid_templates.append(template)
+    return (None if len(valid_templates) == 0 else ','.join(valid_templates),
+            None if len(invalid_templates) == 0 else ','.join(invalid_templates))
 
 # Post-processing methods
 def post_process(settings, command):
@@ -497,6 +519,12 @@ def run_single(settings, this_run):
         repo = get_git_repo(settings['current_folder'])
         git_checkout(repo, this_run['--input_branch'])
         git_get_file(repo, this_run['--results_branch'], settings['logfile'])
+    if this_run['--template']:
+        valid, invalid = get_valid_templates(settings['current_folder'],
+                                             this_run['--template'])
+        if invalid:
+            announce_error(f'Skipping missing templates: {invalid}')
+        this_run['--template'] = valid
     reproducible_run(settings, this_run)
     if this_run['--post']:
         post_process(settings, this_run['--post'])
