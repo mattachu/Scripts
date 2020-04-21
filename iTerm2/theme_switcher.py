@@ -33,7 +33,7 @@ async def set_colours(connection, preset, ansi_8_color):
         await profile.async_set_color_preset(preset)
         await profile.async_set_ansi_8_color(ansi_8_color)
 
-async def main(connection):
+async def switch_now(connection):
     """Set the correct colour preset based on the current theme."""
     app = await iterm2.async_get_app(connection)
     theme = await app.async_get_variable("effectiveTheme")
@@ -42,5 +42,5 @@ async def main(connection):
     ansi_8_color = get_ansi_8_color(is_dark)
     await set_colours(connection, preset, ansi_8_color)
 
-
-iterm2.run_until_complete(main)
+if __name__ == '__main__':
+    iterm2.run_until_complete(switch_now)
