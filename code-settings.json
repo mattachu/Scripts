@@ -33,5 +33,12 @@
     ],
     "cSpell.userWords": [
         "unphysical"
-    ]
+    ],
+    "gitlens.defaultDateFormat": "D MMMM YYYY h:mma",
+    "gitlens.defaultDateShortFormat": "YYYY-MM-DD",
+    "gitlens.views.repositories.location": "gitlens",
+    "gitlens.views.fileHistory.location": "gitlens",
+    "gitlens.views.lineHistory.location": "gitlens",
+    "gitlens.views.compare.location": "gitlens",
+    "gitlens.views.search.location": "gitlens"
 }
