@@ -1,0 +1,19 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "update extension list",
+            "type": "shell",
+            "command": "code --list-extensions > .vscode/extensions.txt",
+            "problemMatcher": []
+        },
+        {
+            "label": "install extensions from list",
+            "type": "shell",
+            "command": "cat .vscode/extensions.txt | xargs -L1 code --install-extension",
+            "problemMatcher": []
+        }
+    ]
+}
