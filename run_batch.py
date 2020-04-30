@@ -5,7 +5,7 @@ Usage:
   run_batch.py [options] [--] <command>
   run_batch.py [--git [--input_branch=<branch>]... [--results_branch=<branch>]]
                [--archive [--full]] [--class=<class>]
-               [--param=<sweep>]...
+               [--sweep=<sweep>]...
                [--post=<command>]
                [--clean]
                [options] [--] <command>
@@ -24,7 +24,7 @@ Options:
   --results_branch=<branch> Specify a results branch in Git.
                             Does not allow multiple branches.
   --post=<command>          Specify a post-processing command.
-  --param=<key:v1,v2,v3...> Specify a parametric sweep with multiple values for
+  --sweep=<key:v1,v2,v3...> Specify a parametric sweep with multiple values for
                             a single parameter leading to multiple runs.
                             Can be specified multiple times to sweep multiple
                             parameters.
@@ -89,7 +89,7 @@ run_batch.py --git --input_branch=input/full --input_branch=input/nospacecharge
     Run the same simulation reproducibly using two different input branches.
     This will result in two separate commits in the results branch.
 
-run_batch.py --template=ImpactT.in --param=I:0.0,0.2,0.4,0.6 \
+run_batch.py --template=ImpactT.in --sweep=I:0.0,0.2,0.4,0.6 \
              --class=impact -- ImpactTexe
 
     Sweep through the parameter options for beam current I.
@@ -562,8 +562,8 @@ def run_batch(settings, parameters):
     """Run through the batch for different parameter values and input files"""
     batch_run = parameters.copy()
     batch_run['title'] = get_title(batch_run)
-    if batch_run['--param']:
-        for this_combination in get_sweep_combinations(batch_run['--param']):
+    if batch_run['--sweep']:
+        for this_combination in get_sweep_combinations(batch_run['--sweep']):
             this_run = batch_run.copy()
             this_run['title'] = batch_run['title'] + ' for ' + this_combination
             if this_run['-p']:
