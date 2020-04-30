@@ -25,9 +25,15 @@ Options:
                             Does not allow multiple branches.
   --post=<command>          Specify a post-processing command.
   --sweep=<key:v1,v2,v3...> Specify a parametric sweep with multiple values for
-                            a single parameter leading to multiple runs.
-                            Can be specified multiple times to sweep multiple
-                            parameters.
+                            parameters leading to multiple runs.
+                            Multiple parameters can be specified independently,
+                            such as --sweep='a:1,2' --sweep='b:2,4'
+                            or connected, like --sweep='(a,b):(1,2),(2,4)'.
+                            With separate specification, all combinations are
+                            simulated (e.g. (1,2), (1,4), (2,2) and (2,4)).
+                            With connected specification, only the given
+                            combinations are simulated (e.g. (1,2) and (2,4)).
+                            See below for more examples.
 
 Options passed to Reproducible:
   --config <configfile>     Overwrite the location of Reproducible config file.
@@ -75,7 +81,7 @@ run_batch.py --class=impact -- ImpactTexe
     Run a simulation reproducibly in Impact-T.
     This will call `reproduce run -- ImpactTexe` without any other options.
 
-run_batch.py --git --input_branch=develop --results_branch=results \
+run_batch.py --git --input_branch=develop --results_branch=results \\
              --class=impact -- ImpactTexe
 
     First checkout input files from the 'develop' branch and 'simulations.log'
@@ -89,7 +95,7 @@ run_batch.py --git --input_branch=input/full --input_branch=input/nospacecharge
     Run the same simulation reproducibly using two different input branches.
     This will result in two separate commits in the results branch.
 
-run_batch.py --template=ImpactT.in --sweep=I:0.0,0.2,0.4,0.6 \
+run_batch.py --template=ImpactT.in --sweep=I:0.0,0.2,0.4,0.6 \\
              --class=impact -- ImpactTexe
 
     Sweep through the parameter options for beam current I.
@@ -99,11 +105,37 @@ run_batch.py --template=ImpactT.in --sweep=I:0.0,0.2,0.4,0.6 \
         reproduce run --template ImpactT -p I:0.0 -- ImpactTexe
         reproduce run --template ImpactT -p I:0.2 -- ImpactTexe
         reproduce run --template ImpactT -p I:0.4 -- ImpactTexe
-        reproduce run --template ImpactT -p I:0.5 -- ImpactTexe
         reproduce run --template ImpactT -p I:0.6 -- ImpactTexe
     If `--git` is specified, each run result will be in a separate commit.
     If `--archive` is specified, each run will be archived to a separate folder.
     If `--runlog` is specified, each run will produce a separate log.
+
+run_batch.py --template=ImpactT.in --sweep=I:0.0,0.2,0.4,0.6 --sweep=E:1.0,1.5 \\
+             --class=impact -- ImpactTexe
+
+    Double parametric sweep for beam current I and energy E.
+    The input file 'ImpactT.in' should be set up as a template with {{I}} in
+    place of the beam current, and {{E}} in place of the beam energy.
+    All combinations of parameter values for the two sweeps will run in separate
+    simulations:
+        reproduce run --template ImpactT -p I:0.0,E:1.0 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.2,E:1.0 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.4,E:1.0 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.6,E:1.0 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.0,E:1.5 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.2,E:1.5 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.4,E:1.5 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.6,E:1.5 -- ImpactTexe
+
+run_batch.py --template=ImpactT.in --sweep=(I,E):(0.0,1.0),(0.2,1.0),(0.4,1.5) \\
+             --class=impact -- ImpactTexe
+
+    Single parametric sweep for multiple parameters I and E.
+    The input file 'ImpactT.in' is set up as a template with {{I}} and {{E}}
+    as above, but only the given combinations of parameter values will run:
+        reproduce run --template ImpactT -p I:0.0,E:1.0 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.2,E:1.0 -- ImpactTexe
+        reproduce run --template ImpactT -p I:0.4,E:1.5 -- ImpactTexe
 
 """
 
@@ -404,24 +436,39 @@ def delete_output(settings, this_run):
             file.unlink()
 
 # Sweep methods
-def get_sweep_parameter(sweep_definition):
+def get_sweep_parameters(sweep_definition):
     """Return the parameter name for a given sweep string"""
     if not ':' in sweep_definition:
         raise ValueError('Invalid sweep definition: ' + sweep_definition)
-    return sweep_definition.split(':')[0]
+    sweep_parameters = sweep_definition.split(':')[0]
+    if ',' in sweep_parameters:
+        return sweep_parameters.replace('(', '').replace(')', '').split(',')
+    else:
+        return [sweep_parameters]
 
 def get_sweep_values(sweep_definition):
     """Return the parameter name for a given sweep string"""
     if not ':' in sweep_definition:
         raise ValueError('Invalid sweep definition: ' + sweep_definition)
-    return sweep_definition.split(':')[1].split(',')
+    sweep_values = sweep_definition.split(':')[1]
+    if '(' in sweep_values:
+        return [tuple(this_set.replace('(', '').replace(')', '').split(','))
+                for this_set in sweep_values.split('),')]
+    else:
+        return sweep_values.split(',')
 
 def get_sweep_strings(sweep_definition):
-    """Get all single-value paramter strings for a given sweep string"""
+    """Get all single-value parameter strings for a given sweep string"""
     if not ':' in sweep_definition:
         raise ValueError('Invalid sweep definition: ' + sweep_definition)
-    return [get_sweep_parameter(sweep_definition) + ':' + value
-           for value in get_sweep_values(sweep_definition)]
+    sweep_parameters = get_sweep_parameters(sweep_definition)
+    if len(sweep_parameters) > 1:
+        return [','.join([sweep_parameters[i] + ':' + values[i]
+                        for i in range(len(sweep_parameters))])
+                for values in get_sweep_values(sweep_definition)]
+    else:
+        return [sweep_parameters[0] + ':' + value
+                for value in get_sweep_values(sweep_definition)]
 
 def get_sweep_combinations(sweeps):
     """Get all combinations of parameter values for multiple sweeps"""

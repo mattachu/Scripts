@@ -1510,30 +1510,65 @@ class TestRunBatch:
 
 
     # Sweep methods
-    # Test get_sweep_parameter method
-    def test_get_sweep_parameter(self):
+    # Test get_sweep_parameters method
+    def test_get_sweep_parameters_no_output(self, capsys):
         test_sweep_parameter = 'I'
         test_sweep_values = [0.0, 0.2, 0.4, 0.6]
         test_sweep = (test_sweep_parameter + ':'
                       + ','.join([str(v) for v in test_sweep_values]))
-        parameter = run_batch.get_sweep_parameter(test_sweep)
-        assert isinstance(parameter, str)
-        assert parameter == test_sweep_parameter
+        run_batch.get_sweep_parameters(test_sweep)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
 
-    def test_get_sweep_parameter_invalid_input(self):
+    def test_get_sweep_parameters_single(self):
+        test_sweep_parameter = 'I'
+        test_sweep_values = [0.0, 0.2, 0.4, 0.6]
+        test_sweep = (test_sweep_parameter + ':'
+                      + ','.join([str(v) for v in test_sweep_values]))
+        sweep_parameters = run_batch.get_sweep_parameters(test_sweep)
+        assert isinstance(sweep_parameters, list)
+        assert len(sweep_parameters) == 1
+        assert sweep_parameters[0] == test_sweep_parameter
+
+    def test_get_sweep_parameters_multiple(self):
+        test_sweep = '(a,b):(1, 10),(2,20),(3,30),(4,40)'
+        test_sweep_parameters = ['a', 'b']
+        sweep_parameters = run_batch.get_sweep_parameters(test_sweep)
+        assert isinstance(sweep_parameters, list)
+        assert len(sweep_parameters) == 2
+        assert sweep_parameters == test_sweep_parameters
+
+    def test_get_sweep_parameters_multiple_no_brackets(self):
+        test_sweep = 'a,b:(1, 10),(2,20),(3,30),(4,40)'
+        test_sweep_parameters = ['a', 'b']
+        sweep_parameters = run_batch.get_sweep_parameters(test_sweep)
+        assert isinstance(sweep_parameters, list)
+        assert len(sweep_parameters) == 2
+        assert sweep_parameters == test_sweep_parameters
+
+    def test_get_sweep_parameters_invalid_input(self):
         with pytest.raises(TypeError):
-            run_batch.get_sweep_parameter()
+            run_batch.get_sweep_parameters()
         with pytest.raises(TypeError):
-            run_batch.get_sweep_parameter('I:0.0,0.2,0.4', 'extra parameter')
+            run_batch.get_sweep_parameters('I:0.0,0.2,0.4', 'extra parameter')
         with pytest.raises(TypeError):
-            run_batch.get_sweep_parameter(3.142)
+            run_batch.get_sweep_parameters(3.142)
         with pytest.raises(TypeError):
-            run_batch.get_sweep_parameter(['not', 'a', 'sweep', 'definition'])
+            run_batch.get_sweep_parameters(['not', 'a', 'sweep', 'definition'])
         with pytest.raises(ValueError):
-            run_batch.get_sweep_parameter('not a sweep definition')
+            run_batch.get_sweep_parameters('not a sweep definition')
 
     # Test get_sweep_values method
-    def test_get_sweep_values(self):
+    def test_get_sweep_values_no_output(self, capsys):
+        test_sweep_parameter = 'I'
+        test_sweep_values = [0.0, 0.2, 0.4, 0.6]
+        test_sweep = (test_sweep_parameter + ':'
+                      + ','.join([str(v) for v in test_sweep_values]))
+        run_batch.get_sweep_values(test_sweep)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_get_sweep_values_single(self):
         test_sweep_parameter = 'I'
         test_sweep_values = [0.0, 0.2, 0.4, 0.6]
         test_sweep = (test_sweep_parameter + ':'
@@ -1543,6 +1578,30 @@ class TestRunBatch:
         assert len(values) == len(test_sweep_values)
         assert all([isinstance(value, str) for value in values])
         assert all([str(value) in values for value in test_sweep_values])
+
+    def test_get_sweep_values_multiple(self):
+        test_sweep = '(a,b):(1,10),(2,20),(3,30),(4,40)'
+        test_sweep_values = [('1', '10'), ('2', '20'), ('3', '30'), ('4', '40')]
+        values = run_batch.get_sweep_values(test_sweep)
+        assert isinstance(values, list)
+        assert len(values) == len(test_sweep_values)
+        for i in range(len(values)):
+            assert isinstance(values[i], tuple)
+            assert len(values[i]) == len(test_sweep_values[i])
+            assert all([isinstance(value, str) for value in values[i]])
+            assert all([str(value) in values[i] for value in test_sweep_values[i]])
+
+    def test_get_sweep_values_multiple_no_brackets(self):
+        test_sweep = 'a,b:(1,10),(2,20),(3,30),(4,40)'
+        test_sweep_values = [('1', '10'), ('2', '20'), ('3', '30'), ('4', '40')]
+        values = run_batch.get_sweep_values(test_sweep)
+        assert isinstance(values, list)
+        assert len(values) == len(test_sweep_values)
+        for i in range(len(values)):
+            assert isinstance(values[i], tuple)
+            assert len(values[i]) == len(test_sweep_values[i])
+            assert all([isinstance(value, str) for value in values[i]])
+            assert all([str(value) in values[i] for value in test_sweep_values[i]])
 
     def test_get_sweep_values_invalid_input(self):
         with pytest.raises(TypeError):
@@ -1557,7 +1616,16 @@ class TestRunBatch:
             run_batch.get_sweep_values('not a sweep definition')
 
     # Test get_sweep_strings method
-    def test_get_sweep_strings(self):
+    def test_get_sweep_strings_no_output(self, capsys):
+        test_sweep_parameter = 'I'
+        test_sweep_values = [0.0, 0.2, 0.4, 0.6]
+        test_sweep = (test_sweep_parameter + ':'
+                      + ','.join([str(v) for v in test_sweep_values]))
+        run_batch.get_sweep_strings(test_sweep)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_get_sweep_strings_single(self):
         test_sweep_parameter = 'I'
         test_sweep_values = [0.0, 0.2, 0.4, 0.6]
         test_sweep = (test_sweep_parameter + ':'
@@ -1569,6 +1637,26 @@ class TestRunBatch:
         assert all([sweep in sweeps
                     for sweep in [test_sweep_parameter + ':' + str(v)
                                   for v in test_sweep_values]])
+
+    def test_get_sweep_strings_multiple(self):
+        test_sweep = '(a,b):(1,10),(2,20),(3,30),(4,40)'
+        test_sweep_strings = ['a:1,b:10', 'a:2,b:20', 'a:3,b:30', 'a:4,b:40']
+        sweeps = run_batch.get_sweep_strings(test_sweep)
+        assert isinstance(sweeps, list)
+        assert len(sweeps) == len(test_sweep_strings)
+        assert all([isinstance(sweep, str) for sweep in sweeps])
+        assert all([sweep in sweeps
+                    for sweep in test_sweep_strings])
+
+    def test_get_sweep_strings_multiple_no_brackets(self):
+        test_sweep = 'a,b:(1,10),(2,20),(3,30),(4,40)'
+        test_sweep_strings = ['a:1,b:10', 'a:2,b:20', 'a:3,b:30', 'a:4,b:40']
+        sweeps = run_batch.get_sweep_strings(test_sweep)
+        assert isinstance(sweeps, list)
+        assert len(sweeps) == len(test_sweep_strings)
+        assert all([isinstance(sweep, str) for sweep in sweeps])
+        assert all([sweep in sweeps
+                    for sweep in test_sweep_strings])
 
     def test_get_sweep_strings_invalid_input(self):
         with pytest.raises(TypeError):
@@ -1583,6 +1671,15 @@ class TestRunBatch:
             run_batch.get_sweep_strings('not a sweep definition')
 
     # Test get_sweep_combinations method
+    def test_get_sweep_combinations_no_output(self, capsys):
+        test_sweep_parameter = 'I'
+        test_sweep_values = [0.0, 0.2, 0.4, 0.6]
+        test_sweep = [test_sweep_parameter + ':'
+                      + ','.join([str(v) for v in test_sweep_values])]
+        run_batch.get_sweep_combinations(test_sweep)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
     def test_get_sweep_combinations_single_sweep(self):
         test_sweep_parameter = 'I'
         test_sweep_values = [0.0, 0.2, 0.4, 0.6]
@@ -1628,6 +1725,38 @@ class TestRunBatch:
                      for sweep in [test_sweep_parameters[i] + ':' + str(v)
                                    for v in test_sweep_values[i]]]
                     for i in range(len(test_sweep_parameters))])
+
+    def test_get_sweep_combinations_single_multiple(self):
+        test_sweeps = ['(a,b):(1,10),(2,20),(3,30),(4,40)']
+        test_sweep_strings = ['a:1,b:10', 'a:2,b:20', 'a:3,b:30', 'a:4,b:40']
+        combinations = run_batch.get_sweep_combinations(test_sweeps)
+        assert isinstance(combinations, list)
+        assert len(combinations) == len(test_sweep_strings)
+        assert all([isinstance(sweep, str) for sweep in combinations])
+        assert all([sweep in combinations
+                    for sweep in test_sweep_strings])
+
+    def test_get_sweep_combinations_double_multiple(self):
+        test_sweeps = ['(a,b):(1,10),(2,20)', 'c:100,200']
+        test_sweep_combinations = ['a:1,b:10,c:100', 'a:2,b:20,c:100',
+                                   'a:1,b:10,c:200', 'a:2,b:20,c:200',]
+        combinations = run_batch.get_sweep_combinations(test_sweeps)
+        assert isinstance(combinations, list)
+        assert len(combinations) == len(test_sweep_combinations)
+        assert all([isinstance(sweep, str) for sweep in combinations])
+        assert all([sweep in combinations
+                    for sweep in test_sweep_combinations])
+
+    def test_get_sweep_combinations_double_multiple_no_brackets(self):
+        test_sweeps = ['a,b:(1,10),(2,20)', 'c:100,200']
+        test_sweep_combinations = ['a:1,b:10,c:100', 'a:2,b:20,c:100',
+                                   'a:1,b:10,c:200', 'a:2,b:20,c:200',]
+        combinations = run_batch.get_sweep_combinations(test_sweeps)
+        assert isinstance(combinations, list)
+        assert len(combinations) == len(test_sweep_combinations)
+        assert all([isinstance(sweep, str) for sweep in combinations])
+        assert all([sweep in combinations
+                    for sweep in test_sweep_combinations])
 
     def test_sweep_combinations_invalid_input(self):
         with pytest.raises(TypeError):
