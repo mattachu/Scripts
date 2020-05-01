@@ -146,7 +146,6 @@ class TestRunBatch:
         tempfile = self.run_folder.joinpath(tmp_template['filename'])
         with open(tempfile, 'w') as f:
             f.write(tmp_template['text'])
-        initial_commit = self.repo.commit()
         self.repo.index.add(tmp_template['filename'])
         self.repo.index.commit('Test commit')
         yield tmp_template
