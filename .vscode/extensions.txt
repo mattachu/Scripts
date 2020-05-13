@@ -3,6 +3,7 @@ dkundel.vscode-new-file
 donjayamanne.githistory
 eamodio.gitlens
 ekibun.fortranbreaker
+goessner.mdmath
 James-Yu.latex-workshop
 krvajalm.linter-gfortran
 MS-CEINTL.vscode-language-pack-en-GB
