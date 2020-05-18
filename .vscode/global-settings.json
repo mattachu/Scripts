@@ -11,6 +11,7 @@
     "window.autoDetectColorScheme": true,
     "window.title": "${rootName}${separator}${activeEditorShort}",
     "terminal.integrated.shell.osx": "/bin/zsh",
+    "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\wsl.exe",
     "terminal.integrated.fontFamily": "'SourceCodePro+Powerline+Awesome Regular', Furamono Nerd Font, MesloLGS NF, monospace",
     "terminal.external.osxExec": "iTerm.app",
     "python.pythonPath": "/Users/matt/.pyenv/shims/python",
