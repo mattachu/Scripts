@@ -6,7 +6,7 @@
         "**/.pytest_cache": true,
         ".pytest_cache/**/*": true
     },
-    "python.pythonPath": "/Users/matt/.pyenv/versions/3.8.1/bin/python3.8",
+    "python.pythonPath": "${env:HOME}/.pyenv/versions/3.8.1/bin/python3.8",
     "python.testing.pytestArgs": [
         "-v"
     ],
