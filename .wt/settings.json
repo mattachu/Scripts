@@ -29,7 +29,9 @@
         {
             // Put settings here that you want to apply to all profiles.
             "colorScheme": "Solarized Dark",
-            "fontFace":  "SourceCodePro+Powerline+Awesome Regular"
+            "fontFace":  "SourceCodePro+Powerline+Awesome Regular",
+            "useAcrylic": true,
+            "acrylicOpacity": 0.8
         },
         "list":
         [
@@ -38,7 +40,8 @@
                 "guid": "{2c4de342-38b7-51cf-b940-2309a097f518}",
                 "hidden": false,
                 "name": "Ubuntu",
-                "source": "Windows.Terminal.Wsl"
+                "source": "Windows.Terminal.Wsl",
+                "startingDirectory" : "//wsl$/Ubuntu/home/matt"
             },
             {
                 // Make changes here to the powershell.exe profile.
