@@ -7,12 +7,48 @@
             "label": "update extension list",
             "type": "shell",
             "command": "code --list-extensions > .vscode/extensions.txt",
+            "windows": {
+                "options": {
+                    "shell": {
+                        "executable": "cmd.exe",
+                        "args": ["/d", "/c" ]
+                    }
+                }
+            },
+            "linux": {
+                "options": {
+                    "shell": {
+                        "executable": "cmd.exe",
+                        "args": ["/d", "/c" ]
+                    }
+                }
+            },
             "problemMatcher": []
         },
         {
             "label": "install extensions from list",
             "type": "shell",
-            "command": "cat .vscode/extensions.txt | xargs -L1 code --install-extension",
+            "osx": {
+                "command": "cat .vscode/extensions.txt | xargs -L1 code --install-extension"
+            },
+            "windows": {
+                "options": {
+                    "shell": {
+                        "executable": "cmd.exe",
+                        "args": ["/d", "/c" ]
+                    }
+                },
+                "command": "FOR /F %x IN (.vscode/extensions.txt) DO code --install-extension %x"
+            },
+            "linux": {
+                "options": {
+                    "shell": {
+                        "executable": "cmd.exe",
+                        "args": ["/d", "/c" ]
+                    }
+                },
+                "command": "FOR /F %x IN (.vscode/extensions.txt) DO code --install-extension %x"
+            },
             "problemMatcher": []
         }
     ]
