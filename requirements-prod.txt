@@ -1,0 +1,10 @@
+# Common requirements
+GitPython
+
+# Requirements for git_check
+colorama
+tabulate
+termcolor
+
+# Requirements for run_batch
+docopt
