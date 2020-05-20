@@ -19,7 +19,7 @@ class TestRunBatch:
         self.pyenv = pathlib.Path.home().joinpath('.pyenv')
         self.reproduce_python = self.pyenv.joinpath('versions/reproducible/bin/python3')
         self.src_location = pathlib.Path.home().joinpath('Code/Impact/src')
-        self.exe = pathlib.Path.home().joinpath('bin/ImpactTexe')
+        self.exe = pathlib.Path.home().joinpath('.local/bin/ImpactTexe')
         self.repo = git.Repo(self.run_folder)
         self.src_repo = git.Repo(self.src_location.parent)
         self.test_message = 'Hello world'
