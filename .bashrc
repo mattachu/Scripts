@@ -28,7 +28,9 @@
 [[ "$-" != *i* ]] && return
 
 # Load machine-specific locations
-source "${HOME}/.locations"
+if [ -r "$HOME/.locations" ]
+    source "${HOME}/.locations"
+fi
 
 # Add environment variable for stow directory
 export STOW_DIR="/usr/local/stow"
