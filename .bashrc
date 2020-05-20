@@ -32,9 +32,6 @@ if [ -r "$HOME/.locations" ]
     source "${HOME}/.locations"
 fi
 
-# Add environment variable for stow directory
-export STOW_DIR="/usr/local/stow"
-
 # Display settings (don't change in macOS)
 if [[ "$(uname)" != "Darwin" ]]; then
     export DISPLAY=":0"
