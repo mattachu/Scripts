@@ -12,7 +12,9 @@ if [ -r "$PYENV_ROOT/bin" ]; then
 fi
 
 # Add user bin folder to path
-export PATH="$HOME/bin:$PATH"
+if [ -r "$HOME/.local/bin" ]; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
