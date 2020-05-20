@@ -56,7 +56,7 @@
     background_jobs         # presence of background jobs
     direnv                  # direnv status (https://direnv.net/)
     asdf                    # asdf version manager (https://github.com/asdf-vm/asdf)
-    # virtualenv            # python virtual environment (https://docs.python.org/3/library/venv.html)
+    virtualenv              # python virtual environment (https://docs.python.org/3/library/venv.html)
     anaconda                # conda environment (https://conda.io/)
     pyenv                   # python environment (https://github.com/pyenv/pyenv)
     goenv                   # go environment (https://github.com/syndbg/goenv)
@@ -909,7 +909,7 @@
   # typeset -g POWERLEVEL9K_VIRTUALENV_FOREGROUND=0
   # typeset -g POWERLEVEL9K_VIRTUALENV_BACKGROUND=4
   # Don't show Python version next to the virtual environment name.
-  typeset -g POWERLEVEL9K_VIRTUALENV_SHOW_PYTHON_VERSION=false
+  typeset -g POWERLEVEL9K_VIRTUALENV_SHOW_PYTHON_VERSION=true
   # Separate environment name from Python version only with a space.
   typeset -g POWERLEVEL9K_VIRTUALENV_{LEFT,RIGHT}_DELIMITER=
   # Custom icon.
@@ -920,7 +920,7 @@
   # typeset -g POWERLEVEL9K_ANACONDA_FOREGROUND=0
   # typeset -g POWERLEVEL9K_ANACONDA_BACKGROUND=4
   # Don't show Python version next to the anaconda environment name.
-  typeset -g POWERLEVEL9K_ANACONDA_SHOW_PYTHON_VERSION=false
+  typeset -g POWERLEVEL9K_ANACONDA_SHOW_PYTHON_VERSION=true
   # Separate environment name from Python version only with a space.
   typeset -g POWERLEVEL9K_ANACONDA_{LEFT,RIGHT}_DELIMITER=
   # Custom icon.
@@ -934,9 +934,11 @@
   typeset -g POWERLEVEL9K_PYENV_SOURCES=(shell local global)
   # If set to false, hide python version if it's the same as global:
   # $(pyenv version-name) == $(pyenv global).
-  typeset -g POWERLEVEL9K_PYENV_PROMPT_ALWAYS_SHOW=false
-  # Custom icon.
-  typeset -g POWERLEVEL9K_PYENV_VISUAL_IDENTIFIER_EXPANSION='🐍'
+  typeset -g POWERLEVEL9K_PYENV_PROMPT_ALWAYS_SHOW=true
+  # Hide `pyenv` segment if its content has no dots ('.') to avoid duplication.
+  typeset -g POWERLEVEL9K_PYENV_CONTENT_EXPANSION='${(M)P9K_CONTENT:#*.*}'
+  # Custom icon (again, hide if no dots).
+  typeset -g POWERLEVEL9K_PYENV_VISUAL_IDENTIFIER_EXPANSION='${${(M)P9K_CONTENT:#*.*}:+🐍}'
 
   ################[ goenv: go environment (https://github.com/syndbg/goenv) ]################
   # Goenv color.
