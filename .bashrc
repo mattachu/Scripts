@@ -28,7 +28,7 @@
 [[ "$-" != *i* ]] && return
 
 # Load machine-specific locations
-if [ -r "$HOME/.locations" ]
+if [ -r "$HOME/.locations" ]; then
     source "${HOME}/.locations"
 fi
 
