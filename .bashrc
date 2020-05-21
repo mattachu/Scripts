@@ -28,10 +28,9 @@
 [[ "$-" != *i* ]] && return
 
 # Load machine-specific locations
-source "${HOME}/.locations"
-
-# Add environment variable for stow directory
-export STOW_DIR="/usr/local/stow"
+if [ -r "$HOME/.locations" ]; then
+    source "${HOME}/.locations"
+fi
 
 # Display settings (don't change in macOS)
 if [[ "$(uname)" != "Darwin" ]]; then
