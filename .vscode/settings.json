@@ -6,11 +6,11 @@
         "**/.pytest_cache": true,
         ".pytest_cache/**/*": true
     },
-    "python.pythonPath": "${env:HOME}/.pyenv/versions/3.8.1/bin/python3.8",
-    "python.testing.pytestArgs": [
-        "-v"
-    ],
+    "python.pythonPath": "${env:HOME}/.pyenv/versions/scripts/bin/python",
+    "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,
     "python.testing.nosetestsEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestArgs": [
+        "-v"
+    ]
 }
