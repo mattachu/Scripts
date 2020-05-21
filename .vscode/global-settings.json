@@ -34,6 +34,26 @@
             "label": "bash login shell"
         }
     ],
+    "shellLauncher.shells.linux": [
+        {
+            "shell": "/bin/zsh",
+            "label": "zsh"
+        },
+        {
+            "shell": "/bin/bash",
+            "label": "bash"
+        },
+        {
+            "shell": "/bin/zsh",
+            "args": ["-l"],
+            "label": "zsh login shell"
+        },
+        {
+            "shell": "/bin/bash",
+            "args": ["-l"],
+            "label": "bash login shell"
+        }
+    ],
     "python.pythonPath": "/Users/matt/.pyenv/shims/python",
     "git.autofetch": true,
     "git.confirmSync": false,
