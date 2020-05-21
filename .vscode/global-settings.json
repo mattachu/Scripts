@@ -1,0 +1,110 @@
+{
+    "telemetry.enableTelemetry": false,
+    "editor.wordWrap": "off",
+    "editor.rulers": [
+        80
+    ],
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "explorer.confirmDelete": false,
+    "window.autoDetectColorScheme": true,
+    "window.title": "${rootName}${separator}${activeEditorShort}",
+    "terminal.integrated.shell.osx": "/bin/zsh",
+    "terminal.integrated.shell.windows": "cmd.exe",
+    "terminal.integrated.fontFamily": "'SourceCodePro+Powerline+Awesome Regular', Furamono Nerd Font, MesloLGS NF, monospace",
+    "terminal.external.osxExec": "iTerm.app",
+    "shellLauncher.shells.osx": [
+        {
+            "shell": "/bin/zsh",
+            "label": "zsh"
+        },
+        {
+            "shell": "/bin/bash",
+            "label": "bash"
+        },
+        {
+            "shell": "/bin/zsh",
+            "args": ["-l"],
+            "label": "zsh login shell"
+        },
+        {
+            "shell": "/bin/bash",
+            "args": ["-l"],
+            "label": "bash login shell"
+        }
+    ],
+    "shellLauncher.shells.linux": [
+        {
+            "shell": "/bin/zsh",
+            "label": "zsh"
+        },
+        {
+            "shell": "/bin/bash",
+            "label": "bash"
+        },
+        {
+            "shell": "/bin/zsh",
+            "args": ["-l"],
+            "label": "zsh login shell"
+        },
+        {
+            "shell": "/bin/bash",
+            "args": ["-l"],
+            "label": "bash login shell"
+        }
+    ],
+    "shellLauncher.shells.windows": [
+        {
+            "shell": "C:\\Windows\\System32\\cmd.exe",
+            "label": "cmd"
+        },
+        {
+            "shell": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "label": "PowerShell"
+        },
+        {
+            "shell": "C:\\Program Files\\Git\\bin\\bash.exe",
+            "label": "Git bash"
+        },
+        {
+            "shell": "C:\\Windows\\System32\\wsl.exe",
+            "label": "WSL"
+        },
+        {
+            "shell": "C:\\Windows\\System32\\bash.exe",
+            "label": "WSL bash"
+        }
+    ],
+    "python.pythonPath": "/Users/matt/.pyenv/shims/python",
+    "git.autofetch": true,
+    "git.confirmSync": false,
+    "[markdown]": {
+        "editor.wordWrap": "off",
+        "files.trimTrailingWhitespace": false
+    },
+    "markdownlint.config": {
+        "MD004": { "style": "sublist" },
+        "MD007": { "indent": 4 },
+        "MD012": false,
+        "MD041": false
+    },
+    "latex-workshop.view.pdf.viewer": "tab",
+    "cSpell.language": "en-GB",
+    "cSpell.enableFiletypes": [
+        "markdown"
+    ],
+    "cSpell.userWords": [
+        "quadrupoles",
+        "underway",
+        "unphysical"
+    ],
+    "gitlens.defaultDateFormat": "D MMMM YYYY h:mma",
+    "gitlens.defaultDateShortFormat": "YYYY-MM-DD",
+    "gitlens.views.repositories.location": "gitlens",
+    "gitlens.views.fileHistory.location": "gitlens",
+    "gitlens.views.lineHistory.location": "gitlens",
+    "gitlens.views.compare.location": "gitlens",
+    "gitlens.views.search.location": "gitlens",
+    "workbench.colorTheme": "Default Light+"
+}

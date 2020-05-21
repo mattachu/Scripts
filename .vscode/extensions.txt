@@ -1,0 +1,16 @@
+DavidAnson.vscode-markdownlint
+dkundel.vscode-new-file
+donjayamanne.githistory
+eamodio.gitlens
+ekibun.fortranbreaker
+goessner.mdmath
+James-Yu.latex-workshop
+krvajalm.linter-gfortran
+MS-CEINTL.vscode-language-pack-en-GB
+MS-CEINTL.vscode-language-pack-zh-hans
+ms-python.python
+ms-vscode-remote.remote-wsl
+ms-vscode.cpptools
+npxms.hide-gitignored
+streetsidesoftware.code-spell-checker
+Tyriar.shell-launcher
