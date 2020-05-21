@@ -13,3 +13,4 @@ ms-vscode-remote.remote-wsl
 ms-vscode.cpptools
 npxms.hide-gitignored
 streetsidesoftware.code-spell-checker
+Tyriar.shell-launcher
