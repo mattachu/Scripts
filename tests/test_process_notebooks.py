@@ -1,8 +1,9 @@
 # Tests process_notebooks.py
 
 import pytest
-import shutil
 import pathlib
+import git
+import shutil
 
 #import process_notebooks
 
@@ -36,20 +37,31 @@ class TestProcessNotebooks:
             tempfile.unlink()
 
     @pytest.fixture(scope="class")
-    def notebook_copy(self, tmpdir_factory):
-        source_path = self.notebook_path.as_posix()
+    def clone_notebook(self, tmpdir_factory):
+        source_repo = git.Repo(self.notebook_path)
         destination_path = tmpdir_factory.mktemp('data').join('Notebooks')
-        tmp_path = shutil.copytree(source_path, destination_path)
-        yield pathlib.Path(tmp_path)
-        shutil.rmtree(tmp_path)
+        cloned_repo = source_repo.clone(destination_path)
+        yield cloned_repo
+        shutil.rmtree(destination_path)
+
+    @pytest.fixture
+    def preserve_repo(self, clone_notebook):
+        cloned_repo = clone_notebook
+        cloned_repo.head.reference = cloned_repo.commit('master')
+        cloned_repo.head.reset(index=True, working_tree=True)
+        assert not cloned_repo.is_dirty()
+        assert len(cloned_repo.untracked_files) == 0
+        yield cloned_repo
+        assert not cloned_repo.is_dirty()
+        assert len(cloned_repo.untracked_files) == 0
 
 
     # Dummy test
     def test_dummy1(self):
         assert True
 
-    def test_dummy2(self, notebook_copy):
+    def test_dummy2(self, clone_notebook):
         assert True
 
-    def test_dummy3(self, notebook_copy):
+    def test_dummy3(self, preserve_repo):
         assert True
