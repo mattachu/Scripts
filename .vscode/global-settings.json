@@ -76,7 +76,6 @@
             "label": "WSL bash"
         }
     ],
-    "python.pythonPath": "/Users/matt/.pyenv/shims/python",
     "git.autofetch": true,
     "git.confirmSync": false,
     "[markdown]": {
