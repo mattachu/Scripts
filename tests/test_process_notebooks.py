@@ -40,7 +40,7 @@ class TestProcessNotebooks:
             tempfile.unlink()
 
     @pytest.fixture(scope="class")
-    def clone_notebook(self, tmpdir_factory):
+    def clone_notebooks(self, tmpdir_factory):
         """Create a complete clone of the Notebooks repo in a temp folder."""
         source_repo = git.Repo(self.notebook_path)
         destination_path = tmpdir_factory.mktemp('data').join('Notebooks')
@@ -49,9 +49,9 @@ class TestProcessNotebooks:
         shutil.rmtree(destination_path)
 
     @pytest.fixture
-    def preserve_repo(self, clone_notebook):
+    def preserve_repo(self, clone_notebooks):
         """Make sure no files are changed within the cloned repo."""
-        cloned_repo = clone_notebook
+        cloned_repo = clone_notebooks
         cloned_repo.head.reference = cloned_repo.commit('master')
         cloned_repo.head.reset(index=True, working_tree=True)
         assert not cloned_repo.is_dirty()
@@ -61,12 +61,20 @@ class TestProcessNotebooks:
         assert len(cloned_repo.untracked_files) == 0
 
 
-    # Dummy test
+    # Dummy tests
     def test_dummy1(self):
         assert True
 
-    def test_dummy2(self, clone_notebook):
-        assert False
+    def test_dummy2(self, clone_notebooks):
+        assert True
 
     def test_dummy3(self, preserve_repo):
-        assert False
+        assert True
+
+    def test_dummy_fail_change_repo(self, preserve_repo):
+        repo = preserve_repo
+        repo_path = repo.working_dir
+        tempfile = pathlib.Path(repo_path).joinpath('tempfile.md')
+        with open(tempfile, 'w') as f:
+            f.write('Hello world')
+        assert tempfile.is_file() # this should pass, but preserve_repo should fail
