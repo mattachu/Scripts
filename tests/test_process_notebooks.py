@@ -14,8 +14,10 @@ class TestProcessNotebooks:
         """Settings and variables shared for all tests."""
         self.notebook_path = (pathlib.Path.home()
                               .joinpath('OneDrive/Documents/Notebooks'))
-        self.test_page_contents = 'Hello world'
-        self.test_logbook_contents = 'Hello world'
+        self.test_page =     (pathlib.Path(__file__).parent
+                              .joinpath('data/notebook_page.md'))
+        self.test_logbook =  (pathlib.Path(__file__).parent
+                              .joinpath('data/logbook_page.md'))
 
 
     # Fixtures
@@ -23,8 +25,7 @@ class TestProcessNotebooks:
     def tmp_page(self, tmp_path):
         """Create a new notebook page in a temp folder and return its path."""
         tempfile = tmp_path.joinpath('tempfile.md')
-        with open(tempfile, 'w') as f:
-            f.write(self.test_page_contents)
+        shutil.copyfile(self.test_page, tempfile)
         yield tempfile
         if tempfile.is_file():
             tempfile.unlink()
@@ -33,8 +34,7 @@ class TestProcessNotebooks:
     def tmp_logbook_page(self, tmp_path):
         """Create a new logbook page in a temp folder and return its path."""
         tempfile = tmp_path.joinpath('tempfile.md')
-        with open(tempfile, 'w') as f:
-            f.write(self.test_logbook_contents)
+        shutil.copyfile(self.test_logbook, tempfile)
         yield tempfile
         if tempfile.is_file():
             tempfile.unlink()
@@ -63,12 +63,19 @@ class TestProcessNotebooks:
 
     # Dummy tests
     def test_dummy1(self):
+        # no setup time
         assert True
 
     def test_dummy2(self, clone_notebooks):
+        # this test should create the cloned repo, will take time
         assert True
 
     def test_dummy3(self, preserve_repo):
+        # this test should use the already-cloned repo, no setup time
+        assert True
+
+    def test_dummy4(self, preserve_repo, tmp_page, tmp_logbook_page):
+        # check that all the fixtures work
         assert True
 
     def test_dummy_fail_change_repo(self, preserve_repo):
