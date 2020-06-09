@@ -6,6 +6,22 @@ Usage:
 """
 
 from docopt import docopt
+import pathlib
+
+class Page():
+    """Standard page in a notebook."""
+    def __init__(self, page_file=None):
+        self.content = None
+        if page_file is not None:
+            if page_file.is_file():
+                with open(page_file, 'r') as f:
+                    self.content = f.readlines()
+            else:
+                raise OSError(f'Cannot find file: {page_file}')
+
+class LogbookPage(Page):
+    """Logbook page in a notebook, with date attributes."""
+    pass
 
 # Processing procedures
 def process_all(arguments):
