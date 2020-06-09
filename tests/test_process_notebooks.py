@@ -62,16 +62,19 @@ class TestProcessNotebooks:
 
 
     # Loading data
+    def test_load_page(self, tmp_page):
+        test_page = process_notebooks.Page(tmp_page)
+        assert isinstance(test_page.path, pathlib.Path)
+        assert isinstance(test_page.content, list)
+        assert test_page.path == tmp_page
+        with open(self.test_page, 'r')  as f:
+            test_content = f.readlines()
+        assert test_page.content == test_content
+
     def test_load_page_no_output(self, tmp_page, capsys):
         process_notebooks.Page(tmp_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
-
-    def test_load_page_contents(self, tmp_page):
-        page_content = process_notebooks.Page(tmp_page).content
-        with open(self.test_page, 'r')  as f:
-            test_content = f.readlines()
-        assert page_content == test_content
 
     def test_load_page_invalid_input(self, tmp_page):
         with pytest.raises(AttributeError):
@@ -81,16 +84,19 @@ class TestProcessNotebooks:
         with pytest.raises(AttributeError):
             process_notebooks.Page([tmp_page, tmp_page])
 
+    def test_load_logbook_page(self, tmp_logbook_page):
+        test_page = process_notebooks.LogbookPage(tmp_logbook_page)
+        assert isinstance(test_page.path, pathlib.Path)
+        assert isinstance(test_page.content, list)
+        assert test_page.path == tmp_logbook_page
+        with open(self.test_logbook, 'r')  as f:
+            test_content = f.readlines()
+        assert test_page.content == test_content
+
     def test_load_logbook_page_no_output(self, tmp_page, capsys):
         process_notebooks.LogbookPage(tmp_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
-
-    def test_load_logbook_page_contents(self, tmp_logbook_page):
-        page_content = process_notebooks.LogbookPage(tmp_logbook_page).content
-        with open(self.test_logbook, 'r')  as f:
-            test_content = f.readlines()
-        assert page_content == test_content
 
     def test_load_logbook_page_invalid_input(self, tmp_page):
         with pytest.raises(AttributeError):

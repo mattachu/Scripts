@@ -12,8 +12,10 @@ class Page():
     """Standard page in a notebook."""
     def __init__(self, page_file=None):
         self.content = None
+        self.path = None
         if page_file is not None:
             if page_file.is_file():
+                self.path = page_file
                 with open(page_file, 'r') as f:
                     self.content = f.readlines()
             else:
