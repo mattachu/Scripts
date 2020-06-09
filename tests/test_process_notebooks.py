@@ -5,7 +5,7 @@ import pathlib
 import git
 import shutil
 
-#import process_notebooks
+import process_notebooks
 
 class TestProcessNotebooks:
 
@@ -61,27 +61,43 @@ class TestProcessNotebooks:
         assert len(cloned_repo.untracked_files) == 0
 
 
-    # Dummy tests
-    def test_dummy1(self):
-        # no setup time
-        assert True
+    # Loading data
+    def test_load_page_no_output(self, tmp_page, capsys):
+        process_notebooks.Page(tmp_page)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
 
-    def test_dummy2(self, clone_notebooks):
-        # this test should create the cloned repo, will take time
-        assert True
+    def test_load_page_contents(self, tmp_page):
+        page_content = process_notebooks.Page(tmp_page).content
+        with open(self.test_page, 'r')  as f:
+            test_content = f.readlines()
+        assert page_content == test_content
 
-    def test_dummy3(self, preserve_repo):
-        # this test should use the already-cloned repo, no setup time
-        assert True
+    def test_load_page_invalid_input(self, tmp_page):
+        with pytest.raises(AttributeError):
+            process_notebooks.Page('string')
+        with pytest.raises(AttributeError):
+            process_notebooks.Page(3.142)
+        with pytest.raises(AttributeError):
+            process_notebooks.Page([tmp_page, tmp_page])
 
-    def test_dummy4(self, preserve_repo, tmp_page, tmp_logbook_page):
-        # check that all the fixtures work
-        assert True
+    def test_load_logbook_page_no_output(self, tmp_page, capsys):
+        process_notebooks.LogbookPage(tmp_page)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
 
-    def test_dummy_fail_change_repo(self, preserve_repo):
-        repo = preserve_repo
-        repo_path = repo.working_dir
-        tempfile = pathlib.Path(repo_path).joinpath('tempfile.md')
-        with open(tempfile, 'w') as f:
-            f.write('Hello world')
-        assert tempfile.is_file() # this should pass, but preserve_repo should fail
+    def test_load_logbook_page_contents(self, tmp_logbook_page):
+        page_content = process_notebooks.LogbookPage(tmp_logbook_page).content
+        with open(self.test_logbook, 'r')  as f:
+            test_content = f.readlines()
+        assert page_content == test_content
+
+    def test_load_logbook_page_invalid_input(self, tmp_page):
+        with pytest.raises(AttributeError):
+            process_notebooks.LogbookPage('string')
+        with pytest.raises(AttributeError):
+            process_notebooks.LogbookPage(3.142)
+        with pytest.raises(AttributeError):
+            process_notebooks.LogbookPage([tmp_page, tmp_page])
+        with pytest.raises(OSError):
+            process_notebooks.LogbookPage(pathlib.Path('/not/a/path'))
