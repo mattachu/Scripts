@@ -7,6 +7,7 @@ Usage:
 
 from docopt import docopt
 import pathlib
+import re
 
 class Page():
     """Standard page in a notebook."""
@@ -21,9 +22,45 @@ class Page():
             else:
                 raise OSError(f'Cannot find file: {page_file}')
 
+    def get_title(self):
+        """Find the title of a page."""
+        if self.content is None:
+            return None
+        else:
+            for line in self.content:
+                if _is_blank_line(line) or _is_navigation_line(line):
+                    continue
+                if _is_title_line(line):
+                    return line[2:].strip()
+                else:
+                    return self._convert_filename_to_title()
+
+    def _convert_filename_to_title(self):
+        if self.path is None:
+            return None
+        else:
+            return self.path.stem.replace('_', ' ').replace('-', ' ').strip()
+
 class LogbookPage(Page):
     """Logbook page in a notebook, with date attributes."""
-    pass
+    def _convert_filename_to_title(self):
+        if self.path is None:
+            return None
+        else:
+            return self.path.stem.replace('_', '-').strip()
+
+# Utility functions
+def _is_blank_line(line):
+    return line.strip() == ''
+
+def _is_navigation_line(line):
+    if re.search(r'\[[^]]*\]\([^\)]*\)', line):
+        return True
+    else:
+        return False
+
+def _is_title_line(line):
+    return line.startswith('# ')
 
 # Processing procedures
 def process_all(arguments):
