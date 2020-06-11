@@ -94,8 +94,8 @@ class TestProcessNotebooks:
         assert len(cloned_repo.untracked_files) == 0
 
 
-    # Loading data to page objects
-    def test_load_page(self, tmp_page):
+    # Creating page objects
+    def test_create_page(self, tmp_page):
         test_page = process_notebooks.Page(tmp_page)
         assert isinstance(test_page.path, pathlib.Path)
         assert isinstance(test_page.content, list)
@@ -104,12 +104,17 @@ class TestProcessNotebooks:
             test_content = f.readlines()
         assert test_page.content == test_content
 
-    def test_load_page_no_output(self, tmp_page, capsys):
+    def test_create_page_null(self):
+        test_page = process_notebooks.Page()
+        assert test_page.path is None
+        assert test_page.content is None
+
+    def test_create_page_no_output(self, tmp_page, capsys):
         process_notebooks.Page(tmp_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_load_page_invalid_input(self, tmp_page):
+    def test_create_page_invalid_input(self, tmp_page):
         with pytest.raises(AttributeError):
             process_notebooks.Page('string')
         with pytest.raises(AttributeError):
@@ -117,7 +122,7 @@ class TestProcessNotebooks:
         with pytest.raises(AttributeError):
             process_notebooks.Page([tmp_page, tmp_page])
 
-    def test_load_logbook_page(self, tmp_logbook_page):
+    def test_create_logbook_page(self, tmp_logbook_page):
         test_page = process_notebooks.LogbookPage(tmp_logbook_page)
         assert isinstance(test_page.path, pathlib.Path)
         assert isinstance(test_page.content, list)
@@ -126,12 +131,17 @@ class TestProcessNotebooks:
             test_content = f.readlines()
         assert test_page.content == test_content
 
-    def test_load_logbook_page_no_output(self, tmp_logbook_page, capsys):
+    def test_create_logbook_page_null(self):
+        test_page = process_notebooks.LogbookPage()
+        assert test_page.path is None
+        assert test_page.content is None
+
+    def test_create_logbook_page_no_output(self, tmp_logbook_page, capsys):
         process_notebooks.LogbookPage(tmp_logbook_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_load_logbook_page_invalid_input(self, tmp_logbook_page):
+    def test_create_logbook_page_invalid_input(self, tmp_logbook_page):
         with pytest.raises(AttributeError):
             process_notebooks.LogbookPage('string')
         with pytest.raises(AttributeError):
@@ -142,22 +152,22 @@ class TestProcessNotebooks:
             process_notebooks.LogbookPage(pathlib.Path('/not/a/path'))
 
 
-    # Loading data to notebook objects
-    def test_load_notebook(self, tmp_notebook):
+    # Creating notebook objects
+    def test_create_notebook(self, tmp_notebook):
         test_notebook = process_notebooks.Notebook(tmp_notebook)
         assert isinstance(test_notebook.path, pathlib.Path)
         assert test_notebook.path == tmp_notebook
 
-    def test_load_notebook_null(self):
+    def test_create_notebook_null(self):
         test_notebook = process_notebooks.Notebook()
         assert test_notebook.path is None
 
-    def test_load_notebook_no_output(self, tmp_notebook, capsys):
+    def test_create_notebook_no_output(self, tmp_notebook, capsys):
         process_notebooks.Notebook(tmp_notebook)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_load_notebook_invalid_input(self, tmp_notebook):
+    def test_create_notebook_invalid_input(self, tmp_notebook):
         with pytest.raises(AttributeError):
             process_notebooks.Notebook('string')
         with pytest.raises(AttributeError):
@@ -167,21 +177,21 @@ class TestProcessNotebooks:
         with pytest.raises(OSError):
             process_notebooks.Notebook(pathlib.Path('/not/a/path'))
 
-    def test_load_logbook(self, tmp_logbook):
+    def test_create_logbook(self, tmp_logbook):
         test_logbook = process_notebooks.Logbook(tmp_logbook)
         assert isinstance(test_logbook.path, pathlib.Path)
         assert test_logbook.path == tmp_logbook
 
-    def test_load_logbook_null(self):
+    def test_create_logbook_null(self):
         test_logbook = process_notebooks.Logbook()
         assert test_logbook.path is None
 
-    def test_load_logbook_no_output(self, tmp_logbook, capsys):
+    def test_create_logbook_no_output(self, tmp_logbook, capsys):
         process_notebooks.Logbook(tmp_logbook)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_load_logbook_invalid_input(self, tmp_logbook):
+    def test_create_logbook_invalid_input(self, tmp_logbook):
         with pytest.raises(AttributeError):
             process_notebooks.Logbook('string')
         with pytest.raises(AttributeError):
