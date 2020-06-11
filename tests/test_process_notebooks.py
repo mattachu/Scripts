@@ -223,6 +223,90 @@ class TestProcessNotebooks:
             test_logbook_page.load_content('extra parameter')
 
 
+    # Getting information from page objects
+    def test_page_get_title(self, tmp_page):
+        test_title = process_notebooks.Page(tmp_page).get_title()
+        assert isinstance(test_title, str)
+        assert test_title == self.test_title
+
+    def test_page_get_title_null(self, tmp_page):
+        test_title = process_notebooks.Page().get_title()
+        assert test_title is None
+
+    def test_page_get_title_no_output(self, tmp_page, capsys):
+        process_notebooks.Page(tmp_page).get_title()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_page_get_title_invalid_input(self, tmp_page):
+        with pytest.raises(TypeError):
+            process_notebooks.Page(tmp_page).get_title('extra parameter')
+
+    def test_logbook_page_get_title(self, tmp_logbook_page):
+        test_title = process_notebooks.LogbookPage(tmp_logbook_page).get_title()
+        assert isinstance(test_title, str)
+        assert test_title == self.temp_logbook_page.strip()
+
+    def test_logbook_page_get_title_null(self):
+        test_title = process_notebooks.LogbookPage().get_title()
+        assert test_title is None
+
+    def test_logbook_page_get_title_no_output(self, tmp_logbook_page, capsys):
+        process_notebooks.LogbookPage(tmp_logbook_page).get_title()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_logbook_page_get_title_invalid_input(self, tmp_logbook_page):
+        with pytest.raises(TypeError):
+            process_notebooks.LogbookPage(tmp_logbook_page).get_title(
+                'extra parameter')
+
+    def test_page_convert_filename_to_title(self, tmp_page):
+        test_title = process_notebooks.Page(tmp_page)._convert_filename_to_title()
+        assert isinstance(test_title, str)
+        expected = tmp_page.stem.replace('_', ' ').replace('-', ' ').strip()
+        assert test_title == expected
+
+    def test_page_convert_filename_to_title_null(self):
+        test_title = process_notebooks.Page()._convert_filename_to_title()
+        assert test_title is None
+
+    def test_page_convert_filename_to_title_no_output(self, tmp_page, capsys):
+        process_notebooks.Page(tmp_page)._convert_filename_to_title()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_page_convert_filename_to_title_invalid_input(self, tmp_page):
+        with pytest.raises(TypeError):
+            (process_notebooks.Page(tmp_page)
+                ._convert_filename_to_title('extra parameter'))
+
+    def test_logbook_page_convert_filename_to_title(self, tmp_logbook_page):
+        test_title = (process_notebooks.LogbookPage(tmp_logbook_page)
+                        ._convert_filename_to_title())
+        assert isinstance(test_title, str)
+        expected = tmp_logbook_page.stem.strip()
+        assert test_title == expected
+
+    def test_logbook_page_convert_filename_to_title_null(self):
+        test_title = (process_notebooks.LogbookPage()
+                        ._convert_filename_to_title())
+        assert test_title is None
+
+    def test_logbook_page_convert_filename_to_title_no_output(self, tmp_logbook_page,
+                                                         capsys):
+        (process_notebooks.LogbookPage(tmp_logbook_page)
+            ._convert_filename_to_title())
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_logbook_page_convert_filename_to_title_invalid_input(self,
+                                                             tmp_logbook_page):
+        with pytest.raises(TypeError):
+            (process_notebooks.LogbookPage(tmp_logbook_page)
+                ._convert_filename_to_title('extra parameter'))
+
+
     # Creating notebook objects
     def test_create_notebook(self, tmp_notebook):
         test_notebook = process_notebooks.Notebook(tmp_notebook)
@@ -753,90 +837,6 @@ class TestProcessNotebooks:
         test_logbook = process_notebooks.Logbook()
         with pytest.raises(TypeError):
             test_logbook.load_contents('extra parameter')
-
-
-    # Getting information from page objects
-    def test_get_title(self, tmp_page):
-        test_title = process_notebooks.Page(tmp_page).get_title()
-        assert isinstance(test_title, str)
-        assert test_title == self.test_title
-
-    def test_get_title_null(self, tmp_page):
-        test_title = process_notebooks.Page().get_title()
-        assert test_title is None
-
-    def test_get_title_no_output(self, tmp_page, capsys):
-        process_notebooks.Page(tmp_page).get_title()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_get_title_invalid_input(self, tmp_page):
-        with pytest.raises(TypeError):
-            process_notebooks.Page(tmp_page).get_title('extra parameter')
-
-    def test_get_title_logbook(self, tmp_logbook_page):
-        test_title = process_notebooks.LogbookPage(tmp_logbook_page).get_title()
-        assert isinstance(test_title, str)
-        assert test_title == self.temp_logbook_page.strip()
-
-    def test_get_title_logbook_null(self):
-        test_title = process_notebooks.LogbookPage().get_title()
-        assert test_title is None
-
-    def test_get_title_logbook_no_output(self, tmp_logbook_page, capsys):
-        process_notebooks.LogbookPage(tmp_logbook_page).get_title()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_get_title_logbook_invalid_input(self, tmp_logbook_page):
-        with pytest.raises(TypeError):
-            process_notebooks.LogbookPage(tmp_logbook_page).get_title(
-                'extra parameter')
-
-    def test_convert_filename_to_title(self, tmp_page):
-        test_title = process_notebooks.Page(tmp_page)._convert_filename_to_title()
-        assert isinstance(test_title, str)
-        expected = tmp_page.stem.replace('_', ' ').replace('-', ' ').strip()
-        assert test_title == expected
-
-    def test_convert_filename_to_title_null(self):
-        test_title = process_notebooks.Page()._convert_filename_to_title()
-        assert test_title is None
-
-    def test_convert_filename_to_title_no_output(self, tmp_page, capsys):
-        process_notebooks.Page(tmp_page)._convert_filename_to_title()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_convert_filename_to_title_invalid_input(self, tmp_page):
-        with pytest.raises(TypeError):
-            (process_notebooks.Page(tmp_page)
-                ._convert_filename_to_title('extra parameter'))
-
-    def test_convert_filename_to_title_logbook(self, tmp_logbook_page):
-        test_title = (process_notebooks.LogbookPage(tmp_logbook_page)
-                        ._convert_filename_to_title())
-        assert isinstance(test_title, str)
-        expected = tmp_logbook_page.stem.strip()
-        assert test_title == expected
-
-    def test_convert_filename_to_title_logbook_null(self):
-        test_title = (process_notebooks.LogbookPage()
-                        ._convert_filename_to_title())
-        assert test_title is None
-
-    def test_convert_filename_to_title_logbook_no_output(self, tmp_logbook_page,
-                                                         capsys):
-        (process_notebooks.LogbookPage(tmp_logbook_page)
-            ._convert_filename_to_title())
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_convert_filename_to_title_logbook_invalid_input(self,
-                                                             tmp_logbook_page):
-        with pytest.raises(TypeError):
-            (process_notebooks.LogbookPage(tmp_logbook_page)
-                ._convert_filename_to_title('extra parameter'))
 
 
     # Utility functions
