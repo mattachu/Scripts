@@ -16,11 +16,17 @@ class TestProcessNotebooks:
                                 .joinpath('OneDrive/Documents/Notebooks'))
         self.test_page = (pathlib.Path(__file__).parent
                             .joinpath('data/notebook_page.md'))
-        self.test_logbook = (pathlib.Path(__file__).parent
-                                .joinpath('data/2020-01-01.md'))
+        self.test_logbook_page = (pathlib.Path(__file__).parent
+                                    .joinpath('data/2020-01-01.md'))
         self.test_title = 'Page title'
+        self.temp_notebook = 'temp_notebook'
         self.temp_page = 'temp_file'
-        self.temp_logbook = '2020-01-01'
+        self.temp_pages = ['page1.md', 'page2.md', 'page3.md']
+        self.temp_logbook = 'temp_logbook'
+        self.temp_logbook_page = '2020-01-01'
+        self.temp_logbook_pages = ['2020-01-01.md',
+                                   '2020-01-02.md',
+                                   '2020-01-03.md']
 
 
     # Fixtures
@@ -36,11 +42,35 @@ class TestProcessNotebooks:
     @pytest.fixture
     def tmp_logbook_page(self, tmp_path):
         """Create a new logbook page in a temp folder and return its path."""
-        tempfile = tmp_path.joinpath(f'{self.temp_logbook}.md')
-        shutil.copyfile(self.test_logbook, tempfile)
+        tempfile = tmp_path.joinpath(f'{self.temp_logbook_page}.md')
+        shutil.copyfile(self.test_logbook_page, tempfile)
         yield tempfile
         if tempfile.is_file():
             tempfile.unlink()
+
+    @pytest.fixture
+    def tmp_notebook(self, tmpdir):
+        """Create a temporary notebook folder and add some pages."""
+        notebook_folder = pathlib.Path(tmpdir).joinpath(self.temp_notebook)
+        notebook_folder.mkdir()
+        assert notebook_folder.is_dir()
+        for filename in self.temp_pages:
+            new_file = notebook_folder.joinpath(filename)
+            shutil.copyfile(self.test_page, new_file)
+        assert notebook_folder.is_dir()
+        yield notebook_folder
+        shutil.rmtree(notebook_folder)
+
+    @pytest.fixture
+    def tmp_logbook(self, tmpdir):
+        """Create a temporary logbook folder and add some pages."""
+        logbook_folder = pathlib.Path(tmpdir).joinpath(self.temp_logbook)
+        logbook_folder.mkdir()
+        for filename in self.temp_logbook_pages:
+            new_file = logbook_folder.joinpath(filename)
+            shutil.copyfile(self.test_logbook_page, new_file)
+        yield logbook_folder
+        shutil.rmtree(logbook_folder)
 
     @pytest.fixture(scope="class")
     def clone_notebooks(self, tmpdir_factory):
@@ -64,7 +94,7 @@ class TestProcessNotebooks:
         assert len(cloned_repo.untracked_files) == 0
 
 
-    # Loading data
+    # Loading data to page objects
     def test_load_page(self, tmp_page):
         test_page = process_notebooks.Page(tmp_page)
         assert isinstance(test_page.path, pathlib.Path)
@@ -92,7 +122,7 @@ class TestProcessNotebooks:
         assert isinstance(test_page.path, pathlib.Path)
         assert isinstance(test_page.content, list)
         assert test_page.path == tmp_logbook_page
-        with open(self.test_logbook, 'r')  as f:
+        with open(self.test_logbook_page, 'r')  as f:
             test_content = f.readlines()
         assert test_page.content == test_content
 
@@ -110,6 +140,56 @@ class TestProcessNotebooks:
             process_notebooks.LogbookPage([tmp_logbook_page, tmp_logbook_page])
         with pytest.raises(OSError):
             process_notebooks.LogbookPage(pathlib.Path('/not/a/path'))
+
+
+    # Loading data to notebook objects
+    def test_load_notebook(self, tmp_notebook):
+        test_notebook = process_notebooks.Notebook(tmp_notebook)
+        assert isinstance(test_notebook.path, pathlib.Path)
+        assert test_notebook.path == tmp_notebook
+
+    def test_load_notebook_null(self):
+        test_notebook = process_notebooks.Notebook()
+        assert test_notebook.path is None
+
+    def test_load_notebook_no_output(self, tmp_notebook, capsys):
+        process_notebooks.Notebook(tmp_notebook)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_load_notebook_invalid_input(self, tmp_notebook):
+        with pytest.raises(AttributeError):
+            process_notebooks.Notebook('string')
+        with pytest.raises(AttributeError):
+            process_notebooks.Notebook(3.142)
+        with pytest.raises(AttributeError):
+            process_notebooks.Notebook([tmp_notebook, tmp_notebook])
+        with pytest.raises(OSError):
+            process_notebooks.Notebook(pathlib.Path('/not/a/path'))
+
+    def test_load_logbook(self, tmp_logbook):
+        test_logbook = process_notebooks.Logbook(tmp_logbook)
+        assert isinstance(test_logbook.path, pathlib.Path)
+        assert test_logbook.path == tmp_logbook
+
+    def test_load_logbook_null(self):
+        test_logbook = process_notebooks.Logbook()
+        assert test_logbook.path is None
+
+    def test_load_logbook_no_output(self, tmp_logbook, capsys):
+        process_notebooks.Logbook(tmp_logbook)
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_load_logbook_invalid_input(self, tmp_logbook):
+        with pytest.raises(AttributeError):
+            process_notebooks.Logbook('string')
+        with pytest.raises(AttributeError):
+            process_notebooks.Logbook(3.142)
+        with pytest.raises(AttributeError):
+            process_notebooks.Logbook([tmp_logbook, tmp_logbook])
+        with pytest.raises(OSError):
+            process_notebooks.Logbook(pathlib.Path('/not/a/path'))
 
 
     # Getting information from page objects
@@ -134,7 +214,7 @@ class TestProcessNotebooks:
     def test_get_title_logbook(self, tmp_logbook_page):
         test_title = process_notebooks.LogbookPage(tmp_logbook_page).get_title()
         assert isinstance(test_title, str)
-        assert test_title == self.temp_logbook
+        assert test_title == self.temp_logbook_page.strip()
 
     def test_get_title_logbook_null(self):
         test_title = process_notebooks.LogbookPage().get_title()

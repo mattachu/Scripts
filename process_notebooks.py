@@ -49,6 +49,21 @@ class LogbookPage(Page):
         else:
             return self.path.stem.replace('_', '-').strip()
 
+class Notebook():
+    """Standard notebook object containing pages."""
+    def __init__(self, notebook_path=None):
+        self.path = None
+        if notebook_path is not None:
+            if notebook_path.is_dir():
+                self.path = notebook_path
+            else:
+                raise OSError(f'Cannot find path: {notebook_path}')
+
+class Logbook(Notebook):
+    """Special notebook object for logbooks, containing logbook pages."""
+    pass
+
+
 # Utility functions
 def _is_blank_line(line):
     return line.strip() == ''
@@ -62,10 +77,12 @@ def _is_navigation_line(line):
 def _is_title_line(line):
     return line.startswith('# ')
 
+
 # Processing procedures
 def process_all(arguments):
     """Work through all subfolders and process all notebooks and logbooks."""
     pass
+
 
 # What to do when run as a script
 if __name__ == '__main__':
