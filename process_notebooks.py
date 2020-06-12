@@ -15,19 +15,22 @@ class Page():
         self.content = None
         self.path = None
         if page_file is not None:
-            if page_file.is_file():
+            if self._is_valid_page(page_file):
                 self.path = page_file
                 self.load_content()
             else:
-                raise OSError(f'Cannot find file: {page_file}')
+                raise ValueError(f'Not a valid page: {page_file}')
 
     def load_content(self):
         """Load the content of the page from file."""
         if self.path is None:
             self.content = None
         else:
-            with open(self.path, 'r') as f:
-                self.content = f.readlines()
+            if self._is_valid_page(self.path):
+                with open(self.path, 'r') as f:
+                    self.content = f.readlines()
+            else:
+                raise ValueError(f'Not a valid page: {self.path}')
 
     def get_title(self):
         """Find the title of a page."""
@@ -42,6 +45,9 @@ class Page():
                 else:
                     return self._convert_filename_to_title()
 
+    def _is_valid_page(self, page_file):
+        return _is_valid_page(page_file)
+
     def _convert_filename_to_title(self):
         if self.path is None:
             return None
@@ -50,6 +56,10 @@ class Page():
 
 class LogbookPage(Page):
     """Logbook page in a notebook, with date attributes."""
+
+    def _is_valid_page(self, page_file):
+        return _is_valid_logbook_page(page_file)
+
     def _convert_filename_to_title(self):
         if self.path is None:
             return None
@@ -59,63 +69,106 @@ class LogbookPage(Page):
 class Notebook():
     """Standard notebook object containing pages."""
     def __init__(self, notebook_path=None):
-        self.contents = None
+        self.contents = []
         self.path = None
         if notebook_path is not None:
-            if notebook_path.is_dir():
+            if self._is_valid_folder(notebook_path):
                 self.path = notebook_path
                 self.load_contents()
             else:
-                raise OSError(f'Cannot find path: {notebook_path}')
+                raise ValueError(f'Not a valid notebook: {notebook_path}')
 
     def load_contents(self):
         """Load the contents of the notebook from its directory."""
-        if self.path is None:
-            self.contents = None
-        else:
-            self.contents = []
+        self.contents = []
+        if self.path is not None:
             for item in self.path.iterdir():
                 if item.is_file():
-                    self.add_page(item)
+                    if self._is_valid_page(item):
+                        self.add_page(item)
                 elif item.is_dir():
-                    self.add_folder(item)
+                    if _is_valid_logbook_folder(item):
+                        self.add_logbook(item)
+                    elif _is_valid_folder(item):
+                        self.add_notebook(item)
 
     def add_page(self, page_path=None):
         """Add a page to a notebook."""
-        if self.contents is None:
-            self.contents = []
         self.contents.append(Page(page_path))
-
-    def add_folder(self, folder_path):
-        """Add a subfolder to a notebook, either as a notebook or logbook."""
-        if folder_path.stem == 'Logbook':
-            self.add_logbook(folder_path)
-        else:
-            self.add_notebook(folder_path)
 
     def add_notebook(self, notebook_path=None):
         """Add a nested notebook inside a notebook."""
-        if self.contents is None:
-            self.contents = []
         self.contents.append(Notebook(notebook_path))
 
     def add_logbook(self, logbook_path=None):
         """Add a nested logbook inside a notebook."""
-        if self.contents is None:
-            self.contents = []
         self.contents.append(Logbook(logbook_path))
+
+    def _is_valid_page(self, page_path):
+        return _is_valid_page(page_path)
+
+    def _is_valid_folder(self, folder_path):
+        return _is_valid_folder(folder_path)
 
 class Logbook(Notebook):
     """Special notebook object for logbooks, containing logbook pages."""
 
     def add_page(self, page_path=None):
         """Add a page to a logbook."""
-        if self.contents is None:
-            self.contents = []
         self.contents.append(LogbookPage(page_path))
+
+    def add_notebook(self, notebook_path=None):
+        """Don't allow nested notebooks inside a logbook."""
+        pass
+
+    def add_logbook(self, logbook_path=None):
+        """Don't allow nested logbooks inside a logbook."""
+        pass
+
+    def _is_valid_page(self, page_path):
+        return _is_valid_logbook_page(page_path)
+
+    def _is_valid_folder(self, folder_path):
+        return _is_valid_logbook_folder(folder_path)
 
 
 # Utility functions
+def _is_valid_page(page_file):
+    if not page_file.is_file():
+        raise OSError(f'Cannot find file: {page_file}')
+    elif page_file.suffix == '.md':
+        return True
+    else:
+        return False
+
+def _is_valid_logbook_page(page_file):
+    if not _is_valid_page(page_file):
+        return False
+    elif page_file.stem == 'Contents':
+        return True
+    elif re.search(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$', page_file.stem):
+        return True
+    elif re.search(r'^[0-9]{4}-[0-9]{2}$', page_file.stem):
+        return True
+    else:
+        return False
+
+def _is_valid_folder(folder_path):
+    if not folder_path.is_dir():
+        raise OSError(f'Cannot find folder: {folder_path}')
+    elif folder_path.stem.startswith('.'):
+        return False
+    else:
+        return True
+
+def _is_valid_logbook_folder(folder_path):
+    if not _is_valid_folder(folder_path):
+        return False
+    if folder_path.stem == 'Logbook':
+        return True
+    else:
+        return False
+
 def _is_blank_line(line):
     return line.strip() == ''
 
