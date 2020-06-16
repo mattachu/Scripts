@@ -67,12 +67,9 @@ class TestProcessNotebooks:
     def tmp_notebook(self, tmp_path):
         """Create a temporary notebook folder and add some pages."""
         notebook_folder = tmp_path.joinpath(self.temp_notebook)
-        notebook_folder.mkdir()
-        assert notebook_folder.is_dir()
-        for filename in self.temp_pages:
-            new_file = notebook_folder.joinpath(filename)
-            shutil.copyfile(self.test_page, new_file)
-        assert notebook_folder.is_dir()
+        self.create_and_fill_folder(notebook_folder,
+                                    self.temp_pages,
+                                    self.test_page)
         yield notebook_folder
         shutil.rmtree(notebook_folder)
 
@@ -80,12 +77,29 @@ class TestProcessNotebooks:
     def tmp_logbook(self, tmp_path):
         """Create a temporary logbook folder and add some pages."""
         logbook_folder = tmp_path.joinpath(self.temp_logbook)
-        logbook_folder.mkdir()
-        for filename in self.temp_logbook_pages:
-            new_file = logbook_folder.joinpath(filename)
-            shutil.copyfile(self.test_logbook_page, new_file)
+        self.create_and_fill_folder(logbook_folder,
+                                    self.temp_logbook_pages,
+                                    self.test_logbook_page)
         yield logbook_folder
         shutil.rmtree(logbook_folder)
+
+    @pytest.fixture
+    def tmp_nested(self, tmp_path):
+        """Create a temporary notebook folder and add pages and subfolders."""
+        notebook_folder = tmp_path.joinpath(self.temp_notebook)
+        self.create_and_fill_folder(notebook_folder,
+                                    self.temp_pages,
+                                    self.test_page)
+        subfolder1 = notebook_folder.joinpath(self.temp_notebook)
+        self.create_and_fill_folder(subfolder1,
+                                    self.temp_pages,
+                                    self.test_page)
+        subfolder2 = notebook_folder.joinpath(self.temp_logbook)
+        self.create_and_fill_folder(subfolder2,
+                                    self.temp_logbook_pages,
+                                    self.test_logbook_page)
+        yield notebook_folder
+        shutil.rmtree(notebook_folder)
 
     @pytest.fixture(scope="class")
     def cloned_repo(self, tmp_path_factory):
@@ -100,6 +114,12 @@ class TestProcessNotebooks:
 
 
     # Functions
+    def create_and_fill_folder(self, folder_path, file_list, file_template):
+        folder_path.mkdir()
+        for filename in file_list:
+            new_file = folder_path.joinpath(filename)
+            shutil.copyfile(file_template, new_file)
+
     def repo_unchanged(self, cloned_repo):
         """Make sure no files are changed within the cloned repo."""
         if not cloned_repo.head.reference == cloned_repo.heads.master:
@@ -536,6 +556,20 @@ class TestProcessNotebooks:
             process_notebooks.Logbook([tmp_logbook, tmp_logbook])
         with pytest.raises(OSError):
             process_notebooks.Logbook(pathlib.Path('/not/a/path'))
+
+    def test_create_notebook_nested(self, tmp_nested):
+        test_notebook = process_notebooks.Notebook(tmp_nested)
+        assert isinstance(test_notebook.path, pathlib.Path)
+        assert test_notebook.path == tmp_nested
+
+    def test_create_notebook_nested_contents(self, tmp_nested):
+        test_notebook = process_notebooks.Notebook(tmp_nested)
+        notebook_contents = [item.path for item in test_notebook.contents]
+        for filename in self.temp_pages:
+            this_path = tmp_nested.joinpath(filename)
+            assert this_path in notebook_contents
+        assert tmp_nested.joinpath(self.temp_notebook) in notebook_contents
+        assert tmp_nested.joinpath(self.temp_logbook) in notebook_contents
 
 
     # Loading data to notebook objects
