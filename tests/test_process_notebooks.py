@@ -1109,6 +1109,328 @@ class TestProcessNotebooks:
             process_notebooks.Logbook()._is_valid_folder(
                 tmp_path.joinpath('not-a-path'))
 
+    def test_notebook_get_pages(self, tmp_notebook):
+        test_notebook = process_notebooks.Notebook(tmp_notebook)
+        test_pages = test_notebook.get_pages()
+        assert isinstance(test_pages, list)
+        assert len(test_pages) == len(self.temp_pages)
+
+    def test_notebook_get_pages_contents(self, tmp_notebook):
+        test_notebook = process_notebooks.Notebook(tmp_notebook)
+        test_pages = test_notebook.get_pages()
+        for filename in self.temp_pages:
+            this_path = tmp_notebook.joinpath(filename)
+            assert this_path in [this_page.path for this_page in test_pages]
+        for this_page in test_pages:
+            assert isinstance(this_page, process_notebooks.Page)
+            with open(self.test_page, 'r')  as f:
+                test_content = f.readlines()
+            assert this_page.content == test_content
+
+    def test_notebook_get_pages_selective(self, tmp_page):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.add_page()
+        test_notebook.add_page(tmp_page)
+        test_notebook.add_notebook()
+        test_notebook.add_logbook()
+        test_pages = test_notebook.get_pages()
+        assert isinstance(test_pages, list)
+        assert len(test_pages) == 2
+        assert tmp_page in [page.path for page in test_pages]
+
+    def test_notebook_get_pages_null(self):
+        test_notebook = process_notebooks.Notebook()
+        test_pages = test_notebook.get_pages()
+        assert test_pages == []
+
+    def test_notebook_get_pages_no_output(self, capsys):
+        process_notebooks.Notebook().get_pages()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_notebook_get_pages_invalid_input(self):
+        with pytest.raises(TypeError):
+            process_notebooks.Notebook().get_pages('extra parameter')
+
+    def test_logbook_get_pages(self, tmp_logbook):
+        test_logbook = process_notebooks.Logbook(tmp_logbook)
+        test_pages = test_logbook.get_pages()
+        assert isinstance(test_pages, list)
+        assert len(test_pages) == len(self.temp_logbook_pages)
+
+    def test_logbook_get_pages_contents(self, tmp_logbook):
+        test_logbook = process_notebooks.Logbook(tmp_logbook)
+        test_pages = test_logbook.get_pages()
+        for filename in self.temp_logbook_pages:
+            this_path = tmp_logbook.joinpath(filename)
+            assert this_path in [this_page.path for this_page in test_pages]
+        for this_page in test_pages:
+            assert isinstance(this_page, process_notebooks.Page)
+            with open(self.test_logbook_page, 'r')  as f:
+                test_content = f.readlines()
+            assert this_page.content == test_content
+
+    def test_logbook_get_pages_selective(self, tmp_logbook_page):
+        test_logbook = process_notebooks.Logbook()
+        test_logbook.add_page()
+        test_logbook.add_page(tmp_logbook_page)
+        test_logbook.add_notebook()
+        test_logbook.add_logbook()
+        test_pages = test_logbook.get_pages()
+        assert isinstance(test_pages, list)
+        assert len(test_pages) == 2
+        assert tmp_logbook_page in [page.path for page in test_pages]
+
+    def test_logbook_get_pages_null(self):
+        test_logbook = process_notebooks.Logbook()
+        test_pages = test_logbook.get_pages()
+        assert test_pages == []
+
+    def test_logbook_get_pages_no_output(self, capsys):
+        process_notebooks.Logbook().get_pages()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_logbook_get_pages_invalid_input(self):
+        with pytest.raises(TypeError):
+            process_notebooks.Logbook().get_pages('extra parameter')
+
+    def test_notebook_get_nested_notebooks(self, tmp_notebook):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.add_notebook(tmp_notebook)
+        notebook_list = test_notebook.get_nested_notebooks()
+        assert isinstance(notebook_list, list)
+        assert len(notebook_list) == 1
+
+    def test_notebook_get_nested_notebooks_contents(self, tmp_notebook):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.add_notebook(tmp_notebook)
+        notebook_list = test_notebook.get_nested_notebooks()
+        nested_notebook = notebook_list[0]
+        for filename in self.temp_pages:
+            this_path = tmp_notebook.joinpath(filename)
+            assert this_path in [this_page.path
+                                 for this_page in nested_notebook.contents]
+        for this_page in nested_notebook.contents:
+            assert isinstance(this_page, process_notebooks.Page)
+            with open(self.test_page, 'r')  as f:
+                test_content = f.readlines()
+            assert this_page.content == test_content
+
+    def test_notebook_get_nested_notebooks_selective_exclusive(self,
+                                                               tmp_notebook,
+                                                               tmp_logbook):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.add_page()
+        test_notebook.add_notebook()
+        test_notebook.add_notebook(tmp_notebook)
+        test_notebook.add_logbook()
+        test_notebook.add_logbook(tmp_logbook)
+        include_logbooks = False
+        notebook_list = test_notebook.get_nested_notebooks(include_logbooks)
+        assert isinstance(notebook_list, list)
+        assert len(notebook_list) == 2
+        assert tmp_notebook in [item.path for item in notebook_list]
+        assert tmp_logbook not in [item.path for item in notebook_list]
+
+    def test_notebook_get_nested_notebooks_selective_inclusive(self,
+                                                               tmp_notebook,
+                                                               tmp_logbook):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.add_page()
+        test_notebook.add_notebook()
+        test_notebook.add_notebook(tmp_notebook)
+        test_notebook.add_logbook()
+        test_notebook.add_logbook(tmp_logbook)
+        include_logbooks = True
+        notebook_list = test_notebook.get_nested_notebooks(include_logbooks)
+        assert isinstance(notebook_list, list)
+        assert len(notebook_list) == 4
+        assert tmp_notebook in [item.path for item in notebook_list]
+        assert tmp_logbook in [item.path for item in notebook_list]
+
+    def test_notebook_get_nested_notebooks_selective_default(self,
+                                                             tmp_notebook,
+                                                             tmp_logbook):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.add_page()
+        test_notebook.add_notebook()
+        test_notebook.add_notebook(tmp_notebook)
+        test_notebook.add_logbook()
+        test_notebook.add_logbook(tmp_logbook)
+        notebook_list = test_notebook.get_nested_notebooks()
+        assert isinstance(notebook_list, list)
+        assert len(notebook_list) == 2
+        assert tmp_notebook in [item.path for item in notebook_list]
+        assert tmp_logbook not in [item.path for item in notebook_list]
+
+    def test_notebook_get_nested_notebooks_null(self):
+        test_notebook = process_notebooks.Notebook()
+        notebook_list = test_notebook.get_nested_notebooks()
+        assert notebook_list == []
+
+    def test_notebook_get_nested_notebooks_no_output(self, capsys):
+        process_notebooks.Notebook().get_nested_notebooks()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_notebook_get_nested_notebooks_invalid_input(self):
+        include_logbooks = True
+        with pytest.raises(TypeError):
+            process_notebooks.Notebook().get_nested_notebooks(
+                include_logbooks, 'extra parameter')
+
+    def test_logbook_get_nested_notebooks(self, tmp_notebook):
+        test_logbook = process_notebooks.Logbook()
+        test_logbook.add_notebook(tmp_notebook)
+        notebook_list = test_logbook.get_nested_notebooks()
+        assert isinstance(notebook_list, list)
+        assert len(notebook_list) == 0
+
+    def test_logbook_get_nested_notebooks_selective_exclusive(self,
+                                                              tmp_notebook,
+                                                              tmp_logbook):
+        test_logbook = process_notebooks.Logbook()
+        test_logbook.add_page()
+        test_logbook.add_notebook()
+        test_logbook.add_notebook(tmp_notebook)
+        test_logbook.add_logbook()
+        test_logbook.add_logbook(tmp_logbook)
+        include_logbooks = False
+        notebook_list = test_logbook.get_nested_notebooks(include_logbooks)
+        assert isinstance(notebook_list, list)
+        assert len(notebook_list) == 0
+
+    def test_logbook_get_nested_notebooks_selective_inclusive(self,
+                                                              tmp_notebook,
+                                                              tmp_logbook):
+        test_logbook = process_notebooks.Logbook()
+        test_logbook.add_page()
+        test_logbook.add_notebook()
+        test_logbook.add_notebook(tmp_notebook)
+        test_logbook.add_logbook()
+        test_logbook.add_logbook(tmp_logbook)
+        include_logbooks = True
+        notebook_list = test_logbook.get_nested_notebooks(include_logbooks)
+        assert isinstance(notebook_list, list)
+        assert len(notebook_list) == 0
+
+    def test_logbook_get_nested_notebooks_selective_default(self,
+                                                            tmp_notebook,
+                                                            tmp_logbook):
+        test_logbook = process_notebooks.Logbook()
+        test_logbook.add_page()
+        test_logbook.add_notebook()
+        test_logbook.add_notebook(tmp_notebook)
+        test_logbook.add_logbook()
+        test_logbook.add_logbook(tmp_logbook)
+        notebook_list = test_logbook.get_nested_notebooks()
+        assert isinstance(notebook_list, list)
+        assert len(notebook_list) == 0
+
+    def test_logbook_get_nested_notebooks_null(self):
+        test_logbook = process_notebooks.Logbook()
+        notebook_list = test_logbook.get_nested_notebooks()
+        assert notebook_list == []
+
+    def test_logbook_get_nested_notebooks_no_output(self, capsys):
+        process_notebooks.Logbook().get_nested_notebooks()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_logbook_get_nested_notebooks_invalid_input(self):
+        include_logbooks = True
+        with pytest.raises(TypeError):
+            process_notebooks.Logbook().get_nested_notebooks(
+                include_logbooks, 'extra parameter')
+
+    def test_notebook_get_nested_logbooks(self, tmp_logbook):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.add_logbook(tmp_logbook)
+        logbook_list = test_notebook.get_nested_logbooks()
+        assert isinstance(logbook_list, list)
+        assert len(logbook_list) == 1
+
+    def test_notebook_get_nested_logbooks_contents(self, tmp_logbook):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.add_logbook(tmp_logbook)
+        logbook_list = test_notebook.get_nested_logbooks()
+        nested_logbook = logbook_list[0]
+        for filename in self.temp_logbook_pages:
+            this_path = tmp_logbook.joinpath(filename)
+            assert this_path in [this_page.path
+                                 for this_page in nested_logbook.contents]
+        for this_page in nested_logbook.contents:
+            assert isinstance(this_page, process_notebooks.Page)
+            with open(self.test_logbook_page, 'r')  as f:
+                test_content = f.readlines()
+            assert this_page.content == test_content
+
+    def test_notebook_get_nested_logbooks_selective(self,
+                                                    tmp_notebook,
+                                                    tmp_logbook):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.add_page()
+        test_notebook.add_notebook()
+        test_notebook.add_notebook(tmp_notebook)
+        test_notebook.add_logbook()
+        test_notebook.add_logbook(tmp_logbook)
+        logbook_list = test_notebook.get_nested_logbooks()
+        assert isinstance(logbook_list, list)
+        assert len(logbook_list) == 2
+        assert tmp_logbook in [item.path for item in logbook_list]
+        assert tmp_notebook not in [item.path for item in logbook_list]
+
+    def test_notebook_get_nested_logbooks_null(self):
+        test_notebook = process_notebooks.Notebook()
+        logbook_list = test_notebook.get_nested_logbooks()
+        assert logbook_list == []
+
+    def test_notebook_get_nested_logbooks_no_output(self, capsys):
+        process_notebooks.Notebook().get_nested_logbooks()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_notebook_get_nested_logbooks_invalid_input(self):
+        include_logbooks = True
+        with pytest.raises(TypeError):
+            process_notebooks.Notebook().get_nested_logbooks('extra parameter')
+
+    def test_logbook_get_nested_logbooks(self, tmp_logbook):
+        test_logbook = process_notebooks.Logbook()
+        test_logbook.add_logbook(tmp_logbook)
+        logbook_list = test_logbook.get_nested_logbooks()
+        assert isinstance(logbook_list, list)
+        assert len(logbook_list) == 0
+
+    def test_logbook_get_nested_logbooks_selective(self,
+                                                    tmp_notebook,
+                                                    tmp_logbook):
+        test_logbook = process_notebooks.Logbook()
+        test_logbook.add_page()
+        test_logbook.add_notebook()
+        test_logbook.add_notebook(tmp_notebook)
+        test_logbook.add_logbook()
+        test_logbook.add_logbook(tmp_logbook)
+        logbook_list = test_logbook.get_nested_logbooks()
+        assert isinstance(logbook_list, list)
+        assert len(logbook_list) == 0
+
+    def test_logbook_get_nested_logbooks_null(self):
+        test_logbook = process_notebooks.Logbook()
+        logbook_list = test_logbook.get_nested_logbooks()
+        assert logbook_list == []
+
+    def test_logbook_get_nested_logbooks_no_output(self, capsys):
+        process_notebooks.Logbook().get_nested_logbooks()
+        captured = capsys.readouterr()
+        assert len(captured.out) == 0
+
+    def test_logbook_get_nested_logbooks_invalid_input(self):
+        include_logbooks = True
+        with pytest.raises(TypeError):
+            process_notebooks.Logbook().get_nested_logbooks('extra parameter')
+
 
     # Utility functions
     def test_is_valid_page(self, tmp_page):
