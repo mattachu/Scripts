@@ -9,8 +9,20 @@ from docopt import docopt
 import pathlib
 import re
 
+# Settings
+PAGE_SUFFIX = '.md'
+HOME_DESCRIPTOR = 'Home'
+HOMEPAGE_FILENAME = 'Home'
+CONTENTS_DESCRIPTOR = 'Contents'
+CONTENTS_FILENAME = 'Contents'
+README_DESCRIPTOR = 'Readme'
+README_FILENAME = 'Readme'
+LOGBOOK_FOLDER_NAME = 'Logbook'
+UNKNOWN_DESCRIPTOR = 'Unknown'
+
 class Page():
     """Standard page in a notebook."""
+    _descriptor = 'page'
     def __init__(self, page_file=None):
         self.content = None
         self.path = None
@@ -19,7 +31,7 @@ class Page():
                 self.path = page_file
                 self.load_content()
             else:
-                raise ValueError(f'Not a valid page: {page_file}')
+                raise ValueError(f'Not a valid {self._descriptor}: {page_file}')
 
     def load_content(self):
         """Load the content of the page from file."""
@@ -54,12 +66,44 @@ class Page():
         else:
             return self.path.stem.replace('_', ' ').replace('-', ' ').strip()
 
+class HomePage(Page):
+    """A special page showing the overall contents at the root level."""
+    _descriptor = 'home page'
+    def get_title(self):
+        return HOME_DESCRIPTOR
+    def _is_valid_page(self, page_file):
+        if not _is_valid_page(page_file):
+            return False
+        else:
+            return page_file.stem == HOMEPAGE_FILENAME
+
+class ContentsPage(Page):
+    """A special automatically-generated page showing the notebook contents."""
+    _descriptor = 'contents page'
+    def get_title(self):
+        return CONTENTS_DESCRIPTOR
+    def _is_valid_page(self, page_file):
+        if not _is_valid_page(page_file):
+            return False
+        else:
+            return page_file.stem == CONTENTS_FILENAME
+
+class ReadmePage(Page):
+    """A special descriptive page showing the notebook contents."""
+    _descriptor = 'readme page'
+    def get_title(self):
+        return README_DESCRIPTOR
+    def _is_valid_page(self, page_file):
+        if not _is_valid_page(page_file):
+            return False
+        else:
+            return page_file.stem == README_FILENAME
+
 class LogbookPage(Page):
     """Logbook page in a notebook, with date attributes."""
-
+    _descriptor = 'logbook page'
     def _is_valid_page(self, page_file):
         return _is_valid_logbook_page(page_file)
-
     def _convert_filename_to_title(self):
         if self.path is None:
             return None
@@ -68,6 +112,7 @@ class LogbookPage(Page):
 
 class Notebook():
     """Standard notebook object containing pages."""
+    _descriptor = 'notebook'
     def __init__(self, notebook_path=None):
         self.contents = []
         self.path = None
@@ -76,7 +121,8 @@ class Notebook():
                 self.path = notebook_path
                 self.load_contents()
             else:
-                raise ValueError(f'Not a valid notebook: {notebook_path}')
+                raise ValueError(f'Not a valid {self._descriptor}: '
+                                 f'{notebook_path}')
 
     def load_contents(self):
         """Load the contents of the notebook from its directory."""
@@ -84,7 +130,13 @@ class Notebook():
         if self.path is not None:
             for item in self.path.iterdir():
                 if item.is_file():
-                    if self._is_valid_page(item):
+                    if self._is_valid_home_page(item):
+                        self.add_home_page(item)
+                    elif self._is_valid_contents_page(item):
+                        self.add_contents_page(item)
+                    elif self._is_valid_readme_page(item):
+                        self.add_readme_page(item)
+                    elif self._is_valid_page(item):
                         self.add_page(item)
                 elif item.is_dir():
                     if _is_valid_logbook_folder(item):
@@ -96,6 +148,18 @@ class Notebook():
         """Add a page to a notebook."""
         self.contents.append(Page(page_path))
 
+    def add_home_page(self, page_path=None):
+        """Add a home page to a notebook."""
+        self.contents.append(HomePage(page_path))
+
+    def add_contents_page(self, page_path=None):
+        """Add a contents page to a notebook."""
+        self.contents.append(ContentsPage(page_path))
+
+    def add_readme_page(self, page_path=None):
+        """Add a readme page to a notebook."""
+        self.contents.append(ReadmePage(page_path))
+
     def add_notebook(self, notebook_path=None):
         """Add a nested notebook inside a notebook."""
         self.contents.append(Notebook(notebook_path))
@@ -104,32 +168,63 @@ class Notebook():
         """Add a nested logbook inside a notebook."""
         self.contents.append(Logbook(logbook_path))
 
-    def get_nested_notebooks(self, include_logbooks=False):
-        """Return a list of contents that are notebooks."""
-        notebook_list = [item for item in self.contents
-                         if isinstance(item, Notebook)]
-        if include_logbooks is True:
-            return notebook_list
-        else:
-            return [item for item in notebook_list
-                    if not isinstance(item, Logbook)]
-
-    def get_nested_logbooks(self):
-        """Return a list of contents that are logbooks."""
-        return [item for item in self.contents if isinstance(item, Logbook)]
-
     def get_pages(self):
-        """Return a list of contents that are pages."""
-        return [item for item in self.contents if isinstance(item, Page)]
+        """Return a list of contents that are (standard) pages."""
+        return [item for item in self.contents if type(item) == Page]
+
+    def get_home_page(self):
+        """Returns the home page if it exists, assuming there is only one."""
+        for item in self.contents:
+            if isinstance(item, HomePage):
+                return item
+        return None
+
+    def get_contents_page(self):
+        """Returns the contents page if it exists, assuming there is only one."""
+        for item in self.contents:
+            if isinstance(item, ContentsPage):
+                return item
+        return None
+
+    def get_readme_page(self):
+        """Returns the readme page if it exists, assuming there is only one."""
+        for item in self.contents:
+            if isinstance(item, ReadmePage):
+                return item
+        return None
+
+    def get_notebooks(self):
+        """Return a list of contents that are notebooks."""
+        return [item for item in self.contents if type(item) == Notebook]
+
+    def get_logbooks(self):
+        """Return a list of contents that are logbooks."""
+        return [item for item in self.contents if type(item) == Logbook]
+
+    def _has_contents_page(self):
+        return any([isinstance(item, ContentsPage) for item in self.contents])
+
+    def _has_readme_page(self):
+        return any([isinstance(item, ReadmePage) for item in self.contents])
 
     def _is_valid_page(self, page_path):
         return _is_valid_page(page_path)
+
+    def _is_valid_home_page(self, page_path):
+        return _is_valid_home_page(page_path)
+
+    def _is_valid_contents_page(self, page_path):
+        return _is_valid_contents_page(page_path)
+
+    def _is_valid_readme_page(self, page_path):
+        return _is_valid_readme_page(page_path)
 
     def _is_valid_folder(self, folder_path):
         return _is_valid_folder(folder_path)
 
 class Logbook(Notebook):
     """Special notebook object for logbooks, containing logbook pages."""
+    _descriptor = 'logbook'
 
     def add_page(self, page_path=None):
         """Add a page to a logbook."""
@@ -143,11 +238,11 @@ class Logbook(Notebook):
         """Don't allow nested logbooks inside a logbook."""
         pass
 
-    def get_nested_notebooks(self, include_logbooks=False):
+    def get_notebooks(self):
         """Don't allow nested notebooks inside a logbook."""
         return []
 
-    def get_nested_logbooks(self):
+    def get_logbooks(self):
         """Don't allow nested logbooks inside a logbook."""
         return []
 
@@ -166,47 +261,49 @@ class Logbook(Notebook):
 def _is_valid_page(page_file):
     if not page_file.is_file():
         raise OSError(f'Cannot find file: {page_file}')
-    elif page_file.suffix == '.md':
-        return True
-    else:
-        return False
+    return page_file.suffix == PAGE_SUFFIX
+
+def _is_valid_home_page(page_file):
+    if _is_valid_page(page_file):
+        return page_file.stem == HOMEPAGE_FILENAME
+    return False
+
+def _is_valid_contents_page(page_file):
+    if _is_valid_page(page_file):
+        return page_file.stem == CONTENTS_FILENAME
+    return False
+
+def _is_valid_readme_page(page_file):
+    if _is_valid_page(page_file):
+        return page_file.stem == README_FILENAME
+    return False
 
 def _is_valid_logbook_page(page_file):
     if not _is_valid_page(page_file):
         return False
-    elif page_file.stem == 'Contents':
+    if re.search(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$', page_file.stem) is not None:
         return True
-    elif re.search(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$', page_file.stem):
+    if re.search(r'^[0-9]{4}-[0-9]{2}$', page_file.stem) is not None:
         return True
-    elif re.search(r'^[0-9]{4}-[0-9]{2}$', page_file.stem):
-        return True
-    else:
-        return False
+    return False
 
 def _is_valid_folder(folder_path):
     if not folder_path.is_dir():
         raise OSError(f'Cannot find folder: {folder_path}')
-    elif folder_path.stem.startswith('.'):
-        return False
-    else:
-        return True
+    return not folder_path.stem.startswith('.')
 
 def _is_valid_logbook_folder(folder_path):
     if not _is_valid_folder(folder_path):
         return False
-    if folder_path.stem == 'Logbook':
-        return True
-    else:
-        return False
+    return folder_path.stem == LOGBOOK_FOLDER_NAME
 
 def _is_blank_line(line):
     return line.strip() == ''
 
 def _is_navigation_line(line):
-    if re.search(r'\[[^]]*\]\([^\)]*\)', line):
+    if re.search(r'\[[^]]*\]\([^\)]*\)', line) is not None:
         return True
-    else:
-        return False
+    return False
 
 def _is_title_line(line):
     return line.startswith('# ')
