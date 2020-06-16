@@ -88,25 +88,28 @@ class TestProcessNotebooks:
         shutil.rmtree(logbook_folder)
 
     @pytest.fixture(scope="class")
-    def clone_notebooks(self, tmp_path_factory):
+    def cloned_repo(self, tmp_path_factory):
         """Create a complete clone of the Notebooks repo in a temp folder."""
         source_repo = git.Repo(self.notebook_path)
         destination_path = tmp_path_factory.mktemp('Notebooks', numbered=False)
         cloned_repo = source_repo.clone(destination_path)
+        cloned_repo.head.reference = cloned_repo.heads.master
+        cloned_repo.head.reset(index=True, working_tree=True)
         yield cloned_repo
         shutil.rmtree(destination_path)
 
-    @pytest.fixture
-    def preserve_repo(self, clone_notebooks):
+
+    # Functions
+    def repo_unchanged(self, cloned_repo):
         """Make sure no files are changed within the cloned repo."""
-        cloned_repo = clone_notebooks
-        cloned_repo.head.reference = cloned_repo.commit('master')
-        cloned_repo.head.reset(index=True, working_tree=True)
-        assert not cloned_repo.is_dirty()
-        assert len(cloned_repo.untracked_files) == 0
-        yield cloned_repo
-        assert not cloned_repo.is_dirty()
-        assert len(cloned_repo.untracked_files) == 0
+        if not cloned_repo.head.reference == cloned_repo.heads.master:
+            return False
+        elif cloned_repo.is_dirty():
+            return False
+        elif len(cloned_repo.untracked_files) > 0:
+            return False
+        else:
+            return True
 
 
     # Creating page objects
@@ -468,6 +471,10 @@ class TestProcessNotebooks:
             with open(self.test_page, 'r')  as f:
                 test_content = f.readlines()
             assert this_page.content == test_content
+
+    def test_create_notebook_no_changes(self, cloned_repo):
+        process_notebooks.Notebook(pathlib.Path(cloned_repo.working_dir))
+        assert self.repo_unchanged(cloned_repo)
 
     def test_create_notebook_null(self):
         test_notebook = process_notebooks.Notebook()
@@ -831,6 +838,12 @@ class TestProcessNotebooks:
             with open(self.test_page, 'r')  as f:
                 test_content = f.readlines()
             assert this_page.content == test_content
+
+    def test_notebook_load_contents_no_changes(self, cloned_repo):
+        test_notebook = process_notebooks.Notebook()
+        test_notebook.path = pathlib.Path(cloned_repo.working_dir)
+        test_notebook.load_contents()
+        assert self.repo_unchanged(cloned_repo)
 
     def test_notebook_load_contents_null(self):
         test_notebook = process_notebooks.Notebook()
