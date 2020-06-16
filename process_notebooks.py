@@ -104,6 +104,24 @@ class Notebook():
         """Add a nested logbook inside a notebook."""
         self.contents.append(Logbook(logbook_path))
 
+    def get_nested_notebooks(self, include_logbooks=False):
+        """Return a list of contents that are notebooks."""
+        notebook_list = [item for item in self.contents
+                         if isinstance(item, Notebook)]
+        if include_logbooks is True:
+            return notebook_list
+        else:
+            return [item for item in notebook_list
+                    if not isinstance(item, Logbook)]
+
+    def get_nested_logbooks(self):
+        """Return a list of contents that are logbooks."""
+        return [item for item in self.contents if isinstance(item, Logbook)]
+
+    def get_pages(self):
+        """Return a list of contents that are pages."""
+        return [item for item in self.contents if isinstance(item, Page)]
+
     def _is_valid_page(self, page_path):
         return _is_valid_page(page_path)
 
@@ -124,6 +142,18 @@ class Logbook(Notebook):
     def add_logbook(self, logbook_path=None):
         """Don't allow nested logbooks inside a logbook."""
         pass
+
+    def get_nested_notebooks(self, include_logbooks=False):
+        """Don't allow nested notebooks inside a logbook."""
+        return []
+
+    def get_nested_logbooks(self):
+        """Don't allow nested logbooks inside a logbook."""
+        return []
+
+    def get_pages(self):
+        """Return a list of contents that are logbook pages."""
+        return [item for item in self.contents if isinstance(item, LogbookPage)]
 
     def _is_valid_page(self, page_path):
         return _is_valid_logbook_page(page_path)
