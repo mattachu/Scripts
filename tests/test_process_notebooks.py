@@ -7,6 +7,48 @@ import shutil
 
 import process_notebooks as pn
 
+# Invalid objects for parametrised testing
+invalid_paths = [
+        ('string', AttributeError),
+        (3.142, AttributeError),
+        ([1, 2, 3], AttributeError),
+        (pathlib.Path('/not/a/path'), OSError)]
+
+invalid_folders = ['.vscode', '.config']
+
+invalid_logbook = invalid_folders + ['Notebooks', 'PKU-2019', 'Software']
+
+invalid_lines = [
+    None,
+    3.142,
+    [1, 2, 3],
+    pathlib.Path('/not/a/path'),
+    pathlib.Path.home(),
+    pn.Page(),
+    pn.Notebook()]
+
+def invalid_filenames(object_type):
+    filename_list = [
+        'test.xlsx',
+        'test.png',
+        '.DS_Store']
+    if object_type == 'page':
+        return filename_list
+    else:
+        filename_list.append('Page1.md')
+        filename_list.append('2020-01-01-meeting.md')
+        if object_type != 'logbook page':
+            filename_list.append('2020-01-01.md')
+            filename_list.append('2020-01.md')
+        if object_type != 'home':
+            filename_list.append('Home.md')
+        if object_type != 'contents':
+            filename_list.append('Contents.md')
+        if object_type != 'readme':
+            filename_list.append('Readme.md')
+        return filename_list
+
+
 class TestProcessNotebooks:
 
     # Setup before testing
@@ -281,32 +323,18 @@ class TestProcessNotebooks:
 
 
     # Test constants
-    def test_constant_page_suffix(self):
-        assert pn.PAGE_SUFFIX == self.page_suffix
-
-    def test_constant_home_descriptor(self):
-        assert pn.HOME_DESCRIPTOR == self.homepage_descriptor
-
-    def test_constant_homepage_filename(self):
-        assert pn.HOMEPAGE_FILENAME == self.homepage_filename
-
-    def test_constant_contents_descriptor(self):
-        assert pn.CONTENTS_DESCRIPTOR == self.contents_descriptor
-
-    def test_constant_contents_filename(self):
-        assert pn.CONTENTS_FILENAME == self.contents_filename
-
-    def test_constant_readme_descriptor(self):
-        assert pn.README_DESCRIPTOR == self.readme_descriptor
-
-    def test_constant_readme_filename(self):
-        assert pn.README_FILENAME == self.readme_filename
-
-    def test_constant_logbook_foldername(self):
-        assert pn.LOGBOOK_FOLDER_NAME == self.logbook_folder_name
-
-    def test_constant_unknown_descriptor(self):
-        assert pn.UNKNOWN_DESCRIPTOR == self.unknown_descriptor
+    @pytest.mark.parametrize('constant, value', [
+        ('pn.PAGE_SUFFIX', 'self.page_suffix'),
+        ('pn.HOME_DESCRIPTOR', 'self.homepage_descriptor'),
+        ('pn.HOMEPAGE_FILENAME', 'self.homepage_filename'),
+        ('pn.CONTENTS_DESCRIPTOR', 'self.contents_descriptor'),
+        ('pn.CONTENTS_FILENAME', 'self.contents_filename'),
+        ('pn.README_DESCRIPTOR', 'self.readme_descriptor'),
+        ('pn.README_FILENAME', 'self.readme_filename'),
+        ('pn.LOGBOOK_FOLDER_NAME', 'self.logbook_folder_name'),
+        ('pn.UNKNOWN_DESCRIPTOR', 'self.unknown_descriptor')])
+    def test_constant_value(self, constant, value):
+        assert eval(constant) == eval(value)
 
 
     # Creating page objects
@@ -339,23 +367,19 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_create_page_invalid_input(self, tmp_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_create_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Page(path)
+
+    def test_create_page_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
             pn.Page(tmp_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.Page('string')
-        with pytest.raises(AttributeError):
-            pn.Page(3.142)
-        with pytest.raises(AttributeError):
-            pn.Page([tmp_page, tmp_page])
 
-    def test_create_page_invalid_file_types(self, tmp_file_factory):
+    @pytest.mark.parametrize('filename', invalid_filenames('page'))
+    def test_create_page_invalid_file_types(self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            pn.Page(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            pn.Page(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            pn.Page(tmp_file_factory('.DS_Store'))
+            pn.Page(tmp_file_factory(filename))
 
     def test_create_logbook_page(self, tmp_logbook_page):
         test_page = pn.LogbookPage(tmp_logbook_page)
@@ -386,25 +410,20 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_create_logbook_page_invalid_input(self, tmp_logbook_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_create_logbook_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.LogbookPage(path)
+
+    def test_create_logbook_page_extra_parameter(self, tmp_logbook_page):
         with pytest.raises(TypeError):
             pn.LogbookPage(tmp_logbook_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.LogbookPage('string')
-        with pytest.raises(AttributeError):
-            pn.LogbookPage(3.142)
-        with pytest.raises(AttributeError):
-            pn.LogbookPage([tmp_logbook_page, tmp_logbook_page])
-        with pytest.raises(OSError):
-            pn.LogbookPage(pathlib.Path('/not/a/path'))
 
-    def test_create_logbook_page_invalid_file_types(self, tmp_file_factory):
+    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
+    def test_create_logbook_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            pn.LogbookPage(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            pn.LogbookPage(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            pn.LogbookPage(tmp_file_factory('.DS_Store'))
+            pn.LogbookPage(tmp_file_factory(filename))
 
     def test_create_contents_page(self, tmp_contents_page):
         test_page = pn.ContentsPage(tmp_contents_page)
@@ -435,27 +454,25 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_create_contents_page_invalid_input(self, tmp_contents_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_create_contents_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.ContentsPage(path)
+
+    def test_create_contents_page_invalid_extra_parameter(
+            self, tmp_contents_page):
         with pytest.raises(TypeError):
             pn.ContentsPage(tmp_contents_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.ContentsPage('string')
-        with pytest.raises(AttributeError):
-            pn.ContentsPage(3.142)
-        with pytest.raises(AttributeError):
-            pn.ContentsPage([tmp_contents_page, tmp_contents_page])
 
     def test_create_contents_page_invalid_filename(self, tmp_page):
         with pytest.raises(ValueError):
             pn.ContentsPage(tmp_page)
 
-    def test_create_contents_page_invalid_file_types(self, tmp_file_factory):
+    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
+    def test_create_contents_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            pn.ContentsPage(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            pn.ContentsPage(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            pn.ContentsPage(tmp_file_factory('.DS_Store'))
+            pn.ContentsPage(tmp_file_factory(filename))
 
     def test_create_logbook_contents_page(self, tmp_logbook_contents_page):
         test_page = pn.ContentsPage(tmp_logbook_contents_page)
@@ -538,27 +555,24 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_create_home_page_invalid_input(self, tmp_home_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_create_home_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.HomePage(path)
+
+    def test_create_home_page_extra_parameter(self, tmp_home_page):
         with pytest.raises(TypeError):
             pn.HomePage(tmp_home_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.HomePage('string')
-        with pytest.raises(AttributeError):
-            pn.HomePage(3.142)
-        with pytest.raises(AttributeError):
-            pn.HomePage([tmp_home_page, tmp_home_page])
 
     def test_create_home_page_invalid_filename(self, tmp_page):
         with pytest.raises(ValueError):
             pn.HomePage(tmp_page)
 
-    def test_create_home_page_invalid_file_types(self, tmp_file_factory):
+    @pytest.mark.parametrize('filename', invalid_filenames('home'))
+    def test_create_home_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            pn.HomePage(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            pn.HomePage(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            pn.HomePage(tmp_file_factory('.DS_Store'))
+            pn.HomePage(tmp_file_factory(filename))
 
     def test_create_readme_page(self, tmp_readme_page):
         test_page = pn.ReadmePage(tmp_readme_page)
@@ -590,27 +604,24 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_create_readme_page_invalid_input(self, tmp_readme_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_create_readme_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.ReadmePage(path)
+
+    def test_create_readme_page_extra_parameter(self, tmp_readme_page):
         with pytest.raises(TypeError):
             pn.ReadmePage(tmp_readme_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.ReadmePage('string')
-        with pytest.raises(AttributeError):
-            pn.ReadmePage(3.142)
-        with pytest.raises(AttributeError):
-            pn.ReadmePage([tmp_readme_page, tmp_readme_page])
 
     def test_create_readme_page_invalid_filename(self, tmp_page):
         with pytest.raises(ValueError):
             pn.ReadmePage(tmp_page)
 
-    def test_create_readme_page_invalid_file_types(self, tmp_file_factory):
+    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
+    def test_create_readme_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            pn.ReadmePage(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            pn.ReadmePage(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            pn.ReadmePage(tmp_file_factory('.DS_Store'))
+            pn.ReadmePage(tmp_file_factory(filename))
 
     def test_create_logbook_readme_page(self, tmp_logbook_readme_page):
         test_page = pn.ReadmePage(tmp_logbook_readme_page)
@@ -670,20 +681,16 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_page_load_content_invalid_input(self, tmp_page):
+    def test_page_load_content_extra_parameter(self, tmp_page):
         test_page = pn.Page()
         with pytest.raises(TypeError):
             test_page.load_content('extra parameter')
 
-    def test_page_load_content_invalid_file_types(self, tmp_file_factory):
+    @pytest.mark.parametrize('filename', invalid_filenames('page'))
+    def test_page_load_content_invalid_file_types(
+            self, tmp_file_factory, filename):
         test_page = pn.Page()
-        test_page.path = tmp_file_factory('test.xlsx')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('test.png')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('.DS_Store')
+        test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
             test_page.load_content()
 
@@ -720,24 +727,16 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_page_load_content_invalid_input(self, tmp_logbook_page):
+    def test_logbook_page_load_content_extra_parameter(self, tmp_logbook_page):
         test_logbook_page = pn.LogbookPage()
         with pytest.raises(TypeError):
             test_logbook_page.load_content('extra parameter')
 
-    def test_logbook_page_load_content_invalid_file_types(self, tmp_file_factory):
+    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
+    def test_logbook_page_load_content_invalid_file_types(
+            self, tmp_file_factory, filename):
         test_page = pn.LogbookPage()
-        test_page.path = tmp_file_factory('test.xlsx')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('test.png')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('.DS_Store')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory(
-            f'2020-01-01-Meeting{self.page_suffix}')
+        test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
             test_page.load_content()
 
@@ -770,7 +769,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_contents_page_load_content_invalid_input(self, tmp_contents_page):
+    def test_contents_page_load_content_extra_parameter(self, tmp_contents_page):
         test_page = pn.ContentsPage()
         test_page.path = tmp_contents_page
         with pytest.raises(TypeError):
@@ -782,16 +781,11 @@ class TestProcessNotebooks:
         with pytest.raises(ValueError):
             test_page.load_content()
 
+    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
     def test_contents_page_load_content_invalid_file_types(
-            self, tmp_file_factory):
+            self, tmp_file_factory, filename):
         test_page = pn.ContentsPage()
-        test_page.path = tmp_file_factory('test.xlsx')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('test.png')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('.DS_Store')
+        test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
             test_page.load_content()
 
@@ -817,7 +811,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_contents_page_load_content_invalid_input(
+    def test_logbook_contents_page_load_contents_extra_parameter(
             self, tmp_logbook_contents_page):
         test_page = pn.ContentsPage()
         test_page.path = tmp_logbook_contents_page
@@ -852,7 +846,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_home_page_load_content_invalid_input(self, tmp_home_page):
+    def test_home_page_load_content_extra_parameter(self, tmp_home_page):
         test_page = pn.HomePage()
         test_page.path = tmp_home_page
         with pytest.raises(TypeError):
@@ -864,15 +858,11 @@ class TestProcessNotebooks:
         with pytest.raises(ValueError):
             test_page.load_content()
 
-    def test_home_page_load_content_invalid_file_types(self, tmp_file_factory):
+    @pytest.mark.parametrize('filename', invalid_filenames('home'))
+    def test_home_page_load_content_invalid_file_types(
+            self, tmp_file_factory, filename):
         test_page = pn.HomePage()
-        test_page.path = tmp_file_factory('test.xlsx')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('test.png')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('.DS_Store')
+        test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
             test_page.load_content()
 
@@ -904,7 +894,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_readme_page_load_content_invalid_input(self, tmp_readme_page):
+    def test_readme_page_load_content_extra_parameter(self, tmp_readme_page):
         test_page = pn.ReadmePage()
         test_page.path = tmp_readme_page
         with pytest.raises(TypeError):
@@ -916,16 +906,11 @@ class TestProcessNotebooks:
         with pytest.raises(ValueError):
             test_page.load_content()
 
+    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
     def test_readme_page_load_content_invalid_file_types(
-            self, tmp_file_factory):
+            self, tmp_file_factory, filename):
         test_page = pn.ReadmePage()
-        test_page.path = tmp_file_factory('test.xlsx')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('test.png')
-        with pytest.raises(ValueError):
-            test_page.load_content()
-        test_page.path = tmp_file_factory('.DS_Store')
+        test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
             test_page.load_content()
 
@@ -951,7 +936,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_readme_page_load_content_invalid_input(
+    def test_logbook_readme_page_load_content_extra_parameter(
             self, tmp_logbook_readme_page):
         test_page = pn.ReadmePage()
         test_page.path = tmp_logbook_readme_page
@@ -980,7 +965,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_page_get_title_invalid_input(self, tmp_page):
+    def test_page_get_title_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
             pn.Page(tmp_page).get_title('extra parameter')
 
@@ -1004,7 +989,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_page_get_title_invalid_input(self, tmp_logbook_page):
+    def test_logbook_page_get_title_extra_parameter(self, tmp_logbook_page):
         with pytest.raises(TypeError):
             pn.LogbookPage(tmp_logbook_page).get_title('extra parameter')
 
@@ -1028,7 +1013,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_contents_page_get_title_invalid_input(self, tmp_contents_page):
+    def test_contents_page_get_title_extra_parameter(self, tmp_contents_page):
         with pytest.raises(TypeError):
             pn.ContentsPage(tmp_contents_page).get_title('extra parameter')
 
@@ -1052,7 +1037,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_home_page_get_title_invalid_input(self, tmp_home_page):
+    def test_home_page_get_title_extra_parameter(self, tmp_home_page):
         with pytest.raises(TypeError):
             pn.HomePage(tmp_home_page).get_title('extra parameter')
 
@@ -1076,43 +1061,38 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_readme_page_get_title_invalid_input(self, tmp_readme_page):
+    def test_readme_page_get_title_extra_parameter(self, tmp_readme_page):
         with pytest.raises(TypeError):
             pn.ReadmePage(tmp_readme_page).get_title('extra parameter')
 
     def test_page_is_valid_page(self, tmp_page):
-        test_page = pn.Page()
-        assert test_page._is_valid_page(tmp_page) is True
+        assert pn.Page()._is_valid_page(tmp_page) is True
 
     def test_page_is_valid_page_logbook_page(self, tmp_logbook_page):
-        test_page = pn.Page()
-        assert test_page._is_valid_page(tmp_logbook_page) is True
+        assert pn.Page()._is_valid_page(tmp_logbook_page) is True
 
     def test_page_is_valid_page_contents_page(self, tmp_contents_page):
-        test_page = pn.Page()
-        assert test_page._is_valid_page(tmp_contents_page) is True
+        assert pn.Page()._is_valid_page(tmp_contents_page) is True
 
     def test_page_is_valid_page_home_page(self, tmp_home_page):
-        test_page = pn.Page()
-        assert test_page._is_valid_page(tmp_home_page) is True
+        assert pn.Page()._is_valid_page(tmp_home_page) is True
 
     def test_page_is_valid_page_readme_page(self, tmp_readme_page):
-        test_page = pn.Page()
-        assert test_page._is_valid_page(tmp_readme_page) is True
+        assert pn.Page()._is_valid_page(tmp_readme_page) is True
 
-    def test_page_is_valid_page_fail(self, tmp_file_factory):
-        test_page = pn.Page()
-        assert test_page._is_valid_page(tmp_file_factory('test.xlsx')) is False
-        assert test_page._is_valid_page(tmp_file_factory('test.png')) is False
-        assert test_page._is_valid_page(tmp_file_factory('.DS_Store')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('page'))
+    def test_page_is_valid_page_invalid_file_types(
+            self, tmp_file_factory, filename):
+        assert pn.Page()._is_valid_page(tmp_file_factory(filename)) is False
+
+    def test_page_is_valid_page_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            test_page._is_valid_page(
+            pn.Page()._is_valid_page(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
     def test_page_is_valid_page_no_changes(self, cloned_repo):
-        test_page = pn.Page()
-        test_page._is_valid_page(pathlib.Path(cloned_repo.working_dir)
+        pn.Page()._is_valid_page(pathlib.Path(cloned_repo.working_dir)
                                  .joinpath(self.cloned_page))
         self.assert_repo_unchanged(cloned_repo)
 
@@ -1121,55 +1101,44 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_page_is_valid_page_invalid_input(self, tmp_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_page_is_valid_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Page()._is_valid_page(path)
+
+    def test_page_is_valid_page_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
             pn.Page()._is_valid_page(tmp_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.Page()._is_valid_page('string')
-        with pytest.raises(AttributeError):
-            pn.Page()._is_valid_page(3.142)
-        with pytest.raises(AttributeError):
-            pn.Page()._is_valid_page([tmp_page, tmp_page])
-        with pytest.raises(OSError):
-            pn.Page()._is_valid_page(pathlib.Path('/not/a/path'))
 
     def test_logbook_page_is_valid_page(self, tmp_logbook_page):
-        test_page = pn.LogbookPage()
-        assert test_page._is_valid_page(tmp_logbook_page) is True
+        assert pn.LogbookPage()._is_valid_page(tmp_logbook_page) is True
 
     def test_logbook_page_is_valid_page_notebook_page(self, tmp_page):
-        test_page = pn.LogbookPage()
-        assert test_page._is_valid_page(tmp_page) is False
+        assert pn.LogbookPage()._is_valid_page(tmp_page) is False
 
     def test_logbook_page_is_valid_page_logbook_page(self, tmp_logbook_page):
-        test_page = pn.LogbookPage()
-        assert test_page._is_valid_page(tmp_logbook_page) is True
+        assert pn.LogbookPage()._is_valid_page(tmp_logbook_page) is True
 
     def test_logbook_page_is_valid_page_contents_page(self, tmp_contents_page):
-        test_page = pn.LogbookPage()
-        assert test_page._is_valid_page(tmp_contents_page) is False
+        assert pn.LogbookPage()._is_valid_page(tmp_contents_page) is False
 
     def test_logbook_page_is_valid_page_home_page(self, tmp_home_page):
-        test_page = pn.LogbookPage()
-        assert test_page._is_valid_page(tmp_home_page) is False
+        assert pn.LogbookPage()._is_valid_page(tmp_home_page) is False
 
     def test_logbook_page_is_valid_page_readme_page(self, tmp_readme_page):
-        test_page = pn.LogbookPage()
-        assert test_page._is_valid_page(tmp_readme_page) is False
+        assert pn.LogbookPage()._is_valid_page(tmp_readme_page) is False
 
-    def test_logbook_page_is_valid_page_fail(self, tmp_file_factory):
-        test_page = pn.LogbookPage()
-        assert test_page._is_valid_page(tmp_file_factory('test.xlsx')) is False
-        assert test_page._is_valid_page(tmp_file_factory('test.png')) is False
-        assert test_page._is_valid_page(tmp_file_factory('.DS_Store')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
+    def test_logbook_page_is_valid_page_invalid_file_types(
+            self, tmp_file_factory, filename):
+        assert pn.LogbookPage()._is_valid_page(
+            tmp_file_factory(filename)) is False
+
+    def test_logbook_page_is_valid_page_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory('is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            test_page._is_valid_page(
+            pn.LogbookPage()._is_valid_page(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-        assert test_page._is_valid_page(
-            tmp_file_factory(f'2020-01-01-Meeting{self.page_suffix}')) is False
-        assert test_page._is_valid_page(
-            tmp_file_factory(f'page1{self.page_suffix}')) is False
 
     def test_logbook_page_is_valid_page_no_changes(self, cloned_repo):
         test_page = pn.LogbookPage()
@@ -1183,18 +1152,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_page_is_valid_page_invalid_input(self, tmp_logbook_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_logbook_page_is_valid_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.LogbookPage()._is_valid_page(path)
+
+    def test_logbook_page_is_valid_page_extra_parameter(self, tmp_logbook_page):
         with pytest.raises(TypeError):
             pn.LogbookPage()._is_valid_page(tmp_logbook_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.LogbookPage()._is_valid_page('string')
-        with pytest.raises(AttributeError):
-            pn.LogbookPage()._is_valid_page(3.142)
-        with pytest.raises(AttributeError):
-            pn.LogbookPage()._is_valid_page([tmp_logbook_page, tmp_logbook_page])
-        with pytest.raises(OSError):
-            pn.LogbookPage()._is_valid_page(
-                pathlib.Path('/not/a/path'))
 
     def test_contents_page_is_valid_page(self, tmp_contents_page):
         test_page = pn.ContentsPage()
@@ -1220,14 +1185,16 @@ class TestProcessNotebooks:
         test_page = pn.ContentsPage()
         assert test_page._is_valid_page(tmp_readme_page) is False
 
-    def test_contents_page_is_valid_page_fail(self, tmp_file_factory):
-        test_page = pn.ContentsPage()
-        assert test_page._is_valid_page(tmp_file_factory('test.xlsx')) is False
-        assert test_page._is_valid_page(tmp_file_factory('test.png')) is False
-        assert test_page._is_valid_page(tmp_file_factory('.DS_Store')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
+    def test_contents_page_is_valid_page_invalid_file_types(
+            self, tmp_file_factory, filename):
+        assert pn.ContentsPage()._is_valid_page(
+            tmp_file_factory(filename)) is False
+
+    def test_contents_page_is_valid_page_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            test_page._is_valid_page(
+            pn.ContentsPage()._is_valid_page(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
     def test_contents_page_is_valid_page_no_changes(self, cloned_repo):
@@ -1242,18 +1209,16 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_contents_page_is_valid_page_invalid_input(self, tmp_contents_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_contents_page_is_valid_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.ContentsPage()._is_valid_page(path)
+
+    def test_contents_page_is_valid_page_extra_parameter(
+            self, tmp_contents_page):
         with pytest.raises(TypeError):
-            pn.ContentsPage()._is_valid_page(tmp_contents_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.ContentsPage()._is_valid_page('string')
-        with pytest.raises(AttributeError):
-            pn.ContentsPage()._is_valid_page(3.142)
-        with pytest.raises(AttributeError):
             pn.ContentsPage()._is_valid_page(
-                [tmp_contents_page, tmp_contents_page])
-        with pytest.raises(OSError):
-            pn.ContentsPage()._is_valid_page(pathlib.Path('/not/a/path'))
+                tmp_contents_page, 'extra parameter')
 
     def test_home_page_is_valid_page(self, tmp_home_page):
         test_page = pn.HomePage()
@@ -1279,14 +1244,15 @@ class TestProcessNotebooks:
         test_page = pn.HomePage()
         assert test_page._is_valid_page(tmp_readme_page) is False
 
-    def test_home_page_is_valid_page_fail(self, tmp_file_factory):
-        test_page = pn.HomePage()
-        assert test_page._is_valid_page(tmp_file_factory('test.xlsx')) is False
-        assert test_page._is_valid_page(tmp_file_factory('test.png')) is False
-        assert test_page._is_valid_page(tmp_file_factory('.DS_Store')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('home'))
+    def test_home_page_is_valid_page_invalid_file_types(
+            self, tmp_file_factory, filename):
+        assert pn.HomePage()._is_valid_page(tmp_file_factory(filename)) is False
+
+    def test_home_page_is_valid_page_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            test_page._is_valid_page(
+            pn.HomePage()._is_valid_page(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
     def test_home_page_is_valid_page_no_changes(self, cloned_repo):
@@ -1300,17 +1266,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_home_page_is_valid_page_invalid_input(self, tmp_home_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_home_page_is_valid_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.HomePage()._is_valid_page(path)
+
+    def test_home_page_is_valid_page_extra_parameter(self, tmp_home_page):
         with pytest.raises(TypeError):
             pn.HomePage()._is_valid_page(tmp_home_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.HomePage()._is_valid_page('string')
-        with pytest.raises(AttributeError):
-            pn.HomePage()._is_valid_page(3.142)
-        with pytest.raises(AttributeError):
-            pn.HomePage()._is_valid_page([tmp_home_page, tmp_home_page])
-        with pytest.raises(OSError):
-            pn.HomePage()._is_valid_page(pathlib.Path('/not/a/path'))
 
     def test_readme_page_is_valid_page(self, tmp_readme_page):
         test_page = pn.ReadmePage()
@@ -1336,14 +1299,16 @@ class TestProcessNotebooks:
         test_page = pn.ReadmePage()
         assert test_page._is_valid_page(tmp_readme_page) is True
 
-    def test_readme_page_is_valid_page_fail(self, tmp_file_factory):
-        test_page = pn.ReadmePage()
-        assert test_page._is_valid_page(tmp_file_factory('test.xlsx')) is False
-        assert test_page._is_valid_page(tmp_file_factory('test.png')) is False
-        assert test_page._is_valid_page(tmp_file_factory('.DS_Store')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
+    def test_readme_page_is_valid_page_invalid_file_types(
+            self, tmp_file_factory, filename):
+        assert pn.ReadmePage()._is_valid_page(
+            tmp_file_factory(filename)) is False
+
+    def test_readme_page_is_valid_page_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            test_page._is_valid_page(
+            pn.ReadmePage()._is_valid_page(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
     def test_readme_page_is_valid_page_no_changes(self, cloned_repo):
@@ -1358,17 +1323,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_readme_page_is_valid_page_invalid_input(self, tmp_readme_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_readme_page_is_valid_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.ReadmePage()._is_valid_page(path)
+
+    def test_readme_page_is_valid_page_extra_parameter(self, tmp_readme_page):
         with pytest.raises(TypeError):
             pn.ReadmePage()._is_valid_page(tmp_readme_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.ReadmePage()._is_valid_page('string')
-        with pytest.raises(AttributeError):
-            pn.ReadmePage()._is_valid_page(3.142)
-        with pytest.raises(AttributeError):
-            pn.ReadmePage()._is_valid_page([tmp_readme_page, tmp_readme_page])
-        with pytest.raises(OSError):
-            pn.ReadmePage()._is_valid_page(pathlib.Path('/not/a/path'))
 
     def test_page_convert_filename_to_title(self, tmp_page):
         test_title = pn.Page(tmp_page)._convert_filename_to_title()
@@ -1391,7 +1353,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_page_convert_filename_to_title_invalid_input(self, tmp_page):
+    def test_page_convert_filename_to_title_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
             pn.Page(tmp_page)._convert_filename_to_title('extra parameter')
 
@@ -1417,7 +1379,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_page_convert_filename_to_title_invalid_input(
+    def test_logbook_page_convert_filename_to_title_extra_parameter(
             self, tmp_logbook_page):
         with pytest.raises(TypeError):
             (pn.LogbookPage(tmp_logbook_page)
@@ -1446,7 +1408,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_contents_page_convert_filename_to_title_invalid_input(
+    def test_contents_page_convert_filename_to_title_extra_parameter(
             self, tmp_contents_page):
         with pytest.raises(TypeError):
             (pn.ContentsPage(tmp_contents_page)
@@ -1474,7 +1436,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_home_page_convert_filename_to_title_invalid_input(
+    def test_home_page_convert_filename_to_title_extra_parameter(
             self, tmp_home_page):
         with pytest.raises(TypeError):
             (pn.HomePage(tmp_home_page)
@@ -1502,7 +1464,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_readme_page_convert_filename_to_title_invalid_input(
+    def test_readme_page_convert_filename_to_title_extra_parameter(
             self, tmp_readme_page):
         with pytest.raises(TypeError):
             (pn.ReadmePage(tmp_readme_page)
@@ -1539,17 +1501,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_create_notebook_invalid_input(self, tmp_notebook):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_create_notebook_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Notebook(path)
+
+    def test_create_notebook_extra_parameter(self, tmp_notebook):
         with pytest.raises(TypeError):
             pn.Notebook(tmp_notebook, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.Notebook('string')
-        with pytest.raises(AttributeError):
-            pn.Notebook(3.142)
-        with pytest.raises(AttributeError):
-            pn.Notebook([tmp_notebook, tmp_notebook])
-        with pytest.raises(OSError):
-            pn.Notebook(pathlib.Path('/not/a/path'))
 
     def test_create_logbook(self, tmp_logbook):
         test_logbook = pn.Logbook(tmp_logbook)
@@ -1581,17 +1540,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_create_logbook_invalid_input(self, tmp_logbook):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_create_logbook_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Logbook(path)
+
+    def test_create_logbook_extra_parameter(self, tmp_logbook):
         with pytest.raises(TypeError):
             pn.Logbook(tmp_logbook, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.Logbook('string')
-        with pytest.raises(AttributeError):
-            pn.Logbook(3.142)
-        with pytest.raises(AttributeError):
-            pn.Logbook([tmp_logbook, tmp_logbook])
-        with pytest.raises(OSError):
-            pn.Logbook(pathlib.Path('/not/a/path'))
 
     def test_create_notebook_nested(self, tmp_nested):
         test_notebook = pn.Notebook(tmp_nested)
@@ -1655,27 +1611,20 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_add_page_invalid_input(self, tmp_page):
-        test_notebook = pn.Notebook()
-        with pytest.raises(TypeError):
-            test_notebook.add_page(tmp_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_notebook.add_page('string')
-        with pytest.raises(AttributeError):
-            test_notebook.add_page(3.142)
-        with pytest.raises(AttributeError):
-            test_notebook.add_page([tmp_page, tmp_page])
-        with pytest.raises(OSError):
-            test_notebook.add_page(pathlib.Path('/not/a/path'))
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_notebook_add_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Notebook().add_page(path)
 
-    def test_notebook_add_page_invalid_file_types(self, tmp_file_factory):
-        test_notebook = pn.Notebook()
+    def test_notebook_add_page_extra_parameter(self, tmp_page):
+        with pytest.raises(TypeError):
+            pn.Notebook().add_page(tmp_page, 'extra parameter')
+
+    @pytest.mark.parametrize('filename', invalid_filenames('page'))
+    def test_notebook_add_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            test_notebook.add_page(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            test_notebook.add_page(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            test_notebook.add_page(tmp_file_factory('.DS_Store'))
+            pn.Notebook().add_page(tmp_file_factory(filename))
 
     def test_logbook_add_page(self, tmp_logbook_page):
         test_logbook = pn.Logbook()
@@ -1721,32 +1670,20 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_add_page_invalid_input(self, tmp_logbook_page):
-        test_logbook = pn.Logbook()
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_logbook_add_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Logbook().add_page(path)
+
+    def test_logbook_add_page_extra_parameter(self, tmp_logbook_page):
         with pytest.raises(TypeError):
-            test_logbook.add_page(tmp_logbook_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_logbook.add_page('string')
-        with pytest.raises(AttributeError):
-            test_logbook.add_page(3.142)
-        with pytest.raises(AttributeError):
-            test_logbook.add_page([tmp_logbook_page, tmp_logbook_page])
-        with pytest.raises(OSError):
-            test_logbook.add_page(pathlib.Path('/not/a/path'))
+            pn.Logbook().add_page(tmp_logbook_page, 'extra parameter')
 
-    def test_logbook_add_page_invalid_file_types(self, tmp_file_factory):
-        test_logbook = pn.Logbook()
+    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
+    def test_logbook_add_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            test_logbook.add_page(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            test_logbook.add_page(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            test_logbook.add_page(tmp_file_factory('.DS_Store'))
-
-    def test_logbook_add_page_not_logbook_page(self, tmp_file_factory):
-        test_logbook = pn.Logbook()
-        with pytest.raises(ValueError):
-            test_logbook.add_page(tmp_file_factory(f'test{self.page_suffix}'))
+            pn.Logbook().add_page(tmp_file_factory(filename))
 
     def test_notebook_add_contents_page(self, tmp_contents_page):
         test_notebook = pn.Notebook()
@@ -1794,49 +1731,42 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_add_contents_page_invalid_input(self, tmp_contents_page):
-        test_notebook = pn.Notebook()
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_notebook_add_contents_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Notebook().add_contents_page(path)
+
+    def test_notebook_add_contents_page_extra_parameter(self, tmp_contents_page):
         with pytest.raises(TypeError):
-            test_notebook.add_contents_page(tmp_contents_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_notebook.add_contents_page('string')
-        with pytest.raises(AttributeError):
-            test_notebook.add_contents_page(3.142)
-        with pytest.raises(AttributeError):
-            test_notebook.add_contents_page([tmp_contents_page, tmp_contents_page])
-        with pytest.raises(OSError):
-            test_notebook.add_contents_page(pathlib.Path('/not/a/path'))
+            pn.Notebook().add_contents_page(tmp_contents_page, 'extra parameter')
 
+    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
     def test_notebook_add_contents_page_invalid_file_types(
-            self, tmp_file_factory):
-        test_notebook = pn.Notebook()
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            test_notebook.add_contents_page(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            test_notebook.add_contents_page(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            test_notebook.add_contents_page(tmp_file_factory('.DS_Store'))
+            pn.Notebook().add_contents_page(tmp_file_factory(filename))
 
-    def test_logbook_add_contents_page(self, tmp_contents_page):
+    def test_logbook_add_contents_page(self, tmp_logbook_contents_page):
         test_logbook = pn.Logbook()
-        test_logbook.add_contents_page(tmp_contents_page)
+        test_logbook.add_contents_page(tmp_logbook_contents_page)
         assert isinstance(test_logbook.contents, list)
         last_item = test_logbook.contents[-1]
         assert isinstance(last_item, pn.ContentsPage)
 
-    def test_logbook_add_contents_page_path(self, tmp_contents_page):
+    def test_logbook_add_contents_page_path(self, tmp_logbook_contents_page):
         test_logbook = pn.Logbook()
-        test_logbook.add_contents_page(tmp_contents_page)
-        assert tmp_contents_page in [this_page.path
-                                     for this_page in test_logbook.contents]
+        test_logbook.add_contents_page(tmp_logbook_contents_page)
+        assert tmp_logbook_contents_page in [this_page.path
+                                             for this_page
+                                             in test_logbook.contents]
         last_item = test_logbook.contents[-1]
-        assert last_item.path == tmp_contents_page
+        assert last_item.path == tmp_logbook_contents_page
 
-    def test_logbook_add_contents_page_content(self, tmp_contents_page):
+    def test_logbook_add_contents_page_content(self, tmp_logbook_contents_page):
         test_logbook = pn.Logbook()
-        test_logbook.add_contents_page(tmp_contents_page)
+        test_logbook.add_contents_page(tmp_logbook_contents_page)
         last_item = test_logbook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_contents_page)
+        self.assert_page_contents_match(last_item, tmp_logbook_contents_page)
 
     def test_logbook_add_contents_page_null(self):
         test_logbook = pn.Logbook()
@@ -1854,8 +1784,9 @@ class TestProcessNotebooks:
             .joinpath(self.cloned_logbook_contents_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_logbook_add_contents_page_no_output(self, tmp_contents_page, capsys):
-        pn.Logbook().add_contents_page(tmp_contents_page)
+    def test_logbook_add_contents_page_no_output(
+            self, tmp_logbook_contents_page, capsys):
+        pn.Logbook().add_contents_page(tmp_logbook_contents_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
@@ -1864,27 +1795,22 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_add_contents_page_invalid_input(self, tmp_contents_page):
-        test_logbook = pn.Logbook()
-        with pytest.raises(TypeError):
-            test_logbook.add_contents_page(tmp_contents_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_logbook.add_contents_page('string')
-        with pytest.raises(AttributeError):
-            test_logbook.add_contents_page(3.142)
-        with pytest.raises(AttributeError):
-            test_logbook.add_contents_page([tmp_contents_page, tmp_contents_page])
-        with pytest.raises(OSError):
-            test_logbook.add_contents_page(pathlib.Path('/not/a/path'))
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_logbook_add_contents_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Logbook().add_contents_page(path)
 
-    def test_logbook_add_contents_page_invalid_file_types(self, tmp_file_factory):
-        test_logbook = pn.Logbook()
+    def test_logbook_add_contents_page_extra_parameter(
+            self, tmp_logbook_contents_page):
+        with pytest.raises(TypeError):
+            pn.Logbook().add_contents_page(
+                tmp_logbook_contents_page, 'extra parameter')
+
+    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
+    def test_logbook_add_contents_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            test_logbook.add_contents_page(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            test_logbook.add_contents_page(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            test_logbook.add_contents_page(tmp_file_factory('.DS_Store'))
+            pn.Logbook().add_contents_page(tmp_file_factory(filename))
 
     def test_notebook_add_home_page(self, tmp_home_page):
         test_notebook = pn.Notebook()
@@ -1932,27 +1858,20 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_add_home_page_invalid_input(self, tmp_home_page):
-        test_notebook = pn.Notebook()
-        with pytest.raises(TypeError):
-            test_notebook.add_home_page(tmp_home_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_notebook.add_home_page('string')
-        with pytest.raises(AttributeError):
-            test_notebook.add_home_page(3.142)
-        with pytest.raises(AttributeError):
-            test_notebook.add_home_page([tmp_home_page, tmp_home_page])
-        with pytest.raises(OSError):
-            test_notebook.add_home_page(pathlib.Path('/not/a/path'))
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_notebook_add_home_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Notebook().add_home_page(path)
 
-    def test_notebook_add_home_page_invalid_file_types(self, tmp_file_factory):
-        test_notebook = pn.Notebook()
+    def test_notebook_add_home_page_extra_parameter(self, tmp_home_page):
+        with pytest.raises(TypeError):
+            pn.Notebook().add_home_page(tmp_home_page, 'extra parameter')
+
+    @pytest.mark.parametrize('filename', invalid_filenames('home'))
+    def test_notebook_add_home_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            test_notebook.add_home_page(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            test_notebook.add_home_page(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            test_notebook.add_home_page(tmp_file_factory('.DS_Store'))
+            pn.Notebook().add_home_page(tmp_file_factory(filename))
 
     def test_logbook_add_home_page(self, tmp_home_page):
         test_logbook = pn.Logbook()
@@ -2000,27 +1919,20 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_add_home_page_invalid_input(self, tmp_home_page):
-        test_logbook = pn.Logbook()
-        with pytest.raises(TypeError):
-            test_logbook.add_home_page(tmp_home_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_logbook.add_home_page('string')
-        with pytest.raises(AttributeError):
-            test_logbook.add_home_page(3.142)
-        with pytest.raises(AttributeError):
-            test_logbook.add_home_page([tmp_home_page, tmp_home_page])
-        with pytest.raises(OSError):
-            test_logbook.add_home_page(pathlib.Path('/not/a/path'))
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_logbook_add_home_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Logbook().add_home_page(path)
 
-    def test_logbook_add_home_page_invalid_file_types(self, tmp_file_factory):
-        test_logbook = pn.Logbook()
+    def test_logbook_add_home_page_extra_parameter(self, tmp_home_page):
+        with pytest.raises(TypeError):
+            pn.Logbook().add_home_page(tmp_home_page, 'extra parameter')
+
+    @pytest.mark.parametrize('filename', invalid_filenames('home'))
+    def test_logbook_add_home_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            test_logbook.add_home_page(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            test_logbook.add_home_page(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            test_logbook.add_home_page(tmp_file_factory('.DS_Store'))
+            pn.Logbook().add_home_page(tmp_file_factory(filename))
 
     def test_notebook_add_readme_page(self, tmp_readme_page):
         test_notebook = pn.Notebook()
@@ -2068,48 +1980,42 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_add_readme_page_invalid_input(self, tmp_readme_page):
-        test_notebook = pn.Notebook()
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_notebook_add_readme_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Notebook().add_readme_page(path)
+
+    def test_notebook_add_readme_page_extra_parameter(self, tmp_readme_page):
         with pytest.raises(TypeError):
-            test_notebook.add_readme_page(tmp_readme_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_notebook.add_readme_page('string')
-        with pytest.raises(AttributeError):
-            test_notebook.add_readme_page(3.142)
-        with pytest.raises(AttributeError):
-            test_notebook.add_readme_page([tmp_readme_page, tmp_readme_page])
-        with pytest.raises(OSError):
-            test_notebook.add_readme_page(pathlib.Path('/not/a/path'))
+            pn.Notebook().add_readme_page(tmp_readme_page, 'extra parameter')
 
-    def test_notebook_add_readme_page_invalid_file_types(self, tmp_file_factory):
-        test_notebook = pn.Notebook()
+    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
+    def test_notebook_add_readme_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            test_notebook.add_readme_page(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            test_notebook.add_readme_page(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            test_notebook.add_readme_page(tmp_file_factory('.DS_Store'))
+            pn.Notebook().add_readme_page(tmp_file_factory(filename))
 
-    def test_logbook_add_readme_page(self, tmp_readme_page):
+    def test_logbook_add_readme_page(self, tmp_logbook_readme_page):
         test_logbook = pn.Logbook()
-        test_logbook.add_readme_page(tmp_readme_page)
+        test_logbook.add_readme_page(tmp_logbook_readme_page)
         assert isinstance(test_logbook.contents, list)
         last_item = test_logbook.contents[-1]
         assert isinstance(last_item, pn.ReadmePage)
 
-    def test_logbook_add_readme_page_path(self, tmp_readme_page):
+    def test_logbook_add_readme_page_path(self, tmp_logbook_readme_page):
         test_logbook = pn.Logbook()
-        test_logbook.add_readme_page(tmp_readme_page)
-        assert tmp_readme_page in [this_page.path
-                            for this_page in test_logbook.contents]
+        test_logbook.add_readme_page(tmp_logbook_readme_page)
+        assert tmp_logbook_readme_page in [this_page.path
+                                           for this_page
+                                           in test_logbook.contents]
         last_item = test_logbook.contents[-1]
-        assert last_item.path == tmp_readme_page
+        assert last_item.path == tmp_logbook_readme_page
 
-    def test_logbook_add_readme_page_contents(self, tmp_readme_page):
+    def test_logbook_add_readme_page_contents(self, tmp_logbook_readme_page):
         test_logbook = pn.Logbook()
-        test_logbook.add_readme_page(tmp_readme_page)
+        test_logbook.add_readme_page(tmp_logbook_readme_page)
         last_item = test_logbook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_readme_page)
+        self.assert_page_contents_match(last_item, tmp_logbook_readme_page)
 
     def test_logbook_add_readme_page_null(self):
         test_logbook = pn.Logbook()
@@ -2126,8 +2032,9 @@ class TestProcessNotebooks:
                                      .joinpath(self.cloned_logbook_readme_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_logbook_add_readme_page_no_output(self, tmp_readme_page, capsys):
-        pn.Logbook().add_readme_page(tmp_readme_page)
+    def test_logbook_add_readme_page_no_output(
+            self, tmp_logbook_readme_page, capsys):
+        pn.Logbook().add_readme_page(tmp_logbook_readme_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
@@ -2136,27 +2043,22 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_add_readme_page_invalid_input(self, tmp_readme_page):
-        test_logbook = pn.Logbook()
-        with pytest.raises(TypeError):
-            test_logbook.add_readme_page(tmp_readme_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_logbook.add_readme_page('string')
-        with pytest.raises(AttributeError):
-            test_logbook.add_readme_page(3.142)
-        with pytest.raises(AttributeError):
-            test_logbook.add_readme_page([tmp_readme_page, tmp_readme_page])
-        with pytest.raises(OSError):
-            test_logbook.add_readme_page(pathlib.Path('/not/a/path'))
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_logbook_add_readme_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Logbook().add_readme_page(path)
 
-    def test_logbook_add_readme_page_invalid_file_types(self, tmp_file_factory):
-        test_logbook = pn.Logbook()
+    def test_logbook_add_readme_page_extra_parameter(
+            self, tmp_logbook_readme_page):
+        with pytest.raises(TypeError):
+            pn.Logbook().add_readme_page(
+                tmp_logbook_readme_page, 'extra parameter')
+
+    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
+    def test_logbook_add_readme_page_invalid_file_types(
+            self, tmp_file_factory, filename):
         with pytest.raises(ValueError):
-            test_logbook.add_readme_page(tmp_file_factory('test.xlsx'))
-        with pytest.raises(ValueError):
-            test_logbook.add_readme_page(tmp_file_factory('test.png'))
-        with pytest.raises(ValueError):
-            test_logbook.add_readme_page(tmp_file_factory('.DS_Store'))
+            pn.Logbook().add_readme_page(tmp_file_factory(filename))
 
     def test_notebook_add_notebook(self, tmp_notebook):
         test_notebook = pn.Notebook()
@@ -2196,18 +2098,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_add_notebook_invalid_input(self, tmp_notebook):
-        test_notebook = pn.Notebook()
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_notebook_add_notebook_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Notebook().add_notebook(path)
+
+    def test_notebook_add_notebook_extra_parameter(self, tmp_notebook):
         with pytest.raises(TypeError):
-            test_notebook.add_notebook(tmp_notebook, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_notebook.add_notebook('string')
-        with pytest.raises(AttributeError):
-            test_notebook.add_notebook(3.142)
-        with pytest.raises(AttributeError):
-            test_notebook.add_notebook([tmp_notebook, tmp_notebook])
-        with pytest.raises(OSError):
-            test_notebook.add_notebook(pathlib.Path('/not/a/path'))
+            pn.Notebook().add_notebook(tmp_notebook, 'extra parameter')
 
     def test_logbook_add_notebook_fail(self, tmp_notebook):
         test_logbook = pn.Logbook()
@@ -2276,18 +2174,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_add_logbook_invalid_input(self, tmp_logbook):
-        test_notebook = pn.Notebook()
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_notebook_add_logbook_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Notebook().add_logbook(path)
+
+    def test_notebook_add_logbook_extra_parameter(self, tmp_logbook):
         with pytest.raises(TypeError):
-            test_notebook.add_logbook(tmp_logbook, 'extra parameter')
-        with pytest.raises(AttributeError):
-            test_notebook.add_logbook('string')
-        with pytest.raises(AttributeError):
-            test_notebook.add_logbook(3.142)
-        with pytest.raises(AttributeError):
-            test_notebook.add_logbook([tmp_logbook, tmp_logbook])
-        with pytest.raises(OSError):
-            test_notebook.add_logbook(pathlib.Path('/not/a/path'))
+            pn.Notebook().add_logbook(tmp_logbook, 'extra parameter')
 
     def test_logbook_add_logbook_fail(self, tmp_logbook):
         test_logbook = pn.Logbook()
@@ -2348,7 +2242,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_load_contents_invalid_input(self, tmp_logbook_page):
+    def test_notebook_load_contents_extra_parameter(self, tmp_logbook_page):
         test_notebook = pn.Notebook()
         with pytest.raises(TypeError):
             test_notebook.load_contents('extra parameter')
@@ -2384,7 +2278,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_load_contents_invalid_input(self, tmp_logbook_page):
+    def test_logbook_load_contents_extra_parameter(self, tmp_logbook_page):
         test_logbook = pn.Logbook()
         with pytest.raises(TypeError):
             test_logbook.load_contents('extra parameter')
@@ -2399,17 +2293,15 @@ class TestProcessNotebooks:
         test_notebook = pn.Notebook()
         assert test_notebook._is_valid_page(tmp_logbook_page) is True
 
-    def test_notebook_is_valid_page_fail(self, tmp_file_factory):
-        test_notebook = pn.Notebook()
-        assert test_notebook._is_valid_page(
-            tmp_file_factory('test.xlsx')) is False
-        assert test_notebook._is_valid_page(
-            tmp_file_factory('test.png')) is False
-        assert test_notebook._is_valid_page(
-            tmp_file_factory('.DS_Store')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('page'))
+    def test_notebook_is_valid_page_invalid_file_types(
+            self, tmp_file_factory, filename):
+        assert pn.Notebook()._is_valid_page(tmp_file_factory(filename)) is False
+
+    def test_notebook_is_valid_page_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            test_notebook._is_valid_page(
+            pn.Notebook()._is_valid_page(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
     def test_notebook_is_valid_page_no_changes(self, cloned_repo):
@@ -2423,17 +2315,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_is_valid_page_invalid_input(self, tmp_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_notebook_is_valid_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Notebook()._is_valid_page(path)
+
+    def test_notebook_is_valid_page_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
             pn.Notebook()._is_valid_page(tmp_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.Notebook()._is_valid_page('string')
-        with pytest.raises(AttributeError):
-            pn.Notebook()._is_valid_page(3.142)
-        with pytest.raises(AttributeError):
-            pn.Notebook()._is_valid_page([tmp_page, tmp_page])
-        with pytest.raises(OSError):
-            pn.Notebook()._is_valid_page(pathlib.Path('/not/a/path'))
 
     def test_logbook_is_valid_page(self, tmp_logbook_page):
         test_logbook = pn.Logbook()
@@ -2443,17 +2332,16 @@ class TestProcessNotebooks:
         test_logbook = pn.Logbook()
         assert test_logbook._is_valid_page(tmp_page) is False
 
-    def test_logbook_is_valid_page_fail(self, tmp_file_factory):
-        test_logbook = pn.Logbook()
-        assert test_logbook._is_valid_page(
-            tmp_file_factory('test.xlsx')) is False
-        assert test_logbook._is_valid_page(
-            tmp_file_factory('test.png')) is False
-        assert test_logbook._is_valid_page(
-            tmp_file_factory('.DS_Store')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
+    def test_logbook_is_valid_page_invalid_file_types(
+            self, tmp_file_factory, filename):
+        assert pn.Logbook()._is_valid_page(
+            tmp_file_factory(filename)) is False
+
+    def test_logbook_is_valid_page_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            test_logbook._is_valid_page(
+            pn.Logbook()._is_valid_page(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
     def test_logbook_is_valid_page_no_changes(self, cloned_repo):
@@ -2467,17 +2355,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_is_valid_page_invalid_input(self, tmp_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_logbook_is_valid_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Logbook()._is_valid_page(path)
+
+    def test_logbook_is_valid_page_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
             pn.Logbook()._is_valid_page(tmp_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.Logbook()._is_valid_page('string')
-        with pytest.raises(AttributeError):
-            pn.Logbook()._is_valid_page(3.142)
-        with pytest.raises(AttributeError):
-            pn.Logbook()._is_valid_page([tmp_page, tmp_page])
-        with pytest.raises(OSError):
-            pn.Logbook()._is_valid_page(pathlib.Path('/not/a/path'))
 
     def test_notebook_is_valid_folder(self, tmp_path):
         assert pn.Notebook()._is_valid_folder(
@@ -2491,11 +2376,10 @@ class TestProcessNotebooks:
         assert pn.Notebook()._is_valid_folder(
             tmp_logbook) is True
 
-    def test_notebook_is_valid_folder_fail(self, tmp_path_factory, tmp_page):
+    @pytest.mark.parametrize('folder_name', invalid_folders)
+    def test_notebook_is_valid_folder_fail(self, tmp_path_factory, folder_name):
         assert pn.Notebook()._is_valid_folder(
-            tmp_path_factory.mktemp('.vscode')) is False
-        assert pn.Notebook()._is_valid_folder(
-            tmp_path_factory.mktemp('.config')) is False
+            tmp_path_factory.mktemp(folder_name)) is False
 
     def test_notebook_is_valid_folder_no_changes(self, cloned_repo):
         test_notebook = pn.Notebook()
@@ -2507,23 +2391,18 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_is_valid_folder_invalid_input(self, tmp_path, tmp_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_notebook_is_valid_folder_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Notebook()._is_valid_folder(path)
+
+    def test_notebook_is_valid_folder_missing_parameter(self):
         with pytest.raises(TypeError):
             pn.Notebook()._is_valid_folder()
+
+    def test_notebook_is_valid_folder_extra_parameter(self, tmp_path):
         with pytest.raises(TypeError):
             pn.Notebook()._is_valid_folder(tmp_path, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.Notebook()._is_valid_folder('string')
-        with pytest.raises(AttributeError):
-            pn.Notebook()._is_valid_folder(3.142)
-        with pytest.raises(AttributeError):
-            pn.Notebook()._is_valid_folder([tmp_path, tmp_path])
-        with pytest.raises(OSError):
-            pn.Notebook()._is_valid_folder(pathlib.Path('/not/a/path'))
-        with pytest.raises(OSError):
-            pn.Notebook()._is_valid_folder(tmp_page)
-        with pytest.raises(OSError):
-            pn.Notebook()._is_valid_folder(tmp_path.joinpath('not-a-path'))
 
     def test_logbook_is_valid_folder(self, tmp_path):
         assert pn.Logbook()._is_valid_folder(tmp_path) is False
@@ -2534,11 +2413,10 @@ class TestProcessNotebooks:
     def test_logbook_is_valid_folder_logbook(self, tmp_logbook):
         assert pn.Logbook()._is_valid_folder(tmp_logbook) is True
 
-    def test_logbook_is_valid_folder_fail(self, tmp_path_factory, tmp_page):
+    @pytest.mark.parametrize('folder_name', invalid_logbook)
+    def test_logbook_is_valid_folder_fail(self, tmp_path_factory, folder_name):
         assert pn.Logbook()._is_valid_folder(
-            tmp_path_factory.mktemp('.vscode')) is False
-        assert pn.Logbook()._is_valid_folder(
-            tmp_path_factory.mktemp('.config')) is False
+            tmp_path_factory.mktemp(folder_name)) is False
 
     def test_logbook_is_valid_folder_no_changes(self, cloned_repo):
         test_logbook = pn.Logbook()
@@ -2551,23 +2429,18 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_is_valid_folder_invalid_input(self, tmp_path, tmp_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_logbook_is_valid_folder_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn.Logbook()._is_valid_folder(path)
+
+    def test_logbook_is_valid_folder_missing_parameter(self):
         with pytest.raises(TypeError):
             pn.Logbook()._is_valid_folder()
+
+    def test_logbook_is_valid_folder_extra_parameter(self, tmp_logbook):
         with pytest.raises(TypeError):
-            pn.Logbook()._is_valid_folder(tmp_path, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn.Logbook()._is_valid_folder('string')
-        with pytest.raises(AttributeError):
-            pn.Logbook()._is_valid_folder(3.142)
-        with pytest.raises(AttributeError):
-            pn.Logbook()._is_valid_folder([tmp_path, tmp_path])
-        with pytest.raises(OSError):
-            pn.Logbook()._is_valid_folder(pathlib.Path('/not/a/path'))
-        with pytest.raises(OSError):
-            pn.Logbook()._is_valid_folder(tmp_page)
-        with pytest.raises(OSError):
-            pn.Logbook()._is_valid_folder(tmp_path.joinpath('not-a-path'))
+            pn.Logbook()._is_valid_folder(tmp_logbook, 'extra parameter')
 
     def test_notebook_get_pages(self, tmp_notebook):
         test_notebook = pn.Notebook(tmp_notebook)
@@ -2611,7 +2484,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_get_pages_invalid_input(self):
+    def test_notebook_get_pages_extra_parameter(self):
         with pytest.raises(TypeError):
             pn.Notebook().get_pages('extra parameter')
 
@@ -2658,7 +2531,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_get_pages_invalid_input(self):
+    def test_logbook_get_pages_extra_parameter(self):
         with pytest.raises(TypeError):
             pn.Logbook().get_pages('extra parameter')
 
@@ -2704,7 +2577,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_get_notebooks_invalid_input(self):
+    def test_notebook_get_notebooks_extra_parameter(self):
         include_logbooks = True
         with pytest.raises(TypeError):
             pn.Notebook().get_notebooks(include_logbooks, 'extra parameter')
@@ -2743,7 +2616,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_get_notebooks_invalid_input(self):
+    def test_logbook_get_notebooks_extra_parameter(self):
         include_logbooks = True
         with pytest.raises(TypeError):
             pn.Logbook().get_notebooks(include_logbooks, 'extra parameter')
@@ -2790,8 +2663,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_notebook_get_logbooks_invalid_input(self):
-        include_logbooks = True
+    def test_notebook_get_logbooks_extra_parameter(self):
         with pytest.raises(TypeError):
             pn.Notebook().get_logbooks('extra parameter')
 
@@ -2829,8 +2701,7 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_get_logbooks_invalid_input(self):
-        include_logbooks = True
+    def test_logbook_get_logbooks_extra_parameter(self):
         with pytest.raises(TypeError):
             pn.Logbook().get_logbooks('extra parameter')
 
@@ -2864,14 +2735,9 @@ class TestProcessNotebooks:
     def test_is_valid_page_logbook_readme_page(self, tmp_logbook_readme_page):
         assert pn._is_valid_page(tmp_logbook_readme_page) is True
 
-    def test_is_valid_page_fail(self, tmp_file_factory):
-        assert pn._is_valid_page(tmp_file_factory('test.xlsx')) is False
-        assert pn._is_valid_page(tmp_file_factory('test.png')) is False
-        assert pn._is_valid_page(tmp_file_factory('.DS_Store')) is False
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn._is_valid_page(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
+    @pytest.mark.parametrize('filename', invalid_filenames('page'))
+    def test_is_valid_page_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_page(tmp_file_factory(filename)) is False
 
     def test_is_valid_page_no_changes(self, cloned_repo):
         pn._is_valid_page(pathlib.Path(cloned_repo.working_dir)
@@ -2883,17 +2749,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_is_valid_page_invalid_input(self, tmp_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_is_valid_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn._is_valid_page(path)
+
+    def test_is_valid_page_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
             pn._is_valid_page(tmp_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn._is_valid_page('string')
-        with pytest.raises(AttributeError):
-            pn._is_valid_page(3.142)
-        with pytest.raises(AttributeError):
-            pn._is_valid_page([tmp_page, tmp_page])
-        with pytest.raises(OSError):
-            pn._is_valid_page(pathlib.Path('/not/a/path'))
 
     def test_is_valid_logbook_page(self, tmp_logbook_page):
         assert pn._is_valid_logbook_page(tmp_logbook_page) is True
@@ -2925,18 +2788,9 @@ class TestProcessNotebooks:
             self, tmp_logbook_readme_page):
         assert pn._is_valid_logbook_page(tmp_logbook_readme_page) is False
 
-    def test_is_valid_logbook_page_fail(self, tmp_file_factory):
-        assert pn._is_valid_logbook_page(tmp_file_factory('test.xlsx')) is False
-        assert pn._is_valid_logbook_page(tmp_file_factory('test.png')) is False
-        assert pn._is_valid_logbook_page(tmp_file_factory('.DS_Store')) is False
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn._is_valid_logbook_page(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-        assert pn._is_valid_logbook_page(
-            tmp_file_factory(f'2020-01-01-Meeting{self.page_suffix}')) is False
-        assert pn._is_valid_logbook_page(
-            tmp_file_factory(f'page1{self.page_suffix}')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
+    def test_is_valid_logbook_page_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_logbook_page(tmp_file_factory(filename)) is False
 
     def test_is_valid_logbook_page_no_changes(self, cloned_repo):
         pn._is_valid_logbook_page(pathlib.Path(cloned_repo.working_dir)
@@ -2948,17 +2802,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_is_valid_logbook_page_invalid_input(self, tmp_logbook_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_is_valid_logbook_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn._is_valid_logbook_page(path)
+
+    def test_is_valid_logbook_page_extra_parameter(self, tmp_logbook_page):
         with pytest.raises(TypeError):
             pn._is_valid_logbook_page(tmp_logbook_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn._is_valid_logbook_page('string')
-        with pytest.raises(AttributeError):
-            pn._is_valid_logbook_page(3.142)
-        with pytest.raises(AttributeError):
-            pn._is_valid_logbook_page([tmp_logbook_page, tmp_logbook_page])
-        with pytest.raises(OSError):
-            pn._is_valid_logbook_page(pathlib.Path('/not/a/path'))
 
     def test_is_valid_contents_page(self, tmp_contents_page):
         assert pn._is_valid_contents_page(tmp_contents_page) is True
@@ -2990,18 +2841,9 @@ class TestProcessNotebooks:
             self, tmp_logbook_readme_page):
         assert pn._is_valid_contents_page(tmp_logbook_readme_page) is False
 
-    def test_is_valid_contents_page_fail(self, tmp_file_factory):
-        assert pn._is_valid_contents_page(tmp_file_factory('test.xlsx')) is False
-        assert pn._is_valid_contents_page(tmp_file_factory('test.png')) is False
-        assert pn._is_valid_contents_page(tmp_file_factory('.DS_Store')) is False
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn._is_valid_contents_page(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-        assert pn._is_valid_contents_page(
-            tmp_file_factory(f'2020-01-01-Meeting{self.page_suffix}')) is False
-        assert pn._is_valid_contents_page(
-            tmp_file_factory(f'page1{self.page_suffix}')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
+    def test_is_valid_contents_page_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_contents_page(tmp_file_factory(filename)) is False
 
     def test_is_valid_contents_page_no_changes(self, cloned_repo):
         pn._is_valid_contents_page(pathlib.Path(cloned_repo.working_dir)
@@ -3013,17 +2855,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_is_valid_contents_page_invalid_input(self, tmp_contents_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_is_valid_contents_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn._is_valid_contents_page(path)
+
+    def test_is_valid_contents_page_extra_parameter(self, tmp_contents_page):
         with pytest.raises(TypeError):
             pn._is_valid_contents_page(tmp_contents_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn._is_valid_contents_page('string')
-        with pytest.raises(AttributeError):
-            pn._is_valid_contents_page(3.142)
-        with pytest.raises(AttributeError):
-            pn._is_valid_contents_page([tmp_contents_page, tmp_contents_page])
-        with pytest.raises(OSError):
-            pn._is_valid_contents_page(pathlib.Path('/not/a/path'))
 
     def test_is_valid_home_page(self, tmp_home_page):
         assert pn._is_valid_home_page(tmp_home_page) is True
@@ -3055,18 +2894,9 @@ class TestProcessNotebooks:
             self, tmp_logbook_readme_page):
         assert pn._is_valid_home_page(tmp_logbook_readme_page) is False
 
-    def test_is_valid_home_page_fail(self, tmp_file_factory):
-        assert pn._is_valid_home_page(tmp_file_factory('test.xlsx')) is False
-        assert pn._is_valid_home_page(tmp_file_factory('test.png')) is False
-        assert pn._is_valid_home_page(tmp_file_factory('.DS_Store')) is False
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn._is_valid_home_page(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-        assert pn._is_valid_home_page(
-            tmp_file_factory(f'2020-01-01-Meeting{self.page_suffix}')) is False
-        assert pn._is_valid_home_page(
-            tmp_file_factory(f'page1{self.page_suffix}')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('home'))
+    def test_is_valid_home_page_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_home_page(tmp_file_factory(filename)) is False
 
     def test_is_valid_home_page_no_changes(self, cloned_repo):
         pn._is_valid_home_page(pathlib.Path(cloned_repo.working_dir)
@@ -3078,17 +2908,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_is_valid_home_page_invalid_input(self, tmp_home_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_is_valid_home_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn._is_valid_home_page(path)
+
+    def test_is_valid_home_page_extra_parameter(self, tmp_home_page):
         with pytest.raises(TypeError):
             pn._is_valid_home_page(tmp_home_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn._is_valid_home_page('string')
-        with pytest.raises(AttributeError):
-            pn._is_valid_home_page(3.142)
-        with pytest.raises(AttributeError):
-            pn._is_valid_home_page([tmp_home_page, tmp_home_page])
-        with pytest.raises(OSError):
-            pn._is_valid_home_page(pathlib.Path('/not/a/path'))
 
     def test_is_valid_readme_page(self, tmp_readme_page):
         assert pn._is_valid_readme_page(tmp_readme_page) is True
@@ -3120,17 +2947,9 @@ class TestProcessNotebooks:
             self, tmp_logbook_readme_page):
         assert pn._is_valid_readme_page(tmp_logbook_readme_page) is True
 
-    def test_is_valid_readme_page_fail(self, tmp_file_factory):
-        assert pn._is_valid_readme_page(tmp_file_factory('test.xlsx')) is False
-        assert pn._is_valid_readme_page(tmp_file_factory('test.png')) is False
-        assert pn._is_valid_readme_page(tmp_file_factory('.DS_Store')) is False
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn._is_valid_readme_page(tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-        assert pn._is_valid_readme_page(
-            tmp_file_factory(f'2020-01-01-Meeting{self.page_suffix}')) is False
-        assert pn._is_valid_readme_page(
-            tmp_file_factory(f'page1{self.page_suffix}')) is False
+    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
+    def test_is_valid_readme_page_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_readme_page(tmp_file_factory(filename)) is False
 
     def test_is_valid_readme_page_no_changes(self, cloned_repo):
         pn._is_valid_readme_page(pathlib.Path(cloned_repo.working_dir)
@@ -3142,17 +2961,14 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_is_valid_readme_page_invalid_input(self, tmp_readme_page):
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_is_valid_readme_page_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn._is_valid_readme_page(path)
+
+    def test_is_valid_readme_page_extra_parameter(self, tmp_readme_page):
         with pytest.raises(TypeError):
             pn._is_valid_readme_page(tmp_readme_page, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn._is_valid_readme_page('string')
-        with pytest.raises(AttributeError):
-            pn._is_valid_readme_page(3.142)
-        with pytest.raises(AttributeError):
-            pn._is_valid_readme_page([tmp_readme_page, tmp_readme_page])
-        with pytest.raises(OSError):
-            pn._is_valid_readme_page(pathlib.Path('/not/a/path'))
 
     def test_is_valid_folder(self, tmp_path):
         assert pn._is_valid_folder(tmp_path) is True
@@ -3163,9 +2979,10 @@ class TestProcessNotebooks:
     def test_is_valid_folder_logbook(self, tmp_logbook):
         assert pn._is_valid_folder(tmp_logbook) is True
 
-    def test_is_valid_folder_fail(self, tmp_path_factory, tmp_page):
-        assert pn._is_valid_folder(tmp_path_factory.mktemp('.vscode')) is False
-        assert pn._is_valid_folder(tmp_path_factory.mktemp('.config')) is False
+    @pytest.mark.parametrize('folder_name', invalid_folders)
+    def test_is_valid_folder_fail(self, tmp_path_factory, folder_name):
+        assert pn._is_valid_folder(
+            tmp_path_factory.mktemp(folder_name)) is False
 
     def test_is_valid_folder_no_changes(self, cloned_repo):
         pn._is_valid_folder(pathlib.Path(cloned_repo.working_dir))
@@ -3176,23 +2993,22 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_is_valid_folder_invalid_input(self, tmp_path, tmp_page):
-        with pytest.raises(TypeError):
-            pn._is_valid_folder()
-        with pytest.raises(TypeError):
-            pn._is_valid_folder(tmp_path, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn._is_valid_folder('string')
-        with pytest.raises(AttributeError):
-            pn._is_valid_folder(3.142)
-        with pytest.raises(AttributeError):
-            pn._is_valid_folder([tmp_path, tmp_path])
-        with pytest.raises(OSError):
-            pn._is_valid_folder(pathlib.Path('/not/a/path'))
+    def test_is_valid_folder_page(self, tmp_page):
         with pytest.raises(OSError):
             pn._is_valid_folder(tmp_page)
-        with pytest.raises(OSError):
-            pn._is_valid_folder(tmp_path.joinpath('not-a-path'))
+
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_is_valid_folder_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn._is_valid_folder(path)
+
+    def test_is_valid_folder_missing_parameter(self):
+        with pytest.raises(TypeError):
+            pn._is_valid_folder()
+
+    def test_is_valid_folder_extra_parameter(self, tmp_path):
+        with pytest.raises(TypeError):
+            pn._is_valid_folder(tmp_path, 'extra parameter')
 
     def test_is_valid_logbook_folder(self, tmp_path):
         assert pn._is_valid_logbook_folder(tmp_path) is False
@@ -3203,11 +3019,10 @@ class TestProcessNotebooks:
     def test_is_valid_logbook_folder_logbook(self, tmp_logbook):
         assert pn._is_valid_logbook_folder(tmp_logbook) is True
 
-    def test_is_valid_logbook_folder_fail(self, tmp_path_factory, tmp_page):
+    @pytest.mark.parametrize('folder_name', invalid_logbook)
+    def test_is_valid_logbook_folder_fail(self, tmp_path_factory, folder_name):
         assert pn._is_valid_logbook_folder(
-            tmp_path_factory.mktemp('.vscode')) is False
-        assert pn._is_valid_logbook_folder(
-            tmp_path_factory.mktemp('.config')) is False
+            tmp_path_factory.mktemp(folder_name)) is False
 
     def test_is_valid_logbook_folder_no_changes(self, cloned_repo):
         pn._is_valid_logbook_folder(pathlib.Path(cloned_repo.working_dir)
@@ -3219,23 +3034,22 @@ class TestProcessNotebooks:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_is_valid_logbook_folder_invalid_input(self, tmp_path, tmp_page):
+    def test_is_valid_logbook_folder_page(self, tmp_logbook_page):
+        with pytest.raises(OSError):
+            pn._is_valid_folder(tmp_logbook_page)
+
+    @pytest.mark.parametrize('path, error_type', invalid_paths)
+    def test_is_valid_logbook_folder_invalid_input(self, path, error_type):
+        with pytest.raises(error_type):
+            pn._is_valid_logbook_folder(path)
+
+    def test_is_valid_logbook_folder_missing_parameter(self):
         with pytest.raises(TypeError):
             pn._is_valid_logbook_folder()
+
+    def test_is_valid_logbook_folder_extra_parameter(self, tmp_path):
         with pytest.raises(TypeError):
             pn._is_valid_logbook_folder(tmp_path, 'extra parameter')
-        with pytest.raises(AttributeError):
-            pn._is_valid_logbook_folder('string')
-        with pytest.raises(AttributeError):
-            pn._is_valid_logbook_folder(3.142)
-        with pytest.raises(AttributeError):
-            pn._is_valid_logbook_folder([tmp_path, tmp_path])
-        with pytest.raises(OSError):
-            pn._is_valid_logbook_folder(pathlib.Path('/not/a/path'))
-        with pytest.raises(OSError):
-            pn._is_valid_logbook_folder(tmp_page)
-        with pytest.raises(OSError):
-            pn._is_valid_logbook_folder(tmp_path.joinpath('not-a-path'))
 
     def test_is_blank_line_blank(self):
         assert pn._is_blank_line('') is True
@@ -3259,15 +3073,10 @@ class TestProcessNotebooks:
         assert pn._is_blank_line('[page](link)') is False
         assert pn._is_blank_line('[page](link)\n') is False
 
-    def test_is_blank_line_invalid_input(self):
+    @pytest.mark.parametrize('test_line', invalid_lines)
+    def test_is_blank_line_invalid_input(self, test_line):
         with pytest.raises(AttributeError):
-            pn._is_blank_line(None)
-        with pytest.raises(AttributeError):
-            pn._is_blank_line(self.test_page)
-        with pytest.raises(AttributeError):
-            pn._is_blank_line(3.142)
-        with pytest.raises(AttributeError):
-            pn._is_blank_line(['1', '2'])
+            pn._is_blank_line(test_line)
 
     def test_is_navigation_line_blank(self):
         assert pn._is_navigation_line('') is False
@@ -3291,15 +3100,10 @@ class TestProcessNotebooks:
         assert pn._is_navigation_line('[page](link)') is True
         assert pn._is_navigation_line('[page](link)\n') is True
 
-    def test_is_navigation_line_invalid_input(self):
+    @pytest.mark.parametrize('test_line', invalid_lines)
+    def test_is_navigation_line_invalid_input(self, test_line):
         with pytest.raises(TypeError):
-            pn._is_navigation_line(None)
-        with pytest.raises(TypeError):
-            pn._is_navigation_line(self.test_page)
-        with pytest.raises(TypeError):
-            pn._is_navigation_line(3.142)
-        with pytest.raises(TypeError):
-            pn._is_navigation_line(['1', '2'])
+            pn._is_navigation_line(test_line)
 
     def test_is_title_line_blank(self):
         assert pn._is_title_line('') is False
@@ -3323,12 +3127,7 @@ class TestProcessNotebooks:
         assert pn._is_title_line('[page](link)') is False
         assert pn._is_title_line('[page](link)\n') is False
 
-    def test_is_title_line_invalid_input(self):
+    @pytest.mark.parametrize('test_line', invalid_lines)
+    def test_is_title_line_invalid_input(self, test_line):
         with pytest.raises(AttributeError):
-            pn._is_title_line(None)
-        with pytest.raises(AttributeError):
-            pn._is_title_line(self.test_page)
-        with pytest.raises(AttributeError):
-            pn._is_title_line(3.142)
-        with pytest.raises(AttributeError):
-            pn._is_title_line(['1', '2'])
+            pn._is_title_line(test_line)
