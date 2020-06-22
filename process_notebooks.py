@@ -52,16 +52,18 @@ class Page():
 
     def get_title(self):
         """Find the title of a page."""
-        if self.content is None:
-            return None
-        else:
+        if self.content is not None:
             for line in self.content:
                 if _is_blank_line(line) or _is_navigation_line(line):
                     continue
                 if _is_title_line(line):
                     return line[2:].strip()
                 else:
-                    return self._convert_filename_to_title()
+                    break
+        if self.path is not None:
+            return self._convert_filename_to_title()
+        else:
+            return UNKNOWN_DESCRIPTOR
 
     def get_root(self):
         """Find the top-level notebook."""
@@ -105,7 +107,11 @@ class ReadmePage(Page):
     """A special descriptive page showing the notebook contents."""
     _descriptor = 'readme page'
     def get_title(self):
-        return README_DESCRIPTOR
+        title = super().get_title()
+        if title == UNKNOWN_DESCRIPTOR:
+            return README_DESCRIPTOR
+        else:
+            return title
     def _is_valid_page(self, page_file):
         if not _is_valid_page(page_file):
             return False
@@ -190,6 +196,19 @@ class Notebook():
         """Add a nested logbook inside a notebook."""
         self.contents.append(Logbook(logbook_path, parent=self))
 
+    def get_title(self):
+        """Give the title of the folder."""
+        title = None
+        if self._has_readme_page():
+            title = self._get_title_from_readme()
+            if title is not None:
+                return title
+        if self.path is not None:
+            title = self._get_title_from_path()
+            if title is not None:
+                return title
+        return UNKNOWN_DESCRIPTOR
+
     def get_root(self):
         """Find the top-level folder."""
         return _get_root(self)
@@ -234,6 +253,20 @@ class Notebook():
 
     def _has_readme_page(self):
         return any([isinstance(item, ReadmePage) for item in self.contents])
+
+    def _get_title_from_readme(self):
+        if not self._has_readme_page():
+            return None
+        readme_title = self.get_readme_page().get_title()
+        if readme_title in [UNKNOWN_DESCRIPTOR, README_FILENAME]:
+            return None
+        else:
+            return readme_title
+
+    def _get_title_from_path(self):
+        if not self.path:
+            return None
+        return self.path.stem.replace('_', ' ').replace('-', ' ').strip()
 
     def _is_valid_page(self, page_path):
         return _is_valid_page(page_path)

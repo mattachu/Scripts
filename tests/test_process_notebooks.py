@@ -90,7 +90,8 @@ class TestProcessNotebooks:
         self.cloned_logbook_month_page = 'PKU-2019/Logbook/2020-01.md'
         self.cloned_logbook_contents_page = 'PKU-2019/Logbook/Contents.md'
         self.cloned_logbook_readme_page = 'PKU-2019/Logbook/Readme.md'
-        self.test_title = 'Page title'
+        self.test_page_title = 'Page title'
+        self.test_notebook_title = 'Notebook title'
         self.temp_notebook = 'temp_notebook'
         self.temp_page = 'temp_file'
         self.temp_pages = ['page1.md', 'page2.md', 'page3.md']
@@ -1076,11 +1077,11 @@ class TestProcessNotebooks:
     def test_page_get_title(self, tmp_page):
         test_title = pn.Page(tmp_page).get_title()
         assert isinstance(test_title, str)
-        assert test_title == self.test_title
+        assert test_title == self.test_page_title
 
     def test_page_get_title_null(self, tmp_page):
         test_title = pn.Page().get_title()
-        assert test_title is None
+        assert test_title == self.unknown_descriptor
 
     def test_page_get_title_no_changes(self, cloned_repo):
         test_page = pn.Page(pathlib.Path(cloned_repo.working_dir)
@@ -1104,7 +1105,7 @@ class TestProcessNotebooks:
 
     def test_logbook_page_get_title_null(self):
         test_title = pn.LogbookPage().get_title()
-        assert test_title is None
+        assert test_title == self.unknown_descriptor
 
     def test_logbook_page_get_title_no_changes(self, cloned_repo):
         test_page = pn.LogbookPage(pathlib.Path(cloned_repo.working_dir)
@@ -1172,7 +1173,7 @@ class TestProcessNotebooks:
     def test_readme_page_get_title(self, tmp_readme_page):
         test_title = pn.ReadmePage(tmp_readme_page).get_title()
         assert isinstance(test_title, str)
-        assert test_title == self.readme_filename
+        assert test_title == self.test_notebook_title
 
     def test_readme_page_get_title_null(self):
         test_title = pn.ReadmePage().get_title()
@@ -2521,6 +2522,42 @@ class TestProcessNotebooks:
 
 
     # Getting information from notebook objects
+    def test_notebook_get_title(self, tmp_notebook):
+        test_title = pn.Notebook(tmp_notebook).get_title()
+        assert isinstance(test_title, str)
+        assert test_title == self.test_notebook_title
+
+    def test_notebook_get_title_without_readme(self, tmp_notebook):
+        test_notebook = pn.Notebook(tmp_notebook)
+        test_notebook.contents = [item for item in test_notebook.contents
+                                  if not isinstance(item, pn.ReadmePage)]
+        test_title = test_notebook.get_title()
+        assert isinstance(test_title, str)
+        assert test_title == (tmp_notebook.stem
+                              .replace('_', ' ').replace('-', ' ').strip())
+
+    def test_notebook_get_title_null(self, tmp_notebook):
+        test_title = pn.Notebook().get_title()
+        assert test_title == self.unknown_descriptor
+
+    def test_logbook_get_title(self, tmp_logbook):
+        test_title = pn.Logbook(tmp_logbook).get_title()
+        assert isinstance(test_title, str)
+        assert test_title == self.temp_logbook
+
+    def test_logbook_get_title_without_readme(self, tmp_logbook):
+        test_logbook = pn.Logbook(tmp_logbook)
+        test_logbook.contents = [item for item in test_logbook.contents
+                                  if not isinstance(item, pn.ReadmePage)]
+        test_title = test_logbook.get_title()
+        assert isinstance(test_title, str)
+        assert test_title == (tmp_logbook.stem
+                              .replace('_', ' ').replace('-', ' ').strip())
+
+    def test_logbook_get_title_null(self, tmp_logbook):
+        test_title = pn.Logbook().get_title()
+        assert test_title == self.unknown_descriptor
+
     def test_notebook_is_valid_page(self, tmp_page):
         test_notebook = pn.Notebook()
         assert test_notebook._is_valid_page(tmp_page) is True
