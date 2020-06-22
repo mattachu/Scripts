@@ -224,6 +224,23 @@ class TestProcessNotebooks:
         shutil.rmtree(logbook_folder)
 
     @pytest.fixture
+    def tmp_notebook_without_readme(self, tmp_path):
+        """Create a temporary notebook folder and add some pages."""
+        notebook_folder = tmp_path.joinpath(self.temp_notebook)
+        self.create_and_fill_folder(notebook_folder, add_readme=False)
+        yield notebook_folder
+        shutil.rmtree(notebook_folder)
+
+    @pytest.fixture
+    def tmp_logbook_without_readme(self, tmp_path):
+        """Create a temporary logbook folder and add some pages."""
+        logbook_folder = tmp_path.joinpath(self.temp_logbook)
+        self.create_and_fill_folder(
+            logbook_folder, is_logbook=True, add_readme=False)
+        yield logbook_folder
+        shutil.rmtree(logbook_folder)
+
+    @pytest.fixture
     def tmp_nested(self, tmp_path):
         """Create a temporary notebook folder and add pages and subfolders."""
         notebook_folder = tmp_path.joinpath(self.temp_notebook)
@@ -290,8 +307,8 @@ class TestProcessNotebooks:
     def assert_page_contents_match(self, test_page, generator_page):
         """Assert that page contents match the generator page file."""
         with open(generator_page, 'r')  as f:
-            test_content = f.readlines()
-        assert test_page.content == test_content
+            test_contents = f.readlines()
+        assert test_page.contents == test_contents
 
     def assert_notebook_contents_match(self, test_notebook, tmp_notebook):
         """Assert that notebook contents match the generator folder."""
@@ -356,15 +373,15 @@ class TestProcessNotebooks:
         assert isinstance(test_page.path, pathlib.Path)
         assert test_page.path == tmp_page
 
-    def test_create_page_content(self, tmp_page):
+    def test_create_page_contents(self, tmp_page):
         test_page = pn.Page(tmp_page)
-        assert isinstance(test_page.content, list)
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_page)
 
     def test_create_page_null(self):
         test_page = pn.Page()
         assert test_page.path is None
-        assert test_page.content is None
+        assert test_page.contents == []
 
     def test_create_page_with_parent(self, tmp_page):
         test_notebook = pn.Notebook()
@@ -403,11 +420,11 @@ class TestProcessNotebooks:
     @pytest.mark.parametrize('parent', invalid_parents)
     def test_create_page_invalid_parent(self, tmp_page, parent):
         with pytest.raises(ValueError):
-            pn.Page(tmp_page, parent)
+            pn.Page(tmp_page, parent=parent)
 
     def test_create_page_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
-            pn.Page(tmp_page, None, 'extra parameter')
+            pn.Page(tmp_page, None, None, None, None, 'extra parameter')
 
     @pytest.mark.parametrize('filename', invalid_filenames('page'))
     def test_create_page_invalid_file_types(self, tmp_file_factory, filename):
@@ -423,15 +440,15 @@ class TestProcessNotebooks:
         assert isinstance(test_page.path, pathlib.Path)
         assert test_page.path == tmp_logbook_page
 
-    def test_create_logbook_page_content(self, tmp_logbook_page):
+    def test_create_logbook_page_contents(self, tmp_logbook_page):
         test_page = pn.LogbookPage(tmp_logbook_page)
-        assert isinstance(test_page.content, list)
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_logbook_page)
 
     def test_create_logbook_page_null(self):
         test_page = pn.LogbookPage()
         assert test_page.path is None
-        assert test_page.content is None
+        assert test_page.contents == []
 
     def test_create_logbook_page_with_parent(self, tmp_logbook_page):
         test_notebook = pn.Notebook()
@@ -470,11 +487,12 @@ class TestProcessNotebooks:
     @pytest.mark.parametrize('parent', invalid_parents)
     def test_create_logbook_page_invalid_parent(self, tmp_logbook_page, parent):
         with pytest.raises(ValueError):
-            pn.LogbookPage(tmp_logbook_page, parent)
+            pn.LogbookPage(tmp_logbook_page, parent=parent)
 
     def test_create_logbook_page_extra_parameter(self, tmp_logbook_page):
         with pytest.raises(TypeError):
-            pn.LogbookPage(tmp_logbook_page, None, 'extra parameter')
+            pn.LogbookPage(
+                tmp_logbook_page, None, None, None, None, 'extra parameter')
 
     @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
     def test_create_logbook_page_invalid_file_types(
@@ -491,9 +509,9 @@ class TestProcessNotebooks:
         assert isinstance(test_page.path, pathlib.Path)
         assert test_page.path == tmp_contents_page
 
-    def test_create_contents_page_content(self, tmp_contents_page):
+    def test_create_contents_page_contents(self, tmp_contents_page):
         test_page = pn.ContentsPage(tmp_contents_page)
-        assert isinstance(test_page.content, list)
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_contents_page)
 
     def test_create_contents_page_no_changes(self, cloned_repo):
@@ -504,7 +522,7 @@ class TestProcessNotebooks:
     def test_create_contents_page_null(self):
         test_page = pn.ContentsPage()
         assert test_page.path is None
-        assert test_page.content is None
+        assert test_page.contents == []
 
     def test_create_contents_page_with_parent(self, tmp_contents_page):
         test_notebook = pn.Notebook()
@@ -538,12 +556,13 @@ class TestProcessNotebooks:
     @pytest.mark.parametrize('parent', invalid_parents)
     def test_create_contents_page_invalid_parent(self, tmp_contents_page, parent):
         with pytest.raises(ValueError):
-            pn.ContentsPage(tmp_contents_page, parent)
+            pn.ContentsPage(tmp_contents_page, parent=parent)
 
     def test_create_contents_page_invalid_extra_parameter(
             self, tmp_contents_page):
         with pytest.raises(TypeError):
-            pn.ContentsPage(tmp_contents_page, None, 'extra parameter')
+            pn.ContentsPage(
+                tmp_contents_page, None, None, None, None, 'extra parameter')
 
     def test_create_contents_page_invalid_filename(self, tmp_page):
         with pytest.raises(ValueError):
@@ -564,10 +583,10 @@ class TestProcessNotebooks:
         assert isinstance(test_page.path, pathlib.Path)
         assert test_page.path == tmp_logbook_contents_page
 
-    def test_create_logbook_contents_page_content(
+    def test_create_logbook_contents_page_contents(
             self, tmp_logbook_contents_page):
         test_page = pn.ContentsPage(tmp_logbook_contents_page)
-        assert isinstance(test_page.content, list)
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_logbook_contents_page)
 
     def test_create_logbook_contents_page_no_changes(self, cloned_repo):
@@ -590,10 +609,10 @@ class TestProcessNotebooks:
         assert isinstance(test_page.path, pathlib.Path)
         assert test_page.path == tmp_logbook_month_page
 
-    def test_create_logbook_month_page_content(
+    def test_create_logbook_month_page_contents(
             self, tmp_logbook_month_page):
         test_page = pn.LogbookPage(tmp_logbook_month_page)
-        assert isinstance(test_page.content, list)
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_logbook_month_page)
 
     def test_create_logbook_month_page_no_changes(self, cloned_repo):
@@ -616,15 +635,15 @@ class TestProcessNotebooks:
         assert isinstance(test_page.path, pathlib.Path)
         assert test_page.path == tmp_home_page
 
-    def test_create_home_page_content(self, tmp_home_page):
+    def test_create_home_page_contents(self, tmp_home_page):
         test_page = pn.HomePage(tmp_home_page)
-        assert isinstance(test_page.content, list)
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_home_page)
 
     def test_create_home_page_null(self):
         test_page = pn.HomePage()
         assert test_page.path is None
-        assert test_page.content is None
+        assert test_page.contents == []
 
     def test_create_home_page_with_parent(self, tmp_home_page):
         test_notebook = pn.Notebook()
@@ -663,11 +682,12 @@ class TestProcessNotebooks:
     @pytest.mark.parametrize('parent', invalid_parents)
     def test_create_home_page_invalid_parent(self, tmp_home_page, parent):
         with pytest.raises(ValueError):
-            pn.HomePage(tmp_home_page, parent)
+            pn.HomePage(tmp_home_page, parent=parent)
 
     def test_create_home_page_extra_parameter(self, tmp_home_page):
         with pytest.raises(TypeError):
-            pn.HomePage(tmp_home_page, None, 'extra parameter')
+            pn.HomePage(
+                    tmp_home_page, None, None, None, None, 'extra parameter')
 
     def test_create_home_page_invalid_filename(self, tmp_page):
         with pytest.raises(ValueError):
@@ -688,15 +708,15 @@ class TestProcessNotebooks:
         assert isinstance(test_page.path, pathlib.Path)
         assert test_page.path == tmp_readme_page
 
-    def test_create_readme_page_content(self, tmp_readme_page):
+    def test_create_readme_page_contents(self, tmp_readme_page):
         test_page = pn.ReadmePage(tmp_readme_page)
-        assert isinstance(test_page.content, list)
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_readme_page)
 
     def test_create_readme_page_null(self):
         test_page = pn.ReadmePage()
         assert test_page.path is None
-        assert test_page.content is None
+        assert test_page.contents == []
 
     def test_create_readme_page_with_parent(self, tmp_readme_page):
         test_notebook = pn.Notebook()
@@ -736,11 +756,12 @@ class TestProcessNotebooks:
     @pytest.mark.parametrize('parent', invalid_parents)
     def test_create_readme_page_invalid_parent(self, tmp_readme_page, parent):
         with pytest.raises(ValueError):
-            pn.ReadmePage(tmp_readme_page, parent)
+            pn.ReadmePage(tmp_readme_page, parent=parent)
 
     def test_create_readme_page_extra_parameter(self, tmp_readme_page):
         with pytest.raises(TypeError):
-            pn.ReadmePage(tmp_readme_page, None, 'extra parameter')
+            pn.ReadmePage(
+                tmp_readme_page, None, None, None, None, 'extra parameter')
 
     def test_create_readme_page_invalid_filename(self, tmp_page):
         with pytest.raises(ValueError):
@@ -761,9 +782,9 @@ class TestProcessNotebooks:
         assert isinstance(test_page.path, pathlib.Path)
         assert test_page.path == tmp_logbook_readme_page
 
-    def test_create_logbook_readme_page_content(self, tmp_logbook_readme_page):
+    def test_create_logbook_readme_page_contents(self, tmp_logbook_readme_page):
         test_page = pn.ReadmePage(tmp_logbook_readme_page)
-        assert isinstance(test_page.content, list)
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_logbook_readme_page)
 
     def test_create_logbook_readme_page_no_changes(self, cloned_repo):
@@ -779,164 +800,164 @@ class TestProcessNotebooks:
         assert len(captured.out) == 0
 
     # Loading data to page objects
-    def test_page_load_content(self, tmp_page):
+    def test_page_load_contents(self, tmp_page):
         test_page = pn.Page()
         test_page.path = tmp_page
-        test_page.load_content()
+        test_page.load_contents()
         self.assert_page_contents_match(test_page, tmp_page)
 
-    def test_page_load_content_null(self):
+    def test_page_load_contents_null(self):
         test_page = pn.Page()
         test_page.path = None
-        test_page.load_content()
-        assert test_page.content is None
+        test_page.load_contents()
+        assert test_page.contents == []
 
     def test_page_load_contents_no_changes(self, cloned_repo):
         test_page = pn.Page()
         test_page.path = (pathlib.Path(cloned_repo.working_dir)
                           .joinpath(self.cloned_page))
-        test_page.load_content()
+        test_page.load_contents()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_page_load_content_no_output(self, tmp_page, capsys):
+    def test_page_load_contents_no_output(self, tmp_page, capsys):
         test_page = pn.Page()
         test_page.path = tmp_page
-        test_page.load_content()
+        test_page.load_contents()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_page_load_content_null_no_output(self, capsys):
-        pn.Page().load_content()
+    def test_page_load_contents_null_no_output(self, capsys):
+        pn.Page().load_contents()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_page_load_content_extra_parameter(self, tmp_page):
+    def test_page_load_contents_extra_parameter(self, tmp_page):
         test_page = pn.Page()
         with pytest.raises(TypeError):
-            test_page.load_content('extra parameter')
+            test_page.load_contents(None, 'extra parameter')
 
     @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_page_load_content_invalid_file_types(
+    def test_page_load_contents_invalid_file_types(
             self, tmp_file_factory, filename):
         test_page = pn.Page()
         test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
-            test_page.load_content()
+            test_page.load_contents()
 
-    def test_logbook_page_load_content(self, tmp_logbook_page):
+    def test_logbook_page_load_contents(self, tmp_logbook_page):
         test_logbook_page = pn.LogbookPage()
         test_logbook_page.path = tmp_logbook_page
-        test_logbook_page.load_content()
-        assert isinstance(test_logbook_page.content, list)
+        test_logbook_page.load_contents()
+        assert isinstance(test_logbook_page.contents, list)
         self.assert_page_contents_match(test_logbook_page, tmp_logbook_page)
 
-    def test_logbook_page_load_content_null(self):
+    def test_logbook_page_load_contents_null(self):
         test_logbook_page = pn.LogbookPage()
         test_logbook_page.path = None
-        test_logbook_page.load_content()
-        assert test_logbook_page.content is None
+        test_logbook_page.load_contents()
+        assert test_logbook_page.contents == []
 
     def test_logbook_page_load_contents_no_changes(self, cloned_repo):
         test_logbook_page = pn.LogbookPage()
         test_logbook_page.path = (pathlib.Path(cloned_repo.working_dir)
                                   .joinpath(self.cloned_logbook_page))
-        test_logbook_page.load_content()
+        test_logbook_page.load_contents()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_logbook_page_load_content_no_output(self, capsys):
-        pn.LogbookPage().load_content()
+    def test_logbook_page_load_contents_no_output(self, capsys):
+        pn.LogbookPage().load_contents()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_page_load_content_null_no_output(
+    def test_logbook_page_load_contents_null_no_output(
             self, tmp_logbook_page, capsys):
         test_logbook_page = pn.LogbookPage()
         test_logbook_page.path = tmp_logbook_page
-        test_logbook_page.load_content()
+        test_logbook_page.load_contents()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_page_load_content_extra_parameter(self, tmp_logbook_page):
+    def test_logbook_page_load_contents_extra_parameter(self, tmp_logbook_page):
         test_logbook_page = pn.LogbookPage()
         with pytest.raises(TypeError):
-            test_logbook_page.load_content('extra parameter')
+            test_logbook_page.load_contents(None, 'extra parameter')
 
     @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_logbook_page_load_content_invalid_file_types(
+    def test_logbook_page_load_contents_invalid_file_types(
             self, tmp_file_factory, filename):
         test_page = pn.LogbookPage()
         test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
-            test_page.load_content()
+            test_page.load_contents()
 
-    def test_contents_page_load_content(self, tmp_contents_page):
+    def test_contents_page_load_contents(self, tmp_contents_page):
         test_page = pn.ContentsPage()
         test_page.path = tmp_contents_page
-        test_page.load_content()
-        assert isinstance(test_page.content, list)
+        test_page.load_contents()
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_contents_page)
 
-    def test_contents_page_load_content_null(self):
+    def test_contents_page_load_contents_null(self):
         test_page = pn.ContentsPage()
         test_page.path = None
-        test_page.load_content()
+        test_page.load_contents()
         assert test_page.path is None
-        assert test_page.content is None
+        assert test_page.contents == []
 
     def test_contents_page_load_contents_no_changes(self, cloned_repo):
         test_page = pn.ContentsPage()
         test_page.path = (pathlib.Path(cloned_repo.working_dir)
                           .joinpath(self.cloned_contents_page))
-        test_page.load_content()
+        test_page.load_contents()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_contents_page_load_content_no_output(
+    def test_contents_page_load_contents_no_output(
             self, tmp_contents_page, capsys):
         test_page = pn.ContentsPage()
         test_page.path = tmp_contents_page
-        test_page.load_content()
+        test_page.load_contents()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_contents_page_load_content_extra_parameter(self, tmp_contents_page):
+    def test_contents_page_load_contents_extra_parameter(self, tmp_contents_page):
         test_page = pn.ContentsPage()
         test_page.path = tmp_contents_page
         with pytest.raises(TypeError):
-            test_page.load_content('extra parameter')
+            test_page.load_contents(None, 'extra parameter')
 
-    def test_contents_page_load_content_invalid_filename(self, tmp_page):
+    def test_contents_page_load_contents_invalid_filename(self, tmp_page):
         test_page = pn.ContentsPage()
         test_page.path = tmp_page
         with pytest.raises(ValueError):
-            test_page.load_content()
+            test_page.load_contents()
 
     @pytest.mark.parametrize('filename', invalid_filenames('contents'))
-    def test_contents_page_load_content_invalid_file_types(
+    def test_contents_page_load_contents_invalid_file_types(
             self, tmp_file_factory, filename):
         test_page = pn.ContentsPage()
         test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
-            test_page.load_content()
+            test_page.load_contents()
 
-    def test_logbook_contents_page_load_content(self, tmp_logbook_contents_page):
+    def test_logbook_contents_page_load_contents(self, tmp_logbook_contents_page):
         test_page = pn.ContentsPage()
         test_page.path = tmp_logbook_contents_page
-        test_page.load_content()
-        assert isinstance(test_page.content, list)
+        test_page.load_contents()
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_logbook_contents_page)
 
     def test_logbook_contents_page_load_contents_no_changes(self, cloned_repo):
         test_page = pn.ContentsPage()
         test_page.path = (pathlib.Path(cloned_repo.working_dir)
                           .joinpath(self.cloned_logbook_contents_page))
-        test_page.load_content()
+        test_page.load_contents()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_logbook_contents_page_load_content_no_output(
+    def test_logbook_contents_page_load_contents_no_output(
             self, tmp_logbook_contents_page, capsys):
         test_page = pn.ContentsPage()
         test_page.path = tmp_logbook_contents_page
-        test_page.load_content()
+        test_page.load_contents()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
@@ -945,659 +966,575 @@ class TestProcessNotebooks:
         test_page = pn.ContentsPage()
         test_page.path = tmp_logbook_contents_page
         with pytest.raises(TypeError):
-            test_page.load_content('extra parameter')
+            test_page.load_contents(None, 'extra parameter')
 
-    def test_home_page_load_content(self, tmp_home_page):
+    def test_home_page_load_contents(self, tmp_home_page):
         test_page = pn.HomePage()
         test_page.path = tmp_home_page
-        test_page.load_content()
-        assert isinstance(test_page.content, list)
+        test_page.load_contents()
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_home_page)
 
-    def test_home_page_load_content_null(self):
+    def test_home_page_load_contents_null(self):
         test_page = pn.HomePage()
         test_page.path = None
-        test_page.load_content()
+        test_page.load_contents()
         assert test_page.path is None
-        assert test_page.content is None
+        assert test_page.contents == []
 
     def test_home_page_load_contents_no_changes(self, cloned_repo):
         test_page = pn.HomePage()
         test_page.path = (pathlib.Path(cloned_repo.working_dir)
                           .joinpath(self.cloned_home_page))
-        test_page.load_content()
+        test_page.load_contents()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_home_page_load_content_no_output(self, tmp_home_page, capsys):
+    def test_home_page_load_contents_no_output(self, tmp_home_page, capsys):
         test_page = pn.HomePage()
         test_page.path = tmp_home_page
-        test_page.load_content()
+        test_page.load_contents()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_home_page_load_content_extra_parameter(self, tmp_home_page):
+    def test_home_page_load_contents_extra_parameter(self, tmp_home_page):
         test_page = pn.HomePage()
         test_page.path = tmp_home_page
         with pytest.raises(TypeError):
-            test_page.load_content('extra parameter')
+            test_page.load_contents(None, 'extra parameter')
 
-    def test_home_page_load_content_invalid_filename(self, tmp_page):
+    def test_home_page_load_contents_invalid_filename(self, tmp_page):
         test_page = pn.HomePage()
         test_page.path = tmp_page
         with pytest.raises(ValueError):
-            test_page.load_content()
+            test_page.load_contents()
 
     @pytest.mark.parametrize('filename', invalid_filenames('home'))
-    def test_home_page_load_content_invalid_file_types(
+    def test_home_page_load_contents_invalid_file_types(
             self, tmp_file_factory, filename):
         test_page = pn.HomePage()
         test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
-            test_page.load_content()
+            test_page.load_contents()
 
-    def test_readme_page_load_content(self, tmp_readme_page):
+    def test_readme_page_load_contents(self, tmp_readme_page):
         test_page = pn.ReadmePage()
         test_page.path = tmp_readme_page
-        test_page.load_content()
-        assert isinstance(test_page.content, list)
+        test_page.load_contents()
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_readme_page)
 
-    def test_readme_page_load_content_null(self):
+    def test_readme_page_load_contents_null(self):
         test_page = pn.ReadmePage()
         test_page.path = None
-        test_page.load_content()
+        test_page.load_contents()
         assert test_page.path is None
-        assert test_page.content is None
+        assert test_page.contents == []
 
     def test_readme_page_load_contents_no_changes(self, cloned_repo):
         test_page = pn.ReadmePage()
         test_page.path = (pathlib.Path(cloned_repo.working_dir)
                           .joinpath(self.cloned_readme_page))
-        test_page.load_content()
+        test_page.load_contents()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_readme_page_load_content_no_output(self, tmp_readme_page, capsys):
+    def test_readme_page_load_contents_no_output(self, tmp_readme_page, capsys):
         test_page = pn.ReadmePage()
         test_page.path = tmp_readme_page
-        test_page.load_content()
+        test_page.load_contents()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_readme_page_load_content_extra_parameter(self, tmp_readme_page):
+    def test_readme_page_load_contents_extra_parameter(self, tmp_readme_page):
         test_page = pn.ReadmePage()
         test_page.path = tmp_readme_page
         with pytest.raises(TypeError):
-            test_page.load_content('extra parameter')
+            test_page.load_contents(None, 'extra parameter')
 
-    def test_readme_page_load_content_invalid_filename(self, tmp_page):
+    def test_readme_page_load_contents_invalid_filename(self, tmp_page):
         test_page = pn.ReadmePage()
         test_page.path = tmp_page
         with pytest.raises(ValueError):
-            test_page.load_content()
+            test_page.load_contents()
 
     @pytest.mark.parametrize('filename', invalid_filenames('readme'))
-    def test_readme_page_load_content_invalid_file_types(
+    def test_readme_page_load_contents_invalid_file_types(
             self, tmp_file_factory, filename):
         test_page = pn.ReadmePage()
         test_page.path = tmp_file_factory(filename)
         with pytest.raises(ValueError):
-            test_page.load_content()
+            test_page.load_contents()
 
-    def test_logbook_readme_page_load_content(self, tmp_logbook_readme_page):
+    def test_logbook_readme_page_load_contents(self, tmp_logbook_readme_page):
         test_page = pn.ReadmePage()
         test_page.path = tmp_logbook_readme_page
-        test_page.load_content()
-        assert isinstance(test_page.content, list)
+        test_page.load_contents()
+        assert isinstance(test_page.contents, list)
         self.assert_page_contents_match(test_page, tmp_logbook_readme_page)
 
     def test_logbook_readme_page_load_contents_no_changes(self, cloned_repo):
         test_page = pn.ReadmePage()
         test_page.path = (pathlib.Path(cloned_repo.working_dir)
                           .joinpath(self.cloned_logbook_readme_page))
-        test_page.load_content()
+        test_page.load_contents()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_logbook_readme_page_load_content_no_output(
+    def test_logbook_readme_page_load_contents_no_output(
             self, tmp_logbook_readme_page, capsys):
         test_page = pn.ReadmePage()
         test_page.path = tmp_logbook_readme_page
-        test_page.load_content()
+        test_page.load_contents()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_readme_page_load_content_extra_parameter(
+    def test_logbook_readme_page_load_contents_extra_parameter(
             self, tmp_logbook_readme_page):
         test_page = pn.ReadmePage()
         test_page.path = tmp_logbook_readme_page
         with pytest.raises(TypeError):
-            test_page.load_content('extra parameter')
+            test_page.load_contents(None, 'extra parameter')
 
 
     # Getting information from page objects
     def test_page_get_title(self, tmp_page):
-        test_title = pn.Page(tmp_page).get_title()
+        test_title = pn.Page(tmp_page).title
         assert isinstance(test_title, str)
         assert test_title == self.test_page_title
 
     def test_page_get_title_null(self, tmp_page):
-        test_title = pn.Page().get_title()
+        test_title = pn.Page().title
         assert test_title == self.unknown_descriptor
-
-    def test_page_get_title_no_changes(self, cloned_repo):
-        test_page = pn.Page(pathlib.Path(cloned_repo.working_dir)
-                            .joinpath(self.cloned_page))
-        test_page.get_title()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_page_get_title_no_output(self, tmp_page, capsys):
-        pn.Page(tmp_page).get_title()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_page_get_title_extra_parameter(self, tmp_page):
-        with pytest.raises(TypeError):
-            pn.Page(tmp_page).get_title('extra parameter')
-
-    def test_logbook_page_get_title(self, tmp_logbook_page):
-        test_title = pn.LogbookPage(tmp_logbook_page).get_title()
-        assert isinstance(test_title, str)
-        assert test_title == self.temp_logbook_page.strip()
-
-    def test_logbook_page_get_title_null(self):
-        test_title = pn.LogbookPage().get_title()
-        assert test_title == self.unknown_descriptor
-
-    def test_logbook_page_get_title_no_changes(self, cloned_repo):
-        test_page = pn.LogbookPage(pathlib.Path(cloned_repo.working_dir)
-                                   .joinpath(self.cloned_logbook_page))
-        test_page.get_title()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_page_get_title_no_output(self, tmp_logbook_page, capsys):
-        pn.LogbookPage(tmp_logbook_page).get_title()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_page_get_title_extra_parameter(self, tmp_logbook_page):
-        with pytest.raises(TypeError):
-            pn.LogbookPage(tmp_logbook_page).get_title('extra parameter')
 
     def test_contents_page_get_title(self, tmp_contents_page):
-        test_title = pn.ContentsPage(tmp_contents_page).get_title()
+        test_title = pn.ContentsPage(tmp_contents_page).title
         assert isinstance(test_title, str)
         assert test_title == self.contents_filename
 
     def test_contents_page_get_title_null(self):
-        test_title = pn.ContentsPage().get_title()
+        test_title = pn.ContentsPage().title
         assert test_title == self.contents_filename
 
-    def test_contents_page_get_title_no_changes(self, cloned_repo):
-        test_page = pn.ContentsPage(pathlib.Path(cloned_repo.working_dir)
-                                    .joinpath(self.cloned_contents_page))
-        test_page.get_title()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_contents_page_get_title_no_output(self, tmp_contents_page, capsys):
-        pn.ContentsPage(tmp_contents_page).get_title()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_contents_page_get_title_extra_parameter(self, tmp_contents_page):
-        with pytest.raises(TypeError):
-            pn.ContentsPage(tmp_contents_page).get_title('extra parameter')
-
     def test_home_page_get_title(self, tmp_home_page):
-        test_title = pn.HomePage(tmp_home_page).get_title()
+        test_title = pn.HomePage(tmp_home_page).title
         assert isinstance(test_title, str)
         assert test_title == self.homepage_filename
 
     def test_home_page_get_title_null(self):
-        test_title = pn.HomePage().get_title()
+        test_title = pn.HomePage().title
         assert test_title == self.homepage_filename
 
-    def test_home_page_get_title_no_changes(self, cloned_repo):
-        test_page = pn.HomePage(pathlib.Path(cloned_repo.working_dir)
-                                .joinpath(self.cloned_home_page))
-        test_page.get_title()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_home_page_get_title_no_output(self, tmp_home_page, capsys):
-        pn.HomePage(tmp_home_page).get_title()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_home_page_get_title_extra_parameter(self, tmp_home_page):
-        with pytest.raises(TypeError):
-            pn.HomePage(tmp_home_page).get_title('extra parameter')
-
     def test_readme_page_get_title(self, tmp_readme_page):
-        test_title = pn.ReadmePage(tmp_readme_page).get_title()
+        test_title = pn.ReadmePage(tmp_readme_page).title
         assert isinstance(test_title, str)
         assert test_title == self.test_notebook_title
 
     def test_readme_page_get_title_null(self):
-        test_title = pn.ReadmePage().get_title()
+        test_title = pn.ReadmePage().title
         assert test_title == self.readme_filename
 
-    def test_readme_page_get_title_no_changes(self, cloned_repo):
-        test_page = pn.ReadmePage(pathlib.Path(cloned_repo.working_dir)
-                                  .joinpath(self.cloned_readme_page))
-        test_page.get_title()
-        self.assert_repo_unchanged(cloned_repo)
+    def test_page_is_valid_path(self, tmp_page):
+        assert pn.Page()._is_valid_path(tmp_page) is True
 
-    def test_readme_page_get_title_no_output(self, tmp_readme_page, capsys):
-        pn.ReadmePage(tmp_readme_page).get_title()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
+    def test_page_is_valid_path_logbook_page(self, tmp_logbook_page):
+        assert pn.Page()._is_valid_path(tmp_logbook_page) is True
 
-    def test_readme_page_get_title_extra_parameter(self, tmp_readme_page):
-        with pytest.raises(TypeError):
-            pn.ReadmePage(tmp_readme_page).get_title('extra parameter')
+    def test_page_is_valid_path_contents_page(self, tmp_contents_page):
+        assert pn.Page()._is_valid_path(tmp_contents_page) is True
 
-    def test_page_is_valid_page(self, tmp_page):
-        assert pn.Page()._is_valid_page(tmp_page) is True
+    def test_page_is_valid_path_home_page(self, tmp_home_page):
+        assert pn.Page()._is_valid_path(tmp_home_page) is True
 
-    def test_page_is_valid_page_logbook_page(self, tmp_logbook_page):
-        assert pn.Page()._is_valid_page(tmp_logbook_page) is True
-
-    def test_page_is_valid_page_contents_page(self, tmp_contents_page):
-        assert pn.Page()._is_valid_page(tmp_contents_page) is True
-
-    def test_page_is_valid_page_home_page(self, tmp_home_page):
-        assert pn.Page()._is_valid_page(tmp_home_page) is True
-
-    def test_page_is_valid_page_readme_page(self, tmp_readme_page):
-        assert pn.Page()._is_valid_page(tmp_readme_page) is True
+    def test_page_is_valid_path_readme_page(self, tmp_readme_page):
+        assert pn.Page()._is_valid_path(tmp_readme_page) is True
 
     @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_page_is_valid_page_invalid_file_types(
+    def test_page_is_valid_path_invalid_file_types(
             self, tmp_file_factory, filename):
-        assert pn.Page()._is_valid_page(tmp_file_factory(filename)) is False
+        assert pn.Page()._is_valid_path(tmp_file_factory(filename)) is False
 
-    def test_page_is_valid_page_invalid_file(self, tmp_file_factory):
+    def test_page_is_valid_path_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            pn.Page()._is_valid_page(
+            pn.Page()._is_valid_path(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
-    def test_page_is_valid_page_no_changes(self, cloned_repo):
-        pn.Page()._is_valid_page(pathlib.Path(cloned_repo.working_dir)
+    def test_page_is_valid_path_no_changes(self, cloned_repo):
+        pn.Page()._is_valid_path(pathlib.Path(cloned_repo.working_dir)
                                  .joinpath(self.cloned_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_page_is_valid_page_no_output(self, tmp_page, capsys):
-        pn.Page()._is_valid_page(tmp_page)
+    def test_page_is_valid_path_no_output(self, tmp_page, capsys):
+        pn.Page()._is_valid_path(tmp_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_page_is_valid_page_invalid_input(self, path, error_type):
+    def test_page_is_valid_path_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn.Page()._is_valid_page(path)
+            pn.Page()._is_valid_path(path)
 
-    def test_page_is_valid_page_extra_parameter(self, tmp_page):
+    def test_page_is_valid_path_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
-            pn.Page()._is_valid_page(tmp_page, 'extra parameter')
+            pn.Page()._is_valid_path(tmp_page, 'extra parameter')
 
-    def test_logbook_page_is_valid_page(self, tmp_logbook_page):
-        assert pn.LogbookPage()._is_valid_page(tmp_logbook_page) is True
+    def test_logbook_page_is_valid_path(self, tmp_logbook_page):
+        assert pn.LogbookPage()._is_valid_path(tmp_logbook_page) is True
 
-    def test_logbook_page_is_valid_page_notebook_page(self, tmp_page):
-        assert pn.LogbookPage()._is_valid_page(tmp_page) is False
+    def test_logbook_page_is_valid_path_notebook_page(self, tmp_page):
+        assert pn.LogbookPage()._is_valid_path(tmp_page) is False
 
-    def test_logbook_page_is_valid_page_logbook_page(self, tmp_logbook_page):
-        assert pn.LogbookPage()._is_valid_page(tmp_logbook_page) is True
+    def test_logbook_page_is_valid_path_logbook_page(self, tmp_logbook_page):
+        assert pn.LogbookPage()._is_valid_path(tmp_logbook_page) is True
 
-    def test_logbook_page_is_valid_page_contents_page(self, tmp_contents_page):
-        assert pn.LogbookPage()._is_valid_page(tmp_contents_page) is False
+    def test_logbook_page_is_valid_path_contents_page(self, tmp_contents_page):
+        assert pn.LogbookPage()._is_valid_path(tmp_contents_page) is False
 
-    def test_logbook_page_is_valid_page_home_page(self, tmp_home_page):
-        assert pn.LogbookPage()._is_valid_page(tmp_home_page) is False
+    def test_logbook_page_is_valid_path_home_page(self, tmp_home_page):
+        assert pn.LogbookPage()._is_valid_path(tmp_home_page) is False
 
-    def test_logbook_page_is_valid_page_readme_page(self, tmp_readme_page):
-        assert pn.LogbookPage()._is_valid_page(tmp_readme_page) is False
+    def test_logbook_page_is_valid_path_readme_page(self, tmp_readme_page):
+        assert pn.LogbookPage()._is_valid_path(tmp_readme_page) is False
 
     @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_logbook_page_is_valid_page_invalid_file_types(
+    def test_logbook_page_is_valid_path_invalid_file_types(
             self, tmp_file_factory, filename):
-        assert pn.LogbookPage()._is_valid_page(
+        assert pn.LogbookPage()._is_valid_path(
             tmp_file_factory(filename)) is False
 
-    def test_logbook_page_is_valid_page_invalid_file(self, tmp_file_factory):
+    def test_logbook_page_is_valid_path_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory('is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            pn.LogbookPage()._is_valid_page(
+            pn.LogbookPage()._is_valid_path(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
-    def test_logbook_page_is_valid_page_no_changes(self, cloned_repo):
+    def test_logbook_page_is_valid_path_no_changes(self, cloned_repo):
         test_page = pn.LogbookPage()
-        test_page._is_valid_page(pathlib.Path(cloned_repo.working_dir)
+        test_page._is_valid_path(pathlib.Path(cloned_repo.working_dir)
                                  .joinpath(self.cloned_logbook_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_logbook_page_is_valid_page_no_output(
+    def test_logbook_page_is_valid_path_no_output(
             self, tmp_logbook_page, capsys):
-        pn.LogbookPage()._is_valid_page(tmp_logbook_page)
+        pn.LogbookPage()._is_valid_path(tmp_logbook_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_page_is_valid_page_invalid_input(self, path, error_type):
+    def test_logbook_page_is_valid_path_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn.LogbookPage()._is_valid_page(path)
+            pn.LogbookPage()._is_valid_path(path)
 
-    def test_logbook_page_is_valid_page_extra_parameter(self, tmp_logbook_page):
+    def test_logbook_page_is_valid_path_extra_parameter(self, tmp_logbook_page):
         with pytest.raises(TypeError):
-            pn.LogbookPage()._is_valid_page(tmp_logbook_page, 'extra parameter')
+            pn.LogbookPage()._is_valid_path(tmp_logbook_page, 'extra parameter')
 
-    def test_contents_page_is_valid_page(self, tmp_contents_page):
+    def test_contents_page_is_valid_path(self, tmp_contents_page):
         test_page = pn.ContentsPage()
-        assert test_page._is_valid_page(tmp_contents_page) is True
+        assert test_page._is_valid_path(tmp_contents_page) is True
 
-    def test_contents_page_is_valid_page_notebook_page(self, tmp_page):
+    def test_contents_page_is_valid_path_notebook_page(self, tmp_page):
         test_page = pn.ContentsPage()
-        assert test_page._is_valid_page(tmp_page) is False
+        assert test_page._is_valid_path(tmp_page) is False
 
-    def test_contents_page_is_valid_page_logbook_page(self, tmp_logbook_page):
+    def test_contents_page_is_valid_path_logbook_page(self, tmp_logbook_page):
         test_page = pn.ContentsPage()
-        assert test_page._is_valid_page(tmp_logbook_page) is False
+        assert test_page._is_valid_path(tmp_logbook_page) is False
 
-    def test_contents_page_is_valid_page_contents_page(self, tmp_contents_page):
+    def test_contents_page_is_valid_path_contents_page(self, tmp_contents_page):
         test_page = pn.ContentsPage()
-        assert test_page._is_valid_page(tmp_contents_page) is True
+        assert test_page._is_valid_path(tmp_contents_page) is True
 
-    def test_contents_page_is_valid_page_home_page(self, tmp_home_page):
+    def test_contents_page_is_valid_path_home_page(self, tmp_home_page):
         test_page = pn.ContentsPage()
-        assert test_page._is_valid_page(tmp_home_page) is False
+        assert test_page._is_valid_path(tmp_home_page) is False
 
-    def test_contents_page_is_valid_page_readme_page(self, tmp_readme_page):
+    def test_contents_page_is_valid_path_readme_page(self, tmp_readme_page):
         test_page = pn.ContentsPage()
-        assert test_page._is_valid_page(tmp_readme_page) is False
+        assert test_page._is_valid_path(tmp_readme_page) is False
 
     @pytest.mark.parametrize('filename', invalid_filenames('contents'))
-    def test_contents_page_is_valid_page_invalid_file_types(
+    def test_contents_page_is_valid_path_invalid_file_types(
             self, tmp_file_factory, filename):
-        assert pn.ContentsPage()._is_valid_page(
+        assert pn.ContentsPage()._is_valid_path(
             tmp_file_factory(filename)) is False
 
-    def test_contents_page_is_valid_page_invalid_file(self, tmp_file_factory):
+    def test_contents_page_is_valid_path_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            pn.ContentsPage()._is_valid_page(
+            pn.ContentsPage()._is_valid_path(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
-    def test_contents_page_is_valid_page_no_changes(self, cloned_repo):
+    def test_contents_page_is_valid_path_no_changes(self, cloned_repo):
         test_page = pn.ContentsPage()
-        test_page._is_valid_page(pathlib.Path(cloned_repo.working_dir)
+        test_page._is_valid_path(pathlib.Path(cloned_repo.working_dir)
                                  .joinpath(self.cloned_contents_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_contents_page_is_valid_page_no_output(
+    def test_contents_page_is_valid_path_no_output(
             self, tmp_contents_page, capsys):
-        pn.ContentsPage()._is_valid_page(tmp_contents_page)
+        pn.ContentsPage()._is_valid_path(tmp_contents_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_contents_page_is_valid_page_invalid_input(self, path, error_type):
+    def test_contents_page_is_valid_path_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn.ContentsPage()._is_valid_page(path)
+            pn.ContentsPage()._is_valid_path(path)
 
-    def test_contents_page_is_valid_page_extra_parameter(
+    def test_contents_page_is_valid_path_extra_parameter(
             self, tmp_contents_page):
         with pytest.raises(TypeError):
-            pn.ContentsPage()._is_valid_page(
+            pn.ContentsPage()._is_valid_path(
                 tmp_contents_page, 'extra parameter')
 
-    def test_home_page_is_valid_page(self, tmp_home_page):
+    def test_home_page_is_valid_path(self, tmp_home_page):
         test_page = pn.HomePage()
-        assert test_page._is_valid_page(tmp_home_page) is True
+        assert test_page._is_valid_path(tmp_home_page) is True
 
-    def test_home_page_is_valid_page_notebook_page(self, tmp_page):
+    def test_home_page_is_valid_path_notebook_page(self, tmp_page):
         test_page = pn.HomePage()
-        assert test_page._is_valid_page(tmp_page) is False
+        assert test_page._is_valid_path(tmp_page) is False
 
-    def test_home_page_is_valid_page_logbook_page(self, tmp_logbook_page):
+    def test_home_page_is_valid_path_logbook_page(self, tmp_logbook_page):
         test_page = pn.HomePage()
-        assert test_page._is_valid_page(tmp_logbook_page) is False
+        assert test_page._is_valid_path(tmp_logbook_page) is False
 
-    def test_home_page_is_valid_page_contents_page(self, tmp_contents_page):
+    def test_home_page_is_valid_path_contents_page(self, tmp_contents_page):
         test_page = pn.HomePage()
-        assert test_page._is_valid_page(tmp_contents_page) is False
+        assert test_page._is_valid_path(tmp_contents_page) is False
 
-    def test_home_page_is_valid_page_home_page(self, tmp_home_page):
+    def test_home_page_is_valid_path_home_page(self, tmp_home_page):
         test_page = pn.HomePage()
-        assert test_page._is_valid_page(tmp_home_page) is True
+        assert test_page._is_valid_path(tmp_home_page) is True
 
-    def test_home_page_is_valid_page_readme_page(self, tmp_readme_page):
+    def test_home_page_is_valid_path_readme_page(self, tmp_readme_page):
         test_page = pn.HomePage()
-        assert test_page._is_valid_page(tmp_readme_page) is False
+        assert test_page._is_valid_path(tmp_readme_page) is False
 
     @pytest.mark.parametrize('filename', invalid_filenames('home'))
-    def test_home_page_is_valid_page_invalid_file_types(
+    def test_home_page_is_valid_path_invalid_file_types(
             self, tmp_file_factory, filename):
-        assert pn.HomePage()._is_valid_page(tmp_file_factory(filename)) is False
+        assert pn.HomePage()._is_valid_path(tmp_file_factory(filename)) is False
 
-    def test_home_page_is_valid_page_invalid_file(self, tmp_file_factory):
+    def test_home_page_is_valid_path_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            pn.HomePage()._is_valid_page(
+            pn.HomePage()._is_valid_path(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
-    def test_home_page_is_valid_page_no_changes(self, cloned_repo):
+    def test_home_page_is_valid_path_no_changes(self, cloned_repo):
         test_page = pn.HomePage()
-        test_page._is_valid_page(pathlib.Path(cloned_repo.working_dir)
+        test_page._is_valid_path(pathlib.Path(cloned_repo.working_dir)
                                  .joinpath(self.cloned_home_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_home_page_is_valid_page_no_output(self, tmp_home_page, capsys):
-        pn.HomePage()._is_valid_page(tmp_home_page)
+    def test_home_page_is_valid_path_no_output(self, tmp_home_page, capsys):
+        pn.HomePage()._is_valid_path(tmp_home_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_home_page_is_valid_page_invalid_input(self, path, error_type):
+    def test_home_page_is_valid_path_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn.HomePage()._is_valid_page(path)
+            pn.HomePage()._is_valid_path(path)
 
-    def test_home_page_is_valid_page_extra_parameter(self, tmp_home_page):
+    def test_home_page_is_valid_path_extra_parameter(self, tmp_home_page):
         with pytest.raises(TypeError):
-            pn.HomePage()._is_valid_page(tmp_home_page, 'extra parameter')
+            pn.HomePage()._is_valid_path(tmp_home_page, 'extra parameter')
 
-    def test_readme_page_is_valid_page(self, tmp_readme_page):
+    def test_readme_page_is_valid_path(self, tmp_readme_page):
         test_page = pn.ReadmePage()
-        assert test_page._is_valid_page(tmp_readme_page) is True
+        assert test_page._is_valid_path(tmp_readme_page) is True
 
-    def test_readme_page_is_valid_page_notebook_page(self, tmp_page):
+    def test_readme_page_is_valid_path_notebook_page(self, tmp_page):
         test_page = pn.ReadmePage()
-        assert test_page._is_valid_page(tmp_page) is False
+        assert test_page._is_valid_path(tmp_page) is False
 
-    def test_readme_page_is_valid_page_logbook_page(self, tmp_logbook_page):
+    def test_readme_page_is_valid_path_logbook_page(self, tmp_logbook_page):
         test_page = pn.ReadmePage()
-        assert test_page._is_valid_page(tmp_logbook_page) is False
+        assert test_page._is_valid_path(tmp_logbook_page) is False
 
-    def test_readme_page_is_valid_page_contents_page(self, tmp_contents_page):
+    def test_readme_page_is_valid_path_contents_page(self, tmp_contents_page):
         test_page = pn.ReadmePage()
-        assert test_page._is_valid_page(tmp_contents_page) is False
+        assert test_page._is_valid_path(tmp_contents_page) is False
 
-    def test_readme_page_is_valid_page_home_page(self, tmp_home_page):
+    def test_readme_page_is_valid_path_home_page(self, tmp_home_page):
         test_page = pn.ReadmePage()
-        assert test_page._is_valid_page(tmp_home_page) is False
+        assert test_page._is_valid_path(tmp_home_page) is False
 
-    def test_readme_page_is_valid_page_readme_page(self, tmp_readme_page):
+    def test_readme_page_is_valid_path_readme_page(self, tmp_readme_page):
         test_page = pn.ReadmePage()
-        assert test_page._is_valid_page(tmp_readme_page) is True
+        assert test_page._is_valid_path(tmp_readme_page) is True
 
     @pytest.mark.parametrize('filename', invalid_filenames('readme'))
-    def test_readme_page_is_valid_page_invalid_file_types(
+    def test_readme_page_is_valid_path_invalid_file_types(
             self, tmp_file_factory, filename):
-        assert pn.ReadmePage()._is_valid_page(
+        assert pn.ReadmePage()._is_valid_path(
             tmp_file_factory(filename)) is False
 
-    def test_readme_page_is_valid_page_invalid_file(self, tmp_file_factory):
+    def test_readme_page_is_valid_path_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            pn.ReadmePage()._is_valid_page(
+            pn.ReadmePage()._is_valid_path(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
-    def test_readme_page_is_valid_page_no_changes(self, cloned_repo):
+    def test_readme_page_is_valid_path_no_changes(self, cloned_repo):
         test_page = pn.ReadmePage()
-        test_page._is_valid_page(pathlib.Path(cloned_repo.working_dir)
+        test_page._is_valid_path(pathlib.Path(cloned_repo.working_dir)
                                  .joinpath(self.cloned_readme_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_readme_page_is_valid_page_no_output(
+    def test_readme_page_is_valid_path_no_output(
             self, tmp_readme_page, capsys):
-        pn.ReadmePage()._is_valid_page(tmp_readme_page)
+        pn.ReadmePage()._is_valid_path(tmp_readme_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_readme_page_is_valid_page_invalid_input(self, path, error_type):
+    def test_readme_page_is_valid_path_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn.ReadmePage()._is_valid_page(path)
+            pn.ReadmePage()._is_valid_path(path)
 
-    def test_readme_page_is_valid_page_extra_parameter(self, tmp_readme_page):
+    def test_readme_page_is_valid_path_extra_parameter(self, tmp_readme_page):
         with pytest.raises(TypeError):
-            pn.ReadmePage()._is_valid_page(tmp_readme_page, 'extra parameter')
+            pn.ReadmePage()._is_valid_path(tmp_readme_page, 'extra parameter')
 
-    def test_page_convert_filename_to_title(self, tmp_page):
-        test_title = pn.Page(tmp_page)._convert_filename_to_title()
+    def test_page_get_title_from_filename(self, tmp_page):
+        test_title = pn.Page(tmp_page)._get_title_from_filename()
         assert isinstance(test_title, str)
         expected = tmp_page.stem.replace('_', ' ').replace('-', ' ').strip()
         assert test_title == expected
 
-    def test_page_convert_filename_to_title_null(self):
-        test_title = pn.Page()._convert_filename_to_title()
-        assert test_title is None
+    def test_page_get_title_from_filename_null(self):
+        test_title = pn.Page()._get_title_from_filename()
+        assert test_title == self.unknown_descriptor
 
-    def test_page_convert_filename_to_title_no_changes(self, cloned_repo):
+    def test_page_get_title_from_filename_no_changes(self, cloned_repo):
         test_page = pn.Page(pathlib.Path(cloned_repo.working_dir)
                             .joinpath(self.cloned_page))
-        test_page._convert_filename_to_title()
+        test_page._get_title_from_filename()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_page_convert_filename_to_title_no_output(self, tmp_page, capsys):
-        pn.Page(tmp_page)._convert_filename_to_title()
+    def test_page_get_title_from_filename_no_output(self, tmp_page, capsys):
+        pn.Page(tmp_page)._get_title_from_filename()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_page_convert_filename_to_title_extra_parameter(self, tmp_page):
+    def test_page_get_title_from_filename_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
-            pn.Page(tmp_page)._convert_filename_to_title('extra parameter')
+            pn.Page(tmp_page)._get_title_from_filename('extra parameter')
 
-    def test_logbook_page_convert_filename_to_title(self, tmp_logbook_page):
-        test_title = pn.LogbookPage(tmp_logbook_page)._convert_filename_to_title()
+    def test_logbook_page_get_title_from_filename(self, tmp_logbook_page):
+        test_title = pn.LogbookPage(tmp_logbook_page)._get_title_from_filename()
         assert isinstance(test_title, str)
         expected = tmp_logbook_page.stem.strip()
         assert test_title == expected
 
-    def test_logbook_page_convert_filename_to_title_null(self):
-        test_title = pn.LogbookPage()._convert_filename_to_title()
-        assert test_title is None
+    def test_logbook_page_get_title_from_filename_null(self):
+        test_title = pn.LogbookPage()._get_title_from_filename()
+        assert test_title == self.unknown_descriptor
 
-    def test_logbook_page_convert_filename_to_title_no_changes(self, cloned_repo):
+    def test_logbook_page_get_title_from_filename_no_changes(self, cloned_repo):
         test_page = pn.LogbookPage(pathlib.Path(cloned_repo.working_dir)
                                    .joinpath(self.cloned_logbook_page))
-        test_page._convert_filename_to_title()
+        test_page._get_title_from_filename()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_logbook_page_convert_filename_to_title_no_output(
+    def test_logbook_page_get_title_from_filename_no_output(
             self, tmp_logbook_page, capsys):
-        pn.LogbookPage(tmp_logbook_page)._convert_filename_to_title()
+        pn.LogbookPage(tmp_logbook_page)._get_title_from_filename()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_logbook_page_convert_filename_to_title_extra_parameter(
+    def test_logbook_page_get_title_from_filename_extra_parameter(
             self, tmp_logbook_page):
         with pytest.raises(TypeError):
             (pn.LogbookPage(tmp_logbook_page)
-               ._convert_filename_to_title('extra parameter'))
+               ._get_title_from_filename('extra parameter'))
 
-    def test_contents_page_convert_filename_to_title(self, tmp_contents_page):
+    def test_contents_page_get_title_from_filename(self, tmp_contents_page):
         test_title = (pn.ContentsPage(tmp_contents_page)
-                        ._convert_filename_to_title())
+                        ._get_title_from_filename())
         assert isinstance(test_title, str)
         expected = tmp_contents_page.stem.strip()
         assert test_title == expected
 
-    def test_contents_page_convert_filename_to_title_null(self):
-        test_title = pn.ContentsPage()._convert_filename_to_title()
-        assert test_title is None
+    def test_contents_page_get_title_from_filename_null(self):
+        test_title = pn.ContentsPage()._get_title_from_filename()
+        assert test_title == self.contents_descriptor
 
-    def test_contents_page_convert_filename_to_title_no_changes(self, cloned_repo):
+    def test_contents_page_get_title_from_filename_no_changes(self, cloned_repo):
         test_page = pn.ContentsPage(pathlib.Path(cloned_repo.working_dir)
                                    .joinpath(self.cloned_contents_page))
-        test_page._convert_filename_to_title()
+        test_page._get_title_from_filename()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_contents_page_convert_filename_to_title_no_output(
+    def test_contents_page_get_title_from_filename_no_output(
             self, tmp_contents_page, capsys):
-        pn.ContentsPage(tmp_contents_page)._convert_filename_to_title()
+        pn.ContentsPage(tmp_contents_page)._get_title_from_filename()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_contents_page_convert_filename_to_title_extra_parameter(
+    def test_contents_page_get_title_from_filename_extra_parameter(
             self, tmp_contents_page):
         with pytest.raises(TypeError):
             (pn.ContentsPage(tmp_contents_page)
-                ._convert_filename_to_title('extra parameter'))
+                ._get_title_from_filename('extra parameter'))
 
-    def test_home_page_convert_filename_to_title(self, tmp_home_page):
-        test_title = pn.HomePage(tmp_home_page)._convert_filename_to_title()
+    def test_home_page_get_title_from_filename(self, tmp_home_page):
+        test_title = pn.HomePage(tmp_home_page)._get_title_from_filename()
         assert isinstance(test_title, str)
         expected = tmp_home_page.stem.strip()
         assert test_title == expected
 
-    def test_home_page_convert_filename_to_title_null(self):
-        test_title = pn.HomePage()._convert_filename_to_title()
-        assert test_title is None
+    def test_home_page_get_title_from_filename_null(self):
+        test_title = pn.HomePage()._get_title_from_filename()
+        assert test_title == self.homepage_descriptor
 
-    def test_home_page_convert_filename_to_title_no_changes(self, cloned_repo):
+    def test_home_page_get_title_from_filename_no_changes(self, cloned_repo):
         test_page = pn.HomePage(pathlib.Path(cloned_repo.working_dir)
                                    .joinpath(self.cloned_home_page))
-        test_page._convert_filename_to_title()
+        test_page._get_title_from_filename()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_home_page_convert_filename_to_title_no_output(
+    def test_home_page_get_title_from_filename_no_output(
             self, tmp_home_page, capsys):
-        pn.HomePage(tmp_home_page)._convert_filename_to_title()
+        pn.HomePage(tmp_home_page)._get_title_from_filename()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_home_page_convert_filename_to_title_extra_parameter(
+    def test_home_page_get_title_from_filename_extra_parameter(
             self, tmp_home_page):
         with pytest.raises(TypeError):
             (pn.HomePage(tmp_home_page)
-                ._convert_filename_to_title('extra parameter'))
+                ._get_title_from_filename('extra parameter'))
 
-    def test_readme_page_convert_filename_to_title(self, tmp_readme_page):
-        test_title = pn.ReadmePage(tmp_readme_page)._convert_filename_to_title()
+    def test_readme_page_get_title_from_filename(self, tmp_readme_page):
+        test_title = pn.ReadmePage(tmp_readme_page)._get_title_from_filename()
         assert isinstance(test_title, str)
         expected = tmp_readme_page.stem.strip()
         assert test_title == expected
 
-    def test_readme_page_convert_filename_to_title_null(self):
-        test_title = pn.ReadmePage()._convert_filename_to_title()
-        assert test_title is None
+    def test_readme_page_get_title_from_filename_null(self):
+        test_title = pn.ReadmePage()._get_title_from_filename()
+        assert test_title == self.readme_descriptor
 
-    def test_readme_page_convert_filename_to_title_no_changes(self, cloned_repo):
+    def test_readme_page_get_title_from_filename_no_changes(self, cloned_repo):
         test_page = pn.ReadmePage(pathlib.Path(cloned_repo.working_dir)
                                    .joinpath(self.cloned_readme_page))
-        test_page._convert_filename_to_title()
+        test_page._get_title_from_filename()
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_readme_page_convert_filename_to_title_no_output(
+    def test_readme_page_get_title_from_filename_no_output(
             self, tmp_readme_page, capsys):
-        pn.ReadmePage(tmp_readme_page)._convert_filename_to_title()
+        pn.ReadmePage(tmp_readme_page)._get_title_from_filename()
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_readme_page_convert_filename_to_title_extra_parameter(
+    def test_readme_page_get_title_from_filename_extra_parameter(
             self, tmp_readme_page):
         with pytest.raises(TypeError):
             (pn.ReadmePage(tmp_readme_page)
-                ._convert_filename_to_title('extra parameter'))
+                ._get_title_from_filename('extra parameter'))
 
 
     # Creating notebook objects
@@ -1657,11 +1594,11 @@ class TestProcessNotebooks:
     @pytest.mark.parametrize('parent', invalid_parents)
     def test_create_notebook_invalid_parent(self, tmp_notebook, parent):
         with pytest.raises(ValueError):
-            pn.Notebook(tmp_notebook, parent)
+            pn.Notebook(tmp_notebook, parent=parent)
 
     def test_create_notebook_extra_parameter(self, tmp_notebook):
         with pytest.raises(TypeError):
-            pn.Notebook(tmp_notebook, None, 'extra parameter')
+            pn.Notebook(tmp_notebook, None, None, None, None, 'extra parameter')
 
     def test_create_logbook(self, tmp_logbook):
         test_logbook = pn.Logbook(tmp_logbook)
@@ -1720,11 +1657,11 @@ class TestProcessNotebooks:
     @pytest.mark.parametrize('parent', invalid_parents)
     def test_create_logbook_invalid_parent(self, tmp_logbook, parent):
         with pytest.raises(ValueError):
-            pn.Logbook(tmp_logbook, parent)
+            pn.Logbook(tmp_logbook, parent=parent)
 
     def test_create_logbook_extra_parameter(self, tmp_logbook):
         with pytest.raises(TypeError):
-            pn.Logbook(tmp_logbook, None, 'extra parameter')
+            pn.Logbook(tmp_logbook, None, None, None, None, 'extra parameter')
 
     def test_create_notebook_nested(self, tmp_nested):
         test_notebook = pn.Notebook(tmp_nested)
@@ -1770,7 +1707,7 @@ class TestProcessNotebooks:
         last_item = test_notebook.contents[-1]
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
-        assert last_item.content is None
+        assert last_item.contents == []
 
     def test_notebook_add_page_parent(self, tmp_page):
         test_notebook = pn.Notebook()
@@ -1822,7 +1759,7 @@ class TestProcessNotebooks:
         last_item = test_logbook.contents[-1]
         assert last_item.path == tmp_logbook_page
 
-    def test_logbook_add_page_content(self, tmp_logbook_page):
+    def test_logbook_add_page_contents(self, tmp_logbook_page):
         test_logbook = pn.Logbook()
         test_logbook.add_page(tmp_logbook_page)
         last_item = test_logbook.contents[-1]
@@ -1835,7 +1772,7 @@ class TestProcessNotebooks:
         last_item = test_logbook.contents[-1]
         assert isinstance(last_item, pn.LogbookPage)
         assert last_item.path is None
-        assert last_item.content is None
+        assert last_item.contents == []
 
     def test_logbook_add_page_parent(self, tmp_logbook_page):
         test_logbook = pn.Logbook()
@@ -1889,7 +1826,7 @@ class TestProcessNotebooks:
         last_item = test_notebook.contents[-1]
         assert last_item.path == tmp_contents_page
 
-    def test_notebook_add_contents_page_content(self, tmp_contents_page):
+    def test_notebook_add_contents_page_contents(self, tmp_contents_page):
         test_notebook = pn.Notebook()
         test_notebook.add_contents_page(tmp_contents_page)
         last_item = test_notebook.contents[-1]
@@ -1902,7 +1839,7 @@ class TestProcessNotebooks:
         last_item = test_notebook.contents[-1]
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
-        assert last_item.content is None
+        assert last_item.contents == []
 
     def test_notebook_add_contents_page_parent(self, tmp_contents_page):
         test_notebook = pn.Notebook()
@@ -1957,7 +1894,7 @@ class TestProcessNotebooks:
         last_item = test_logbook.contents[-1]
         assert last_item.path == tmp_logbook_contents_page
 
-    def test_logbook_add_contents_page_content(self, tmp_logbook_contents_page):
+    def test_logbook_add_contents_page_contents(self, tmp_logbook_contents_page):
         test_logbook = pn.Logbook()
         test_logbook.add_contents_page(tmp_logbook_contents_page)
         last_item = test_logbook.contents[-1]
@@ -1970,7 +1907,7 @@ class TestProcessNotebooks:
         last_item = test_logbook.contents[-1]
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
-        assert last_item.content is None
+        assert last_item.contents == []
 
     def test_logbook_add_contents_page_parent(self, tmp_contents_page):
         test_logbook = pn.Logbook()
@@ -2028,7 +1965,7 @@ class TestProcessNotebooks:
         last_item = test_notebook.contents[-1]
         assert last_item.path == tmp_home_page
 
-    def test_notebook_add_home_page_content(self, tmp_home_page):
+    def test_notebook_add_home_page_contents(self, tmp_home_page):
         test_notebook = pn.Notebook()
         test_notebook.add_home_page(tmp_home_page)
         last_item = test_notebook.contents[-1]
@@ -2041,7 +1978,7 @@ class TestProcessNotebooks:
         last_item = test_notebook.contents[-1]
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
-        assert last_item.content is None
+        assert last_item.contents == []
 
     def test_notebook_add_home_page_parent(self, tmp_home_page):
         test_notebook = pn.Notebook()
@@ -2108,7 +2045,7 @@ class TestProcessNotebooks:
         last_item = test_logbook.contents[-1]
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
-        assert last_item.content is None
+        assert last_item.contents == []
 
     def test_logbook_add_home_page_parent(self, tmp_home_page):
         test_logbook = pn.Logbook()
@@ -2175,7 +2112,7 @@ class TestProcessNotebooks:
         last_item = test_notebook.contents[-1]
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
-        assert last_item.content is None
+        assert last_item.contents == []
 
     def test_notebook_add_readme_page_parent(self, tmp_readme_page):
         test_notebook = pn.Notebook()
@@ -2243,7 +2180,7 @@ class TestProcessNotebooks:
         last_item = test_logbook.contents[-1]
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
-        assert last_item.content is None
+        assert last_item.contents == []
 
     def test_logbook_add_readme_page_parent(self, tmp_readme_page):
         test_logbook = pn.Logbook()
@@ -2482,7 +2419,7 @@ class TestProcessNotebooks:
     def test_notebook_load_contents_extra_parameter(self, tmp_logbook_page):
         test_notebook = pn.Notebook()
         with pytest.raises(TypeError):
-            test_notebook.load_contents('extra parameter')
+            test_notebook.load_contents(None, 'extra parameter')
 
     def test_logbook_load_contents(self, tmp_logbook):
         test_logbook = pn.Logbook()
@@ -2518,202 +2455,202 @@ class TestProcessNotebooks:
     def test_logbook_load_contents_extra_parameter(self, tmp_logbook_page):
         test_logbook = pn.Logbook()
         with pytest.raises(TypeError):
-            test_logbook.load_contents('extra parameter')
+            test_logbook.load_contents(None, 'extra parameter')
 
 
     # Getting information from notebook objects
     def test_notebook_get_title(self, tmp_notebook):
-        test_title = pn.Notebook(tmp_notebook).get_title()
+        test_title = pn.Notebook(tmp_notebook).title
         assert isinstance(test_title, str)
         assert test_title == self.test_notebook_title
 
-    def test_notebook_get_title_without_readme(self, tmp_notebook):
-        test_notebook = pn.Notebook(tmp_notebook)
+    def test_notebook_get_title_without_readme(self, tmp_notebook_without_readme):
+        test_notebook = pn.Notebook(tmp_notebook_without_readme)
         test_notebook.contents = [item for item in test_notebook.contents
                                   if not isinstance(item, pn.ReadmePage)]
-        test_title = test_notebook.get_title()
+        test_title = test_notebook.title
         assert isinstance(test_title, str)
-        assert test_title == (tmp_notebook.stem
+        assert test_title == (tmp_notebook_without_readme.stem
                               .replace('_', ' ').replace('-', ' ').strip())
 
     def test_notebook_get_title_null(self, tmp_notebook):
-        test_title = pn.Notebook().get_title()
+        test_title = pn.Notebook().title
         assert test_title == self.unknown_descriptor
 
     def test_logbook_get_title(self, tmp_logbook):
-        test_title = pn.Logbook(tmp_logbook).get_title()
+        test_title = pn.Logbook(tmp_logbook).title
         assert isinstance(test_title, str)
         assert test_title == self.temp_logbook
 
-    def test_logbook_get_title_without_readme(self, tmp_logbook):
-        test_logbook = pn.Logbook(tmp_logbook)
+    def test_logbook_get_title_without_readme(self, tmp_logbook_without_readme):
+        test_logbook = pn.Logbook(tmp_logbook_without_readme)
         test_logbook.contents = [item for item in test_logbook.contents
                                   if not isinstance(item, pn.ReadmePage)]
-        test_title = test_logbook.get_title()
+        test_title = test_logbook.title
         assert isinstance(test_title, str)
-        assert test_title == (tmp_logbook.stem
+        assert test_title == (tmp_logbook_without_readme.stem
                               .replace('_', ' ').replace('-', ' ').strip())
 
     def test_logbook_get_title_null(self, tmp_logbook):
-        test_title = pn.Logbook().get_title()
+        test_title = pn.Logbook().title
         assert test_title == self.unknown_descriptor
 
-    def test_notebook_is_valid_page(self, tmp_page):
+    def test_notebook_is_valid_page_file(self, tmp_page):
         test_notebook = pn.Notebook()
-        assert test_notebook._is_valid_page(tmp_page) is True
+        assert test_notebook._is_valid_page_file(tmp_page) is True
 
-    def test_notebook_is_valid_page_logbook_page(self, tmp_logbook_page):
+    def test_notebook_is_valid_page_file_logbook_page(self, tmp_logbook_page):
         test_notebook = pn.Notebook()
-        assert test_notebook._is_valid_page(tmp_logbook_page) is True
+        assert test_notebook._is_valid_page_file(tmp_logbook_page) is True
 
     @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_notebook_is_valid_page_invalid_file_types(
+    def test_notebook_is_valid_page_file_invalid_file_types(
             self, tmp_file_factory, filename):
-        assert pn.Notebook()._is_valid_page(tmp_file_factory(filename)) is False
+        assert pn.Notebook()._is_valid_page_file(tmp_file_factory(filename)) is False
 
-    def test_notebook_is_valid_page_invalid_file(self, tmp_file_factory):
+    def test_notebook_is_valid_page_file_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            pn.Notebook()._is_valid_page(
+            pn.Notebook()._is_valid_page_file(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
-    def test_notebook_is_valid_page_no_changes(self, cloned_repo):
+    def test_notebook_is_valid_page_file_no_changes(self, cloned_repo):
         test_notebook = pn.Notebook()
-        test_notebook._is_valid_page(pathlib.Path(cloned_repo.working_dir)
+        test_notebook._is_valid_page_file(pathlib.Path(cloned_repo.working_dir)
                                      .joinpath(self.cloned_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_notebook_is_valid_page_no_output(self, tmp_page, capsys):
-        pn.Notebook()._is_valid_page(tmp_page)
+    def test_notebook_is_valid_page_file_no_output(self, tmp_page, capsys):
+        pn.Notebook()._is_valid_page_file(tmp_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_is_valid_page_invalid_input(self, path, error_type):
+    def test_notebook_is_valid_page_file_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn.Notebook()._is_valid_page(path)
+            pn.Notebook()._is_valid_page_file(path)
 
-    def test_notebook_is_valid_page_extra_parameter(self, tmp_page):
+    def test_notebook_is_valid_page_file_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
-            pn.Notebook()._is_valid_page(tmp_page, 'extra parameter')
+            pn.Notebook()._is_valid_page_file(tmp_page, 'extra parameter')
 
-    def test_logbook_is_valid_page(self, tmp_logbook_page):
+    def test_logbook_is_valid_page_file(self, tmp_logbook_page):
         test_logbook = pn.Logbook()
-        assert test_logbook._is_valid_page(tmp_logbook_page) is True
+        assert test_logbook._is_valid_page_file(tmp_logbook_page) is True
 
-    def test_logbook_is_valid_page_notebook_page(self, tmp_page):
+    def test_logbook_is_valid_page_file_notebook_page(self, tmp_page):
         test_logbook = pn.Logbook()
-        assert test_logbook._is_valid_page(tmp_page) is False
+        assert test_logbook._is_valid_page_file(tmp_page) is False
 
     @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_logbook_is_valid_page_invalid_file_types(
+    def test_logbook_is_valid_page_file_invalid_file_types(
             self, tmp_file_factory, filename):
-        assert pn.Logbook()._is_valid_page(
+        assert pn.Logbook()._is_valid_page_file(
             tmp_file_factory(filename)) is False
 
-    def test_logbook_is_valid_page_invalid_file(self, tmp_file_factory):
+    def test_logbook_is_valid_page_file_invalid_file(self, tmp_file_factory):
         tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
         with pytest.raises(OSError):
-            pn.Logbook()._is_valid_page(
+            pn.Logbook()._is_valid_page_file(
                 tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
 
-    def test_logbook_is_valid_page_no_changes(self, cloned_repo):
+    def test_logbook_is_valid_page_file_no_changes(self, cloned_repo):
         test_logbook = pn.Logbook()
-        test_logbook._is_valid_page(pathlib.Path(cloned_repo.working_dir)
+        test_logbook._is_valid_page_file(pathlib.Path(cloned_repo.working_dir)
                                     .joinpath(self.cloned_logbook_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_logbook_is_valid_page_no_output(self, tmp_page, capsys):
-        pn.Logbook()._is_valid_page(tmp_page)
+    def test_logbook_is_valid_page_file_no_output(self, tmp_page, capsys):
+        pn.Logbook()._is_valid_page_file(tmp_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_is_valid_page_invalid_input(self, path, error_type):
+    def test_logbook_is_valid_page_file_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn.Logbook()._is_valid_page(path)
+            pn.Logbook()._is_valid_page_file(path)
 
-    def test_logbook_is_valid_page_extra_parameter(self, tmp_page):
+    def test_logbook_is_valid_page_file_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
-            pn.Logbook()._is_valid_page(tmp_page, 'extra parameter')
+            pn.Logbook()._is_valid_page_file(tmp_page, 'extra parameter')
 
-    def test_notebook_is_valid_folder(self, tmp_path):
-        assert pn.Notebook()._is_valid_folder(
+    def test_notebook_is_valid_path(self, tmp_path):
+        assert pn.Notebook()._is_valid_path(
             tmp_path) is True
 
-    def test_notebook_is_valid_folder_notebook(self, tmp_notebook):
-        assert pn.Notebook()._is_valid_folder(
+    def test_notebook_is_valid_path_notebook(self, tmp_notebook):
+        assert pn.Notebook()._is_valid_path(
             tmp_notebook) is True
 
-    def test_notebook_is_valid_folder_logbook(self, tmp_logbook):
-        assert pn.Notebook()._is_valid_folder(
+    def test_notebook_is_valid_path_logbook(self, tmp_logbook):
+        assert pn.Notebook()._is_valid_path(
             tmp_logbook) is True
 
     @pytest.mark.parametrize('folder_name', invalid_folders)
-    def test_notebook_is_valid_folder_fail(self, tmp_path_factory, folder_name):
-        assert pn.Notebook()._is_valid_folder(
+    def test_notebook_is_valid_path_fail(self, tmp_path_factory, folder_name):
+        assert pn.Notebook()._is_valid_path(
             tmp_path_factory.mktemp(folder_name)) is False
 
-    def test_notebook_is_valid_folder_no_changes(self, cloned_repo):
+    def test_notebook_is_valid_path_no_changes(self, cloned_repo):
         test_notebook = pn.Notebook()
-        test_notebook._is_valid_folder(pathlib.Path(cloned_repo.working_dir))
+        test_notebook._is_valid_path(pathlib.Path(cloned_repo.working_dir))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_notebook_is_valid_folder_no_output(self, tmp_path, capsys):
-        pn.Notebook()._is_valid_folder(tmp_path)
+    def test_notebook_is_valid_path_no_output(self, tmp_path, capsys):
+        pn.Notebook()._is_valid_path(tmp_path)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_is_valid_folder_invalid_input(self, path, error_type):
+    def test_notebook_is_valid_path_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn.Notebook()._is_valid_folder(path)
+            pn.Notebook()._is_valid_path(path)
 
-    def test_notebook_is_valid_folder_missing_parameter(self):
+    def test_notebook_is_valid_path_missing_parameter(self):
         with pytest.raises(TypeError):
-            pn.Notebook()._is_valid_folder()
+            pn.Notebook()._is_valid_path()
 
-    def test_notebook_is_valid_folder_extra_parameter(self, tmp_path):
+    def test_notebook_is_valid_path_extra_parameter(self, tmp_path):
         with pytest.raises(TypeError):
-            pn.Notebook()._is_valid_folder(tmp_path, 'extra parameter')
+            pn.Notebook()._is_valid_path(tmp_path, 'extra parameter')
 
-    def test_logbook_is_valid_folder(self, tmp_path):
-        assert pn.Logbook()._is_valid_folder(tmp_path) is False
+    def test_logbook_is_valid_path(self, tmp_path):
+        assert pn.Logbook()._is_valid_path(tmp_path) is False
 
-    def test_logbook_is_valid_folder_notebook(self, tmp_notebook):
-        assert pn.Logbook()._is_valid_folder(tmp_notebook) is False
+    def test_logbook_is_valid_path_notebook(self, tmp_notebook):
+        assert pn.Logbook()._is_valid_path(tmp_notebook) is False
 
-    def test_logbook_is_valid_folder_logbook(self, tmp_logbook):
-        assert pn.Logbook()._is_valid_folder(tmp_logbook) is True
+    def test_logbook_is_valid_path_logbook(self, tmp_logbook):
+        assert pn.Logbook()._is_valid_path(tmp_logbook) is True
 
     @pytest.mark.parametrize('folder_name', invalid_logbook)
-    def test_logbook_is_valid_folder_fail(self, tmp_path_factory, folder_name):
-        assert pn.Logbook()._is_valid_folder(
+    def test_logbook_is_valid_path_fail(self, tmp_path_factory, folder_name):
+        assert pn.Logbook()._is_valid_path(
             tmp_path_factory.mktemp(folder_name)) is False
 
-    def test_logbook_is_valid_folder_no_changes(self, cloned_repo):
+    def test_logbook_is_valid_path_no_changes(self, cloned_repo):
         test_logbook = pn.Logbook()
-        test_logbook._is_valid_folder(pathlib.Path(cloned_repo.working_dir)
+        test_logbook._is_valid_path(pathlib.Path(cloned_repo.working_dir)
                                       .joinpath(self.cloned_logbook))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_logbook_is_valid_folder_no_output(self, tmp_path, capsys):
-        pn.Logbook()._is_valid_folder(tmp_path)
+    def test_logbook_is_valid_path_no_output(self, tmp_path, capsys):
+        pn.Logbook()._is_valid_path(tmp_path)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_is_valid_folder_invalid_input(self, path, error_type):
+    def test_logbook_is_valid_path_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn.Logbook()._is_valid_folder(path)
+            pn.Logbook()._is_valid_path(path)
 
-    def test_logbook_is_valid_folder_missing_parameter(self):
+    def test_logbook_is_valid_path_missing_parameter(self):
         with pytest.raises(TypeError):
-            pn.Logbook()._is_valid_folder()
+            pn.Logbook()._is_valid_path()
 
-    def test_logbook_is_valid_folder_extra_parameter(self, tmp_logbook):
+    def test_logbook_is_valid_path_extra_parameter(self, tmp_logbook):
         with pytest.raises(TypeError):
-            pn.Logbook()._is_valid_folder(tmp_logbook, 'extra parameter')
+            pn.Logbook()._is_valid_path(tmp_logbook, 'extra parameter')
 
     def test_notebook_get_pages(self, tmp_notebook):
         test_notebook = pn.Notebook(tmp_notebook)
@@ -2980,268 +2917,268 @@ class TestProcessNotebooks:
 
 
     # Utility functions
-    def test_is_valid_page(self, tmp_page):
-        assert pn._is_valid_page(tmp_page) is True
+    def test_is_valid_page_file(self, tmp_page):
+        assert pn._is_valid_page_file(tmp_page) is True
 
-    def test_is_valid_page_notebook_page(self, tmp_page):
-        assert pn._is_valid_page(tmp_page) is True
+    def test_is_valid_page_file_notebook_page(self, tmp_page):
+        assert pn._is_valid_page_file(tmp_page) is True
 
-    def test_is_valid_page_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_page(tmp_logbook_page) is True
+    def test_is_valid_page_file_logbook_page(self, tmp_logbook_page):
+        assert pn._is_valid_page_file(tmp_logbook_page) is True
 
-    def test_is_valid_page_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_page(tmp_contents_page) is True
+    def test_is_valid_page_file_contents_page(self, tmp_contents_page):
+        assert pn._is_valid_page_file(tmp_contents_page) is True
 
-    def test_is_valid_page_logbook_contents_page(
+    def test_is_valid_page_file_logbook_contents_page(
             self, tmp_logbook_contents_page):
-        assert pn._is_valid_page(tmp_logbook_contents_page) is True
+        assert pn._is_valid_page_file(tmp_logbook_contents_page) is True
 
-    def test_is_valid_page_logbook_month_page(self, tmp_logbook_month_page):
-        assert pn._is_valid_page(tmp_logbook_month_page) is True
+    def test_is_valid_page_file_logbook_month_page(self, tmp_logbook_month_page):
+        assert pn._is_valid_page_file(tmp_logbook_month_page) is True
 
-    def test_is_valid_page_home_page(self, tmp_home_page):
-        assert pn._is_valid_page(tmp_home_page) is True
+    def test_is_valid_page_file_home_page(self, tmp_home_page):
+        assert pn._is_valid_page_file(tmp_home_page) is True
 
-    def test_is_valid_page_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_page(tmp_readme_page) is True
+    def test_is_valid_page_file_readme_page(self, tmp_readme_page):
+        assert pn._is_valid_page_file(tmp_readme_page) is True
 
-    def test_is_valid_page_logbook_readme_page(self, tmp_logbook_readme_page):
-        assert pn._is_valid_page(tmp_logbook_readme_page) is True
+    def test_is_valid_page_file_logbook_readme_page(self, tmp_logbook_readme_page):
+        assert pn._is_valid_page_file(tmp_logbook_readme_page) is True
 
     @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_is_valid_page_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_page(tmp_file_factory(filename)) is False
+    def test_is_valid_page_file_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_page_file(tmp_file_factory(filename)) is False
 
-    def test_is_valid_page_no_changes(self, cloned_repo):
-        pn._is_valid_page(pathlib.Path(cloned_repo.working_dir)
+    def test_is_valid_page_file_no_changes(self, cloned_repo):
+        pn._is_valid_page_file(pathlib.Path(cloned_repo.working_dir)
                           .joinpath(self.cloned_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_is_valid_page_no_output(self, tmp_page, capsys):
-        pn._is_valid_page(tmp_page)
+    def test_is_valid_page_file_no_output(self, tmp_page, capsys):
+        pn._is_valid_page_file(tmp_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_page_invalid_input(self, path, error_type):
+    def test_is_valid_page_file_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn._is_valid_page(path)
+            pn._is_valid_page_file(path)
 
-    def test_is_valid_page_extra_parameter(self, tmp_page):
+    def test_is_valid_page_file_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
-            pn._is_valid_page(tmp_page, 'extra parameter')
+            pn._is_valid_page_file(tmp_page, 'extra parameter')
 
-    def test_is_valid_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_logbook_page(tmp_logbook_page) is True
+    def test_is_valid_logbook_page_file(self, tmp_logbook_page):
+        assert pn._is_valid_logbook_page_file(tmp_logbook_page) is True
 
-    def test_is_valid_logbook_page_notebook_page(self, tmp_page):
-        assert pn._is_valid_logbook_page(tmp_page) is False
+    def test_is_valid_logbook_page_file_notebook_page(self, tmp_page):
+        assert pn._is_valid_logbook_page_file(tmp_page) is False
 
-    def test_is_valid_logbook_page_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_logbook_page(tmp_logbook_page) is True
+    def test_is_valid_logbook_page_file_logbook_page(self, tmp_logbook_page):
+        assert pn._is_valid_logbook_page_file(tmp_logbook_page) is True
 
-    def test_is_valid_logbook_page_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_logbook_page(tmp_contents_page) is False
+    def test_is_valid_logbook_page_file_contents_page(self, tmp_contents_page):
+        assert pn._is_valid_logbook_page_file(tmp_contents_page) is False
 
-    def test_is_valid_logbook_page_logbook_contents_page(
+    def test_is_valid_logbook_page_file_logbook_contents_page(
             self, tmp_logbook_contents_page):
-        assert pn._is_valid_logbook_page(tmp_logbook_contents_page) is False
+        assert pn._is_valid_logbook_page_file(tmp_logbook_contents_page) is False
 
-    def test_is_valid_logbook_page_logbook_month_page(
+    def test_is_valid_logbook_page_file_logbook_month_page(
             self, tmp_logbook_month_page):
-        assert pn._is_valid_logbook_page(tmp_logbook_month_page) is True
+        assert pn._is_valid_logbook_page_file(tmp_logbook_month_page) is True
 
-    def test_is_valid_logbook_page_home_page(self, tmp_home_page):
-        assert pn._is_valid_logbook_page(tmp_home_page) is False
+    def test_is_valid_logbook_page_file_home_page(self, tmp_home_page):
+        assert pn._is_valid_logbook_page_file(tmp_home_page) is False
 
-    def test_is_valid_logbook_page_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_logbook_page(tmp_readme_page) is False
+    def test_is_valid_logbook_page_file_readme_page(self, tmp_readme_page):
+        assert pn._is_valid_logbook_page_file(tmp_readme_page) is False
 
-    def test_is_valid_logbook_page_logbook_readme_page(
+    def test_is_valid_logbook_page_file_logbook_readme_page(
             self, tmp_logbook_readme_page):
-        assert pn._is_valid_logbook_page(tmp_logbook_readme_page) is False
+        assert pn._is_valid_logbook_page_file(tmp_logbook_readme_page) is False
 
     @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_is_valid_logbook_page_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_logbook_page(tmp_file_factory(filename)) is False
+    def test_is_valid_logbook_page_file_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_logbook_page_file(tmp_file_factory(filename)) is False
 
-    def test_is_valid_logbook_page_no_changes(self, cloned_repo):
-        pn._is_valid_logbook_page(pathlib.Path(cloned_repo.working_dir)
+    def test_is_valid_logbook_page_file_no_changes(self, cloned_repo):
+        pn._is_valid_logbook_page_file(pathlib.Path(cloned_repo.working_dir)
                                   .joinpath(self.cloned_logbook_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_is_valid_logbook_page_no_output(self, tmp_logbook_page, capsys):
-        pn._is_valid_logbook_page(tmp_logbook_page)
+    def test_is_valid_logbook_page_file_no_output(self, tmp_logbook_page, capsys):
+        pn._is_valid_logbook_page_file(tmp_logbook_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_logbook_page_invalid_input(self, path, error_type):
+    def test_is_valid_logbook_page_file_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn._is_valid_logbook_page(path)
+            pn._is_valid_logbook_page_file(path)
 
-    def test_is_valid_logbook_page_extra_parameter(self, tmp_logbook_page):
+    def test_is_valid_logbook_page_file_extra_parameter(self, tmp_logbook_page):
         with pytest.raises(TypeError):
-            pn._is_valid_logbook_page(tmp_logbook_page, 'extra parameter')
+            pn._is_valid_logbook_page_file(tmp_logbook_page, 'extra parameter')
 
-    def test_is_valid_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_contents_page(tmp_contents_page) is True
+    def test_is_valid_contents_page_file(self, tmp_contents_page):
+        assert pn._is_valid_contents_page_file(tmp_contents_page) is True
 
-    def test_is_valid_contents_page_notebook_page(self, tmp_page):
-        assert pn._is_valid_contents_page(tmp_page) is False
+    def test_is_valid_contents_page_file_notebook_page(self, tmp_page):
+        assert pn._is_valid_contents_page_file(tmp_page) is False
 
-    def test_is_valid_contents_page_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_contents_page(tmp_logbook_page) is False
+    def test_is_valid_contents_page_file_logbook_page(self, tmp_logbook_page):
+        assert pn._is_valid_contents_page_file(tmp_logbook_page) is False
 
-    def test_is_valid_contents_page_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_contents_page(tmp_contents_page) is True
+    def test_is_valid_contents_page_file_contents_page(self, tmp_contents_page):
+        assert pn._is_valid_contents_page_file(tmp_contents_page) is True
 
-    def test_is_valid_contents_page_logbook_contents_page(
+    def test_is_valid_contents_page_file_logbook_contents_page(
             self, tmp_logbook_contents_page):
-        assert pn._is_valid_contents_page(tmp_logbook_contents_page) is True
+        assert pn._is_valid_contents_page_file(tmp_logbook_contents_page) is True
 
-    def test_is_valid_contents_page_logbook_month_page(
+    def test_is_valid_contents_page_file_logbook_month_page(
             self, tmp_logbook_month_page):
-        assert pn._is_valid_contents_page(tmp_logbook_month_page) is False
+        assert pn._is_valid_contents_page_file(tmp_logbook_month_page) is False
 
-    def test_is_valid_contents_page_home_page(self, tmp_home_page):
-        assert pn._is_valid_contents_page(tmp_home_page) is False
+    def test_is_valid_contents_page_file_home_page(self, tmp_home_page):
+        assert pn._is_valid_contents_page_file(tmp_home_page) is False
 
-    def test_is_valid_contents_page_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_contents_page(tmp_readme_page) is False
+    def test_is_valid_contents_page_file_readme_page(self, tmp_readme_page):
+        assert pn._is_valid_contents_page_file(tmp_readme_page) is False
 
-    def test_is_valid_contents_page_logbook_readme_page(
+    def test_is_valid_contents_page_file_logbook_readme_page(
             self, tmp_logbook_readme_page):
-        assert pn._is_valid_contents_page(tmp_logbook_readme_page) is False
+        assert pn._is_valid_contents_page_file(tmp_logbook_readme_page) is False
 
     @pytest.mark.parametrize('filename', invalid_filenames('contents'))
-    def test_is_valid_contents_page_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_contents_page(tmp_file_factory(filename)) is False
+    def test_is_valid_contents_page_file_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_contents_page_file(tmp_file_factory(filename)) is False
 
-    def test_is_valid_contents_page_no_changes(self, cloned_repo):
-        pn._is_valid_contents_page(pathlib.Path(cloned_repo.working_dir)
+    def test_is_valid_contents_page_file_no_changes(self, cloned_repo):
+        pn._is_valid_contents_page_file(pathlib.Path(cloned_repo.working_dir)
                                    .joinpath(self.cloned_contents_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_is_valid_contents_page_no_output(self, tmp_contents_page, capsys):
-        pn._is_valid_contents_page(tmp_contents_page)
+    def test_is_valid_contents_page_file_no_output(self, tmp_contents_page, capsys):
+        pn._is_valid_contents_page_file(tmp_contents_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_contents_page_invalid_input(self, path, error_type):
+    def test_is_valid_contents_page_file_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn._is_valid_contents_page(path)
+            pn._is_valid_contents_page_file(path)
 
-    def test_is_valid_contents_page_extra_parameter(self, tmp_contents_page):
+    def test_is_valid_contents_page_file_extra_parameter(self, tmp_contents_page):
         with pytest.raises(TypeError):
-            pn._is_valid_contents_page(tmp_contents_page, 'extra parameter')
+            pn._is_valid_contents_page_file(tmp_contents_page, 'extra parameter')
 
-    def test_is_valid_home_page(self, tmp_home_page):
-        assert pn._is_valid_home_page(tmp_home_page) is True
+    def test_is_valid_home_page_file(self, tmp_home_page):
+        assert pn._is_valid_home_page_file(tmp_home_page) is True
 
-    def test_is_valid_home_page_notebook_page(self, tmp_page):
-        assert pn._is_valid_home_page(tmp_page) is False
+    def test_is_valid_home_page_file_notebook_page(self, tmp_page):
+        assert pn._is_valid_home_page_file(tmp_page) is False
 
-    def test_is_valid_home_page_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_home_page(tmp_logbook_page) is False
+    def test_is_valid_home_page_file_logbook_page(self, tmp_logbook_page):
+        assert pn._is_valid_home_page_file(tmp_logbook_page) is False
 
-    def test_is_valid_home_page_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_home_page(tmp_contents_page) is False
+    def test_is_valid_home_page_file_contents_page(self, tmp_contents_page):
+        assert pn._is_valid_home_page_file(tmp_contents_page) is False
 
-    def test_is_valid_home_page_logbook_contents_page(
+    def test_is_valid_home_page_file_logbook_contents_page(
             self, tmp_logbook_contents_page):
-        assert pn._is_valid_home_page(tmp_logbook_contents_page) is False
+        assert pn._is_valid_home_page_file(tmp_logbook_contents_page) is False
 
-    def test_is_valid_home_page_logbook_month_page(
+    def test_is_valid_home_page_file_logbook_month_page(
             self, tmp_logbook_month_page):
-        assert pn._is_valid_home_page(tmp_logbook_month_page) is False
+        assert pn._is_valid_home_page_file(tmp_logbook_month_page) is False
 
-    def test_is_valid_home_page_home_page(self, tmp_home_page):
-        assert pn._is_valid_home_page(tmp_home_page) is True
+    def test_is_valid_home_page_file_home_page(self, tmp_home_page):
+        assert pn._is_valid_home_page_file(tmp_home_page) is True
 
-    def test_is_valid_home_page_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_home_page(tmp_readme_page) is False
+    def test_is_valid_home_page_file_readme_page(self, tmp_readme_page):
+        assert pn._is_valid_home_page_file(tmp_readme_page) is False
 
-    def test_is_valid_home_page_logbook_readme_page(
+    def test_is_valid_home_page_file_logbook_readme_page(
             self, tmp_logbook_readme_page):
-        assert pn._is_valid_home_page(tmp_logbook_readme_page) is False
+        assert pn._is_valid_home_page_file(tmp_logbook_readme_page) is False
 
     @pytest.mark.parametrize('filename', invalid_filenames('home'))
-    def test_is_valid_home_page_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_home_page(tmp_file_factory(filename)) is False
+    def test_is_valid_home_page_file_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_home_page_file(tmp_file_factory(filename)) is False
 
-    def test_is_valid_home_page_no_changes(self, cloned_repo):
-        pn._is_valid_home_page(pathlib.Path(cloned_repo.working_dir)
+    def test_is_valid_home_page_file_no_changes(self, cloned_repo):
+        pn._is_valid_home_page_file(pathlib.Path(cloned_repo.working_dir)
                                .joinpath(self.cloned_home_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_is_valid_home_page_no_output(self, tmp_home_page, capsys):
-        pn._is_valid_home_page(tmp_home_page)
+    def test_is_valid_home_page_file_no_output(self, tmp_home_page, capsys):
+        pn._is_valid_home_page_file(tmp_home_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_home_page_invalid_input(self, path, error_type):
+    def test_is_valid_home_page_file_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn._is_valid_home_page(path)
+            pn._is_valid_home_page_file(path)
 
-    def test_is_valid_home_page_extra_parameter(self, tmp_home_page):
+    def test_is_valid_home_page_file_extra_parameter(self, tmp_home_page):
         with pytest.raises(TypeError):
-            pn._is_valid_home_page(tmp_home_page, 'extra parameter')
+            pn._is_valid_home_page_file(tmp_home_page, 'extra parameter')
 
-    def test_is_valid_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_readme_page(tmp_readme_page) is True
+    def test_is_valid_readme_page_file(self, tmp_readme_page):
+        assert pn._is_valid_readme_page_file(tmp_readme_page) is True
 
-    def test_is_valid_readme_page_notebook_page(self, tmp_page):
-        assert pn._is_valid_readme_page(tmp_page) is False
+    def test_is_valid_readme_page_file_notebook_page(self, tmp_page):
+        assert pn._is_valid_readme_page_file(tmp_page) is False
 
-    def test_is_valid_readme_page_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_readme_page(tmp_logbook_page) is False
+    def test_is_valid_readme_page_file_logbook_page(self, tmp_logbook_page):
+        assert pn._is_valid_readme_page_file(tmp_logbook_page) is False
 
-    def test_is_valid_readme_page_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_readme_page(tmp_contents_page) is False
+    def test_is_valid_readme_page_file_contents_page(self, tmp_contents_page):
+        assert pn._is_valid_readme_page_file(tmp_contents_page) is False
 
-    def test_is_valid_readme_page_logbook_contents_page(
+    def test_is_valid_readme_page_file_logbook_contents_page(
             self, tmp_logbook_contents_page):
-        assert pn._is_valid_readme_page(tmp_logbook_contents_page) is False
+        assert pn._is_valid_readme_page_file(tmp_logbook_contents_page) is False
 
-    def test_is_valid_readme_page_logbook_month_page(
+    def test_is_valid_readme_page_file_logbook_month_page(
             self, tmp_logbook_month_page):
-        assert pn._is_valid_readme_page(tmp_logbook_month_page) is False
+        assert pn._is_valid_readme_page_file(tmp_logbook_month_page) is False
 
-    def test_is_valid_readme_page_home_page(self, tmp_home_page):
-        assert pn._is_valid_readme_page(tmp_home_page) is False
+    def test_is_valid_readme_page_file_home_page(self, tmp_home_page):
+        assert pn._is_valid_readme_page_file(tmp_home_page) is False
 
-    def test_is_valid_readme_page_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_readme_page(tmp_readme_page) is True
+    def test_is_valid_readme_page_file_readme_page(self, tmp_readme_page):
+        assert pn._is_valid_readme_page_file(tmp_readme_page) is True
 
-    def test_is_valid_readme_page_logbook_readme_page(
+    def test_is_valid_readme_page_file_logbook_readme_page(
             self, tmp_logbook_readme_page):
-        assert pn._is_valid_readme_page(tmp_logbook_readme_page) is True
+        assert pn._is_valid_readme_page_file(tmp_logbook_readme_page) is True
 
     @pytest.mark.parametrize('filename', invalid_filenames('readme'))
-    def test_is_valid_readme_page_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_readme_page(tmp_file_factory(filename)) is False
+    def test_is_valid_readme_page_file_fail(self, tmp_file_factory, filename):
+        assert pn._is_valid_readme_page_file(tmp_file_factory(filename)) is False
 
-    def test_is_valid_readme_page_no_changes(self, cloned_repo):
-        pn._is_valid_readme_page(pathlib.Path(cloned_repo.working_dir)
+    def test_is_valid_readme_page_file_no_changes(self, cloned_repo):
+        pn._is_valid_readme_page_file(pathlib.Path(cloned_repo.working_dir)
                                  .joinpath(self.cloned_readme_page))
         self.assert_repo_unchanged(cloned_repo)
 
-    def test_is_valid_readme_page_no_output(self, tmp_readme_page, capsys):
-        pn._is_valid_readme_page(tmp_readme_page)
+    def test_is_valid_readme_page_file_no_output(self, tmp_readme_page, capsys):
+        pn._is_valid_readme_page_file(tmp_readme_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_readme_page_invalid_input(self, path, error_type):
+    def test_is_valid_readme_page_file_invalid_input(self, path, error_type):
         with pytest.raises(error_type):
-            pn._is_valid_readme_page(path)
+            pn._is_valid_readme_page_file(path)
 
-    def test_is_valid_readme_page_extra_parameter(self, tmp_readme_page):
+    def test_is_valid_readme_page_file_extra_parameter(self, tmp_readme_page):
         with pytest.raises(TypeError):
-            pn._is_valid_readme_page(tmp_readme_page, 'extra parameter')
+            pn._is_valid_readme_page_file(tmp_readme_page, 'extra parameter')
 
     def test_is_valid_folder(self, tmp_path):
         assert pn._is_valid_folder(tmp_path) is True
