@@ -18,6 +18,14 @@ invalid_folders = ['.vscode', '.config']
 
 invalid_logbook = invalid_folders + ['Notebooks', 'PKU-2019', 'Software']
 
+invalid_parents = [
+    'string',
+    3.142,
+    [1, 2, 3],
+    pathlib.Path('/not/a/path'),
+    pathlib.Path.home(),
+    pn.Page()]
+
 invalid_lines = [
     None,
     3.142,
@@ -357,6 +365,25 @@ class TestProcessNotebooks:
         assert test_page.path is None
         assert test_page.content is None
 
+    def test_create_page_with_parent(self, tmp_page):
+        test_notebook = pn.Notebook()
+        test_page = pn.Page(tmp_page, parent=test_notebook)
+        assert test_page.parent == test_notebook
+
+    def test_create_page_with_parent_logbook(self, tmp_page):
+        test_logbook = pn.Logbook()
+        test_page = pn.Page(tmp_page, parent=test_logbook)
+        assert test_page.parent == test_logbook
+
+    def test_create_page_without_parent(self, tmp_page):
+        test_page = pn.Page(tmp_page)
+        assert test_page.parent is None
+
+    def test_create_page_null_with_parent(self):
+        test_notebook = pn.Notebook()
+        test_page = pn.Page(parent=test_notebook)
+        assert test_page.parent == test_notebook
+
     def test_create_page_no_changes(self, cloned_repo):
         pn.Page(pathlib.Path(cloned_repo.working_dir)
                 .joinpath(self.cloned_page))
@@ -368,13 +395,18 @@ class TestProcessNotebooks:
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_page_invalid_input(self, path, error_type):
+    def test_create_page_invalid_path(self, path, error_type):
         with pytest.raises(error_type):
             pn.Page(path)
 
+    @pytest.mark.parametrize('parent', invalid_parents)
+    def test_create_page_invalid_parent(self, tmp_page, parent):
+        with pytest.raises(ValueError):
+            pn.Page(tmp_page, parent)
+
     def test_create_page_extra_parameter(self, tmp_page):
         with pytest.raises(TypeError):
-            pn.Page(tmp_page, 'extra parameter')
+            pn.Page(tmp_page, None, 'extra parameter')
 
     @pytest.mark.parametrize('filename', invalid_filenames('page'))
     def test_create_page_invalid_file_types(self, tmp_file_factory, filename):
@@ -400,6 +432,25 @@ class TestProcessNotebooks:
         assert test_page.path is None
         assert test_page.content is None
 
+    def test_create_logbook_page_with_parent(self, tmp_logbook_page):
+        test_notebook = pn.Notebook()
+        test_page = pn.LogbookPage(tmp_logbook_page, parent=test_notebook)
+        assert test_page.parent == test_notebook
+
+    def test_create_logbook_page_with_parent_logbook(self, tmp_logbook_page):
+        test_logbook = pn.Logbook()
+        test_page = pn.LogbookPage(tmp_logbook_page, parent=test_logbook)
+        assert test_page.parent == test_logbook
+
+    def test_create_logbook_page_without_parent(self, tmp_logbook_page):
+        test_page = pn.LogbookPage(tmp_logbook_page)
+        assert test_page.parent is None
+
+    def test_create_logbook_page_null_with_parent(self):
+        test_notebook = pn.Notebook()
+        test_page = pn.LogbookPage(parent=test_notebook)
+        assert test_page.parent == test_notebook
+
     def test_create_logbook_page_no_changes(self, cloned_repo):
         pn.LogbookPage(pathlib.Path(cloned_repo.working_dir)
                        .joinpath(self.cloned_logbook_page))
@@ -411,13 +462,18 @@ class TestProcessNotebooks:
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_logbook_page_invalid_input(self, path, error_type):
+    def test_create_logbook_page_invalid_path(self, path, error_type):
         with pytest.raises(error_type):
             pn.LogbookPage(path)
 
+    @pytest.mark.parametrize('parent', invalid_parents)
+    def test_create_logbook_page_invalid_parent(self, tmp_logbook_page, parent):
+        with pytest.raises(ValueError):
+            pn.LogbookPage(tmp_logbook_page, parent)
+
     def test_create_logbook_page_extra_parameter(self, tmp_logbook_page):
         with pytest.raises(TypeError):
-            pn.LogbookPage(tmp_logbook_page, 'extra parameter')
+            pn.LogbookPage(tmp_logbook_page, None, 'extra parameter')
 
     @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
     def test_create_logbook_page_invalid_file_types(
@@ -449,20 +505,44 @@ class TestProcessNotebooks:
         assert test_page.path is None
         assert test_page.content is None
 
+    def test_create_contents_page_with_parent(self, tmp_contents_page):
+        test_notebook = pn.Notebook()
+        test_page = pn.ContentsPage(tmp_contents_page, parent=test_notebook)
+        assert test_page.parent == test_notebook
+
+    def test_create_contents_page_with_parent_logbook(self, tmp_contents_page):
+        test_logbook = pn.Logbook()
+        test_page = pn.ContentsPage(tmp_contents_page, parent=test_logbook)
+        assert test_page.parent == test_logbook
+
+    def test_create_contents_page_without_parent(self, tmp_contents_page):
+        test_page = pn.ContentsPage(tmp_contents_page)
+        assert test_page.parent is None
+
+    def test_create_contents_page_null_with_parent(self):
+        test_notebook = pn.Notebook()
+        test_page = pn.ContentsPage(parent=test_notebook)
+        assert test_page.parent == test_notebook
+
     def test_create_contents_page_no_output(self, tmp_contents_page, capsys):
         pn.ContentsPage(tmp_contents_page)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_contents_page_invalid_input(self, path, error_type):
+    def test_create_contents_page_invalid_path(self, path, error_type):
         with pytest.raises(error_type):
             pn.ContentsPage(path)
+
+    @pytest.mark.parametrize('parent', invalid_parents)
+    def test_create_contents_page_invalid_parent(self, tmp_contents_page, parent):
+        with pytest.raises(ValueError):
+            pn.ContentsPage(tmp_contents_page, parent)
 
     def test_create_contents_page_invalid_extra_parameter(
             self, tmp_contents_page):
         with pytest.raises(TypeError):
-            pn.ContentsPage(tmp_contents_page, 'extra parameter')
+            pn.ContentsPage(tmp_contents_page, None, 'extra parameter')
 
     def test_create_contents_page_invalid_filename(self, tmp_page):
         with pytest.raises(ValueError):
@@ -545,6 +625,25 @@ class TestProcessNotebooks:
         assert test_page.path is None
         assert test_page.content is None
 
+    def test_create_home_page_with_parent(self, tmp_home_page):
+        test_notebook = pn.Notebook()
+        test_page = pn.HomePage(tmp_home_page, parent=test_notebook)
+        assert test_page.parent == test_notebook
+
+    def test_create_home_page_with_parent_logbook(self, tmp_home_page):
+        test_logbook = pn.Logbook()
+        test_page = pn.HomePage(tmp_home_page, parent=test_logbook)
+        assert test_page.parent == test_logbook
+
+    def test_create_home_page_without_parent(self, tmp_home_page):
+        test_page = pn.HomePage(tmp_home_page)
+        assert test_page.parent is None
+
+    def test_create_home_page_null_with_parent(self):
+        test_notebook = pn.Notebook()
+        test_page = pn.HomePage(parent=test_notebook)
+        assert test_page.parent == test_notebook
+
     def test_create_home_page_no_changes(self, cloned_repo):
         pn.HomePage(pathlib.Path(cloned_repo.working_dir)
                     .joinpath(self.cloned_home_page))
@@ -556,13 +655,18 @@ class TestProcessNotebooks:
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_home_page_invalid_input(self, path, error_type):
+    def test_create_home_page_invalid_path(self, path, error_type):
         with pytest.raises(error_type):
             pn.HomePage(path)
 
+    @pytest.mark.parametrize('parent', invalid_parents)
+    def test_create_home_page_invalid_parent(self, tmp_home_page, parent):
+        with pytest.raises(ValueError):
+            pn.HomePage(tmp_home_page, parent)
+
     def test_create_home_page_extra_parameter(self, tmp_home_page):
         with pytest.raises(TypeError):
-            pn.HomePage(tmp_home_page, 'extra parameter')
+            pn.HomePage(tmp_home_page, None, 'extra parameter')
 
     def test_create_home_page_invalid_filename(self, tmp_page):
         with pytest.raises(ValueError):
@@ -593,6 +697,25 @@ class TestProcessNotebooks:
         assert test_page.path is None
         assert test_page.content is None
 
+    def test_create_readme_page_with_parent(self, tmp_readme_page):
+        test_notebook = pn.Notebook()
+        test_page = pn.ReadmePage(tmp_readme_page, parent=test_notebook)
+        assert test_page.parent == test_notebook
+
+    def test_create_readme_page_with_parent_logbook(self, tmp_readme_page):
+        test_logbook = pn.Logbook()
+        test_page = pn.ReadmePage(tmp_readme_page, parent=test_logbook)
+        assert test_page.parent == test_logbook
+
+    def test_create_readme_page_without_parent(self, tmp_readme_page):
+        test_page = pn.ReadmePage(tmp_readme_page)
+        assert test_page.parent is None
+
+    def test_create_readme_page_null_with_parent(self):
+        test_notebook = pn.Notebook()
+        test_page = pn.ReadmePage(parent=test_notebook)
+        assert test_page.parent == test_notebook
+
     def test_create_readme_page_no_changes(self, cloned_repo):
         page_path = (pathlib.Path(cloned_repo.working_dir)
                      .joinpath(self.cloned_readme_page))
@@ -605,13 +728,18 @@ class TestProcessNotebooks:
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_readme_page_invalid_input(self, path, error_type):
+    def test_create_readme_page_invalid_path(self, path, error_type):
         with pytest.raises(error_type):
             pn.ReadmePage(path)
 
+    @pytest.mark.parametrize('parent', invalid_parents)
+    def test_create_readme_page_invalid_parent(self, tmp_readme_page, parent):
+        with pytest.raises(ValueError):
+            pn.ReadmePage(tmp_readme_page, parent)
+
     def test_create_readme_page_extra_parameter(self, tmp_readme_page):
         with pytest.raises(TypeError):
-            pn.ReadmePage(tmp_readme_page, 'extra parameter')
+            pn.ReadmePage(tmp_readme_page, None, 'extra parameter')
 
     def test_create_readme_page_invalid_filename(self, tmp_page):
         with pytest.raises(ValueError):
@@ -1496,19 +1624,43 @@ class TestProcessNotebooks:
         assert test_notebook.path is None
         assert test_notebook.contents == []
 
+    def test_create_notebook_with_parent(self, tmp_notebook):
+        test_notebook = pn.Notebook()
+        nested_notebook = pn.Notebook(tmp_notebook, parent=test_notebook)
+        assert nested_notebook.parent == test_notebook
+
+    def test_create_notebook_with_parent_logbook(self, tmp_notebook):
+        test_logbook = pn.Logbook()
+        with pytest.raises(ValueError):
+            pn.Notebook(tmp_notebook, parent=test_logbook)
+
+    def test_create_notebook_without_parent(self, tmp_notebook):
+        test_notebook = pn.Notebook(tmp_notebook)
+        assert test_notebook.parent is None
+
+    def test_create_notebook_null_with_parent(self):
+        test_notebook = pn.Notebook()
+        nested_notebook = pn.Notebook(parent=test_notebook)
+        assert nested_notebook.parent == test_notebook
+
     def test_create_notebook_no_output(self, tmp_notebook, capsys):
         pn.Notebook(tmp_notebook)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_notebook_invalid_input(self, path, error_type):
+    def test_create_notebook_invalid_path(self, path, error_type):
         with pytest.raises(error_type):
             pn.Notebook(path)
 
+    @pytest.mark.parametrize('parent', invalid_parents)
+    def test_create_notebook_invalid_parent(self, tmp_notebook, parent):
+        with pytest.raises(ValueError):
+            pn.Notebook(tmp_notebook, parent)
+
     def test_create_notebook_extra_parameter(self, tmp_notebook):
         with pytest.raises(TypeError):
-            pn.Notebook(tmp_notebook, 'extra parameter')
+            pn.Notebook(tmp_notebook, None, 'extra parameter')
 
     def test_create_logbook(self, tmp_logbook):
         test_logbook = pn.Logbook(tmp_logbook)
@@ -1535,19 +1687,43 @@ class TestProcessNotebooks:
         assert test_logbook.path is None
         assert test_logbook.contents == []
 
+    def test_create_logbook_with_parent(self, tmp_logbook):
+        test_notebook = pn.Notebook()
+        nested_logbook = pn.Logbook(tmp_logbook, parent=test_notebook)
+        assert nested_logbook.parent == test_notebook
+
+    def test_create_logbook_with_parent_logbook(self, tmp_logbook):
+        test_logbook = pn.Logbook()
+        with pytest.raises(ValueError):
+            pn.Logbook(tmp_logbook, parent=test_logbook)
+
+    def test_create_logbook_without_parent(self, tmp_logbook):
+        test_notebook = pn.Logbook(tmp_logbook)
+        assert test_notebook.parent is None
+
+    def test_create_logbook_null_with_parent(self):
+        test_notebook = pn.Notebook()
+        nested_logbook = pn.Logbook(parent=test_notebook)
+        assert nested_logbook.parent == test_notebook
+
     def test_create_logbook_no_output(self, tmp_logbook, capsys):
         pn.Logbook(tmp_logbook)
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
     @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_logbook_invalid_input(self, path, error_type):
+    def test_create_logbook_invalid_path(self, path, error_type):
         with pytest.raises(error_type):
             pn.Logbook(path)
 
+    @pytest.mark.parametrize('parent', invalid_parents)
+    def test_create_logbook_invalid_parent(self, tmp_logbook, parent):
+        with pytest.raises(ValueError):
+            pn.Logbook(tmp_logbook, parent)
+
     def test_create_logbook_extra_parameter(self, tmp_logbook):
         with pytest.raises(TypeError):
-            pn.Logbook(tmp_logbook, 'extra parameter')
+            pn.Logbook(tmp_logbook, None, 'extra parameter')
 
     def test_create_notebook_nested(self, tmp_nested):
         test_notebook = pn.Notebook(tmp_nested)
@@ -1594,6 +1770,12 @@ class TestProcessNotebooks:
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
         assert last_item.content is None
+
+    def test_notebook_add_page_parent(self, tmp_page):
+        test_notebook = pn.Notebook()
+        test_notebook.add_page(tmp_page)
+        last_item = test_notebook.contents[-1]
+        assert last_item.parent == test_notebook
 
     def test_notebook_add_page_no_changes(self, cloned_repo):
         test_notebook = pn.Notebook()
@@ -1653,6 +1835,12 @@ class TestProcessNotebooks:
         assert isinstance(last_item, pn.LogbookPage)
         assert last_item.path is None
         assert last_item.content is None
+
+    def test_logbook_add_page_parent(self, tmp_logbook_page):
+        test_logbook = pn.Logbook()
+        test_logbook.add_page(tmp_logbook_page)
+        last_item = test_logbook.contents[-1]
+        assert last_item.parent == test_logbook
 
     def test_logbook_add_page_no_changes(self, cloned_repo):
         test_logbook = pn.Logbook()
@@ -1715,6 +1903,12 @@ class TestProcessNotebooks:
         assert last_item.path is None
         assert last_item.content is None
 
+    def test_notebook_add_contents_page_parent(self, tmp_contents_page):
+        test_notebook = pn.Notebook()
+        test_notebook.add_contents_page(tmp_contents_page)
+        last_item = test_notebook.contents[-1]
+        assert last_item.parent == test_notebook
+
     def test_notebook_add_contents_page_no_changes(self, cloned_repo):
         test_notebook = pn.Notebook()
         test_notebook.add_contents_page(pathlib.Path(cloned_repo.working_dir)
@@ -1776,6 +1970,12 @@ class TestProcessNotebooks:
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
         assert last_item.content is None
+
+    def test_logbook_add_contents_page_parent(self, tmp_contents_page):
+        test_logbook = pn.Logbook()
+        test_logbook.add_contents_page(tmp_contents_page)
+        last_item = test_logbook.contents[-1]
+        assert last_item.parent == test_logbook
 
     def test_logbook_add_contents_page_no_changes(self, cloned_repo):
         test_logbook = pn.Logbook()
@@ -1842,6 +2042,12 @@ class TestProcessNotebooks:
         assert last_item.path is None
         assert last_item.content is None
 
+    def test_notebook_add_home_page_parent(self, tmp_home_page):
+        test_notebook = pn.Notebook()
+        test_notebook.add_home_page(tmp_home_page)
+        last_item = test_notebook.contents[-1]
+        assert last_item.parent == test_notebook
+
     def test_notebook_add_home_page_no_changes(self, cloned_repo):
         test_notebook = pn.Notebook()
         test_notebook.add_home_page(pathlib.Path(cloned_repo.working_dir)
@@ -1903,6 +2109,12 @@ class TestProcessNotebooks:
         assert last_item.path is None
         assert last_item.content is None
 
+    def test_logbook_add_home_page_parent(self, tmp_home_page):
+        test_logbook = pn.Logbook()
+        test_logbook.add_home_page(tmp_home_page)
+        last_item = test_logbook.contents[-1]
+        assert last_item.parent == test_logbook
+
     def test_logbook_add_home_page_no_changes(self, cloned_repo):
         test_logbook = pn.Logbook()
         test_logbook.add_home_page(pathlib.Path(cloned_repo.working_dir)
@@ -1963,6 +2175,12 @@ class TestProcessNotebooks:
         assert isinstance(last_item, pn.Page)
         assert last_item.path is None
         assert last_item.content is None
+
+    def test_notebook_add_readme_page_parent(self, tmp_readme_page):
+        test_notebook = pn.Notebook()
+        test_notebook.add_readme_page(tmp_readme_page)
+        last_item = test_notebook.contents[-1]
+        assert last_item.parent == test_notebook
 
     def test_notebook_add_readme_page_no_changes(self, cloned_repo):
         test_notebook = pn.Notebook()
@@ -2026,6 +2244,12 @@ class TestProcessNotebooks:
         assert last_item.path is None
         assert last_item.content is None
 
+    def test_logbook_add_readme_page_parent(self, tmp_readme_page):
+        test_logbook = pn.Logbook()
+        test_logbook.add_readme_page(tmp_readme_page)
+        last_item = test_logbook.contents[-1]
+        assert last_item.parent == test_logbook
+
     def test_logbook_add_readme_page_no_changes(self, cloned_repo):
         test_logbook = pn.Logbook()
         test_logbook.add_readme_page(pathlib.Path(cloned_repo.working_dir)
@@ -2081,6 +2305,12 @@ class TestProcessNotebooks:
         assert isinstance(last_item, pn.Notebook)
         assert last_item.path is None
         assert last_item.contents == []
+
+    def test_notebook_add_notebook_parent(self, tmp_notebook):
+        test_notebook = pn.Notebook()
+        test_notebook.add_notebook(tmp_notebook)
+        last_item = test_notebook.contents[-1]
+        assert last_item.parent == test_notebook
 
     def test_notebook_add_notebook_no_changes(self, cloned_repo):
         test_notebook = pn.Notebook()
@@ -2157,6 +2387,12 @@ class TestProcessNotebooks:
         assert isinstance(last_item, pn.Notebook)
         assert last_item.path is None
         assert last_item.contents == []
+
+    def test_notebook_add_logbook_parent(self, tmp_logbook):
+        test_notebook = pn.Notebook()
+        test_notebook.add_logbook(tmp_logbook)
+        last_item = test_notebook.contents[-1]
+        assert last_item.parent == test_notebook
 
     def test_notebook_add_logbook_no_changes(self, cloned_repo):
         test_notebook = pn.Notebook()

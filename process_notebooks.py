@@ -23,15 +23,21 @@ UNKNOWN_DESCRIPTOR = 'Unknown'
 class Page():
     """Standard page in a notebook."""
     _descriptor = 'page'
-    def __init__(self, page_file=None):
+    def __init__(self, page_file=None, parent=None):
         self.content = None
         self.path = None
+        self.parent = None
         if page_file is not None:
             if self._is_valid_page(page_file):
                 self.path = page_file
                 self.load_content()
             else:
                 raise ValueError(f'Not a valid {self._descriptor}: {page_file}')
+        if parent is not None:
+            if self._is_valid_parent(parent):
+                self.parent = parent
+            else:
+                raise ValueError(f'Received invalid parent object.')
 
     def load_content(self):
         """Load the content of the page from file."""
@@ -57,8 +63,15 @@ class Page():
                 else:
                     return self._convert_filename_to_title()
 
+    def get_root(self):
+        """Find the top-level notebook."""
+        return _get_root(self)
+
     def _is_valid_page(self, page_file):
         return _is_valid_page(page_file)
+
+    def _is_valid_parent(self, parent):
+        return isinstance(parent, Notebook)
 
     def _convert_filename_to_title(self):
         if self.path is None:
@@ -113,9 +126,10 @@ class LogbookPage(Page):
 class Notebook():
     """Standard notebook object containing pages."""
     _descriptor = 'notebook'
-    def __init__(self, notebook_path=None):
+    def __init__(self, notebook_path=None, parent=None):
         self.contents = []
         self.path = None
+        self.parent = None
         if notebook_path is not None:
             if self._is_valid_folder(notebook_path):
                 self.path = notebook_path
@@ -123,6 +137,11 @@ class Notebook():
             else:
                 raise ValueError(f'Not a valid {self._descriptor}: '
                                  f'{notebook_path}')
+        if parent is not None:
+            if self._is_valid_parent(parent):
+                self.parent = parent
+            else:
+                raise ValueError(f'Received invalid parent object.')
 
     def load_contents(self):
         """Load the contents of the notebook from its directory."""
@@ -146,27 +165,34 @@ class Notebook():
 
     def add_page(self, page_path=None):
         """Add a page to a notebook."""
-        self.contents.append(Page(page_path))
+        self.contents.append(Page(page_path, parent=self))
 
     def add_home_page(self, page_path=None):
         """Add a home page to a notebook."""
-        self.contents.append(HomePage(page_path))
+        if self.get_root() == self:
+            self.contents.append(HomePage(page_path, parent=self))
+        else:
+            raise ValueError('Can only add home page at the root level.')
 
     def add_contents_page(self, page_path=None):
         """Add a contents page to a notebook."""
-        self.contents.append(ContentsPage(page_path))
+        self.contents.append(ContentsPage(page_path, parent=self))
 
     def add_readme_page(self, page_path=None):
         """Add a readme page to a notebook."""
-        self.contents.append(ReadmePage(page_path))
+        self.contents.append(ReadmePage(page_path, parent=self))
 
     def add_notebook(self, notebook_path=None):
         """Add a nested notebook inside a notebook."""
-        self.contents.append(Notebook(notebook_path))
+        self.contents.append(Notebook(notebook_path, parent=self))
 
     def add_logbook(self, logbook_path=None):
         """Add a nested logbook inside a notebook."""
-        self.contents.append(Logbook(logbook_path))
+        self.contents.append(Logbook(logbook_path, parent=self))
+
+    def get_root(self):
+        """Find the top-level folder."""
+        return _get_root(self)
 
     def get_pages(self):
         """Return a list of contents that are (standard) pages."""
@@ -174,6 +200,8 @@ class Notebook():
 
     def get_home_page(self):
         """Returns the home page if it exists, assuming there is only one."""
+        if not self.get_root() == self:
+            return None
         for item in self.contents:
             if isinstance(item, HomePage):
                 return item
@@ -211,7 +239,10 @@ class Notebook():
         return _is_valid_page(page_path)
 
     def _is_valid_home_page(self, page_path):
-        return _is_valid_home_page(page_path)
+        if not self.get_root() == self:
+            return False
+        else:
+            return _is_valid_home_page(page_path)
 
     def _is_valid_contents_page(self, page_path):
         return _is_valid_contents_page(page_path)
@@ -222,13 +253,16 @@ class Notebook():
     def _is_valid_folder(self, folder_path):
         return _is_valid_folder(folder_path)
 
+    def _is_valid_parent(self, parent):
+        return isinstance(parent, Notebook) and not isinstance(parent, Logbook)
+
 class Logbook(Notebook):
     """Special notebook object for logbooks, containing logbook pages."""
     _descriptor = 'logbook'
 
     def add_page(self, page_path=None):
         """Add a page to a logbook."""
-        self.contents.append(LogbookPage(page_path))
+        self.contents.append(LogbookPage(page_path, parent=self))
 
     def add_notebook(self, notebook_path=None):
         """Don't allow nested notebooks inside a logbook."""
@@ -307,6 +341,11 @@ def _is_navigation_line(line):
 
 def _is_title_line(line):
     return line.startswith('# ')
+
+def _get_root(item):
+    while item.parent is not None:
+        item = item.parent
+    return item
 
 
 # Processing procedures
