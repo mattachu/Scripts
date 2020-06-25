@@ -4,36 +4,861 @@ import pytest
 import pathlib
 import git
 import shutil
+from contextlib import nullcontext as does_not_raise
 
 import process_notebooks as pn
 
+
+# Test generation
+test_objects = [
+    'page',
+    'logbook page',
+    'contents',
+    'home',
+    'readme',
+    'notebook',
+    'logbook']
+
+test_lines = {
+    'blank': '',
+    'text': 'text',
+    'title': '# Page title',
+    'navigation': '[page](link)',
+    'link': '[link]: link'
+}
+
+def build_test_def(
+        object_type='page', method_type='create', test_object=None,
+        error_type=None, path=None, filename=None, title=None, parent=None):
+    """Return a dictionary of test parameters for passing between functions."""
+    return {'object_type': object_type,
+            'method_type': method_type,
+            'test_object': test_object,
+            'error_type': error_type,
+            'path': path,
+            'filename': filename,
+            'title': title,
+            'parent': parent}
+
+def modify_test_def(
+        test_def, object_type=None, method_type=None, test_object=None,
+        error_type=None, path=None, filename=None, title=None, parent=None):
+    """Return a modified test definition for parametric testing."""
+    new_test_def = test_def.copy()
+    for key in new_test_def.keys():
+        if eval(key) is not None:
+            new_test_def[key] = eval(key)
+    return new_test_def
+
+def build_all_tests(object_type, method_type='create'):
+    """Build all tests for all scenarios on the current method."""
+    test_list = get_tests(object_type, method_type)
+    return build_tests(test_list)
+
+def build_tests(test_list):
+    """Convert list of test scenarios to list of `pytest.param` objects."""
+    new_test_list = []
+    for test_scenario in test_list:
+        new_test_list.append(build_test(*test_scenario))
+    return new_test_list
+
+def build_test(test_type, test_def, expected):
+    """Create a Pytest parameter set for a parametric test."""
+    test_params = build_test_params(test_type, test_def, expected)
+    test_id = build_test_string(test_type, test_def, expected)
+    return pytest.param(test_params, id=test_id)
+
+def build_test_params(test_type, test_def, expected):
+    """Set the parameter values to give to the test function."""
+    params = {}
+    params['test_type'] = test_type
+    params['expected'] = expected
+    if test_def['error_type'] is not None:
+        params['error condition'] = f"pytest.raises({test_def['error_type']})"
+    else:
+        params['error condition'] = 'does_not_raise()'
+    params['path'] = test_def['path'] or 'None'
+    params['filename'] = test_def['filename'] or 'None'
+    params['title'] = test_def['title'] or 'None'
+    params['parent'] = get_generator(test_def['parent']) or 'None'
+    if test_def['method_type'] == 'load':
+        params['existing'] = 'None'
+    elif test_def['method_type'] == 'overwrite':
+        params['existing'] = get_existing_generator(test_def['object_type'])
+    elif test_def['method_type'].startswith('valid'):
+        params['object'] = get_generator(test_def['test_object'])
+    return params
+
+def build_test_string(test_type, test_def, expected):
+    """Create a test description string for a parametric test"""
+    if test_def['method_type'] == 'overwrite':
+        test_id = f"{test_def['method_type']}, {test_type}"
+    elif (test_def['method_type'].startswith('valid')
+            and test_def['test_object'] is not None):
+        test_id = f"{test_def['test_object']}, {test_type}"
+    else:
+        test_id = test_type
+    test_string = []
+    if 'clash' in test_type:
+        return test_id
+    elif test_type == 'invalid path':
+        return f"{test_id}: {test_def['path']}"
+    elif test_type == 'invalid file':
+        filename = test_def['path'].replace("tmp_file_factory('","")[:-2]
+        return f'{test_id}: {filename}'
+    elif test_type == 'invalid folder':
+        filename = test_def['path'].replace("tmp_folder_factory('","")[:-2]
+        return f'{test_id}: {filename}'
+    if test_def['path'] is not None:
+        test_string.append('path')
+    if test_def['title'] is not None:
+        if test_def['title'] == get_matching(test_def['object_type'], 'title'):
+            test_string.append('title')
+        else:
+            test_string.append(f"{test_def['title']}")
+    if test_def['filename'] is not None:
+        if test_def['filename'] == get_matching(
+                test_def['object_type'], 'filename'):
+            test_string.append('filename')
+        else:
+            test_string.append(f"{test_def['filename']}")
+    if test_def['parent'] is not None:
+        test_string.append(f"parent {test_def['parent']}")
+    if len(test_string) > 0:
+        if 'invalid' in test_type:
+            test_id = f'{test_id}: ' + ', '.join(test_string)
+        else:
+            test_id = ', '.join(test_string) + f': {test_id}'
+    return test_id
+
+def get_tests(object_type, method_type):
+    """Return a list of tests for all parameters of the current method."""
+    test_def = build_test_def(object_type, method_type)
+    parameter_list = get_parameter_list(method_type)
+    tmp_path = get_temp_path(object_type)
+    test_list = []
+    if method_type in ['create', 'add', 'load', 'overwrite']:
+        test_list = test_list + get_object_tests(test_def)
+        if 'path' in parameter_list:
+            path_def = modify_test_def(test_def, path=tmp_path)
+            test_list = test_list + get_object_tests(path_def)
+        test_list = test_list + get_invalid_input_tests(test_def)
+        if method_type == 'load':
+            test_list = test_list + get_tests(object_type, 'overwrite')
+    elif method_type.startswith('valid'):
+        if 'path' in parameter_list:
+            for test_object in test_objects:
+                if object_type == 'function':
+                    expected_object = get_test_object(method_type)
+                    tmp_path = get_temp_path(test_object)
+                object_def = modify_test_def(test_def,
+                    test_object=test_object, path=tmp_path)
+                test_list = test_list + get_validation_tests(object_def)
+                test_list = test_list + get_io_tests(object_def)
+                if object_type != 'function' or test_object == expected_object:
+                    test_list = test_list + get_invalid_input_tests(object_def)
+        if 'line' in parameter_list:
+            for line_object in test_lines:
+                expected_object = get_test_object(method_type)
+                object_def = modify_test_def(test_def, test_object=line_object)
+                test_list = test_list + get_validation_tests(object_def)
+                test_list = test_list + get_io_tests(object_def)
+                if line_object == expected_object:
+                    test_list = test_list + get_invalid_input_tests(object_def)
+    elif method_type.startswith('get'):
+        creation_def = modify_test_def(test_def, method_type='create')
+        path_def = modify_test_def(test_def, path=tmp_path)
+        for combination in get_test_combinations(creation_def):
+            new_test_def = modify_test_def(combination, method_type=method_type)
+            new_path_def = modify_test_def(new_test_def, path=tmp_path)
+            test_list = test_list + get_method_tests(new_test_def)
+            test_list = test_list + get_method_tests(new_path_def)
+        test_list = test_list + get_io_tests(test_def)
+        test_list = test_list + get_io_tests(path_def)
+    else:
+        raise ValueError(f'Invalid test method type: {method_type}')
+    return test_list
+
+def get_test(test_type, test_def, expected):
+    """Return a test scenario for the given test."""
+    if 'Error' in expected[test_type]:
+        new_test_def = modify_test_def(test_def, error_type=expected[test_type])
+        return (test_type, new_test_def, 'None')
+    else:
+        return (test_type, test_def, expected[test_type])
+
+def get_object_tests(test_def):
+    """Return a list of all tests for a particular object."""
+    test_list = []
+    for combination in get_test_combinations(test_def):
+        test_list = test_list + get_property_tests(combination)
+    test_list = test_list + get_io_tests(test_def)
+    return test_list
+
+def get_property_tests(test_def):
+    """Return a list of tests of page/notebook object properties."""
+    test_list = []
+    expected = expectations(test_def)
+    test_list.append(get_test('return type', test_def, expected))
+    test_list.append(get_test('path', test_def, expected))
+    test_list.append(get_test('contents', test_def, expected))
+    test_list.append(get_test('title', test_def, expected))
+    test_list.append(get_test('filename', test_def, expected))
+    test_list.append(get_test('link', test_def, expected))
+    test_list.append(get_test('parent', test_def, expected))
+    return test_list
+
+def get_validation_tests(test_def):
+    """Return a list of tests that validate an object passed to a method."""
+    test_list = []
+    test_list.append(get_test('result', test_def, expectations(test_def)))
+    if 'line' in test_def['method_type']:
+        new_test_line = test_def['test_object'] + ' + newline'
+        new_test_def = modify_test_def(test_def, test_object=new_test_line)
+        test_list.append(get_test('result', new_test_def, expectations(test_def)))
+    return test_list
+
+def get_method_tests(test_def):
+    """Return a list of tests that check a result from an object method."""
+    test_list = []
+    expected = expectations(test_def)
+    method = get_method_parameters(test_def['method_type'])
+    if method['get'] in ['title']:
+        test_list.append(get_test('result', test_def, expected))
+    elif method['get'] in ['pages', 'notebooks', 'logbooks']:
+        test_list.append(get_test('return type', test_def, expected))
+        test_list.append(get_test('contents', test_def, expected))
+    else:
+        raise ValueError(f"Invalid method call: {test_def['method_type']}")
+    return test_list
+
+def get_io_tests(test_def):
+    """Return a list of tests of input/output that apply to all functions."""
+    test_list = []
+    if error_expected(test_def):
+        return []
+    test_list.append(('quiet', test_def, 'capsys.readouterr().out'))
+    if test_def['path'] is not None:
+        cloned_path = get_cloned_path(test_def)
+        new_test_def = modify_test_def(test_def, path=cloned_path)
+        test_list.append(('no changes', new_test_def, 'cloned_repo'))
+    return test_list
+
+def get_invalid_input_tests(test_def):
+    """Return a list tests with invalid inputs for the different parameters."""
+    test_list = []
+    if error_expected(test_def):
+        return []
+    parameter_list = get_parameter_list(test_def['method_type'])
+    if 'path' in parameter_list:
+        if test_def['object_type'] == 'function':
+            tmp_path = get_temp_path(get_test_object(test_def['method_type']))
+        else:
+            tmp_path = get_temp_path(test_def['object_type'])
+        path_def = modify_test_def(test_def, path=tmp_path)
+        if 'title' in parameter_list:
+            new_test_def = modify_test_def(path_def,
+                                           error_type='ValueError',
+                                           title="'Non-matching title'")
+            test_list.append(('title clash', new_test_def, None))
+        if 'filename' in parameter_list:
+            new_test_def = modify_test_def(path_def,
+                                           error_type='ValueError',
+                                           filename="'unmatched_filename'")
+            test_list.append(('filename clash', new_test_def, None))
+        for test_path, error_type in invalid_paths:
+            new_test_def = modify_test_def(path_def,
+                                           path=test_path,
+                                           error_type=error_type)
+            test_list.append(('invalid path', new_test_def, None))
+        test_list = test_list + get_invalid_file_tests(path_def)
+    if 'title' in parameter_list:
+        for test_string in invalid_strings:
+            new_test_def = modify_test_def(test_def,
+                                           title=test_string,
+                                           error_type='ValueError')
+            test_list.append(('invalid title', new_test_def, None))
+    if 'filename' in parameter_list:
+        error_type = get_filename_error_type(test_def['object_type'])
+        for test_string in invalid_strings:
+            new_test_def = modify_test_def(test_def,
+                                           filename=test_string,
+                                           error_type=error_type)
+            test_list.append(('invalid filename', new_test_def, None))
+    if 'parent' in parameter_list:
+        error_type = get_parent_error_type(test_def['method_type'])
+        for test_parent in invalid_parents:
+            new_test_def = modify_test_def(test_def,
+                                           parent=test_parent,
+                                           error_type=error_type)
+            test_list.append(('invalid parent', new_test_def, None))
+    if 'line' in parameter_list:
+        for test_line in invalid_strings + ['None']:
+            error_type = get_line_error_type(
+                get_test_object(test_def['method_type']))
+            new_test_def = modify_test_def(test_def,
+                                           test_object=test_line,
+                                           error_type=error_type)
+            test_list.append(('invalid line', new_test_def, None))
+    return test_list
+
+def get_invalid_file_tests(test_def):
+    """Return a list of tests with invalid temporary file or folder objects."""
+    if test_def['method_type'].startswith('valid'):
+        object_type = test_def['test_object']
+        error_type = None
+        expected = 'False'
+    else:
+        object_type = test_def['object_type']
+        error_type = 'ValueError'
+        expected = None
+    if object_type in ['notebook', 'nested']:
+        test_items = invalid_notebook
+        generator = 'tmp_folder_factory'
+        test_type = 'invalid folder'
+    elif object_type == 'logbook':
+        test_items = invalid_logbook
+        generator = 'tmp_folder_factory'
+        test_type = 'invalid folder'
+    else:
+        test_items = invalid_filenames(object_type)
+        generator = 'tmp_file_factory'
+        test_type = 'invalid file'
+    test_list = []
+    for item in test_items:
+        new_test_def = modify_test_def(
+            test_def, path=f"{generator}('{item}')", error_type=error_type)
+        test_list.append((test_type, new_test_def, expected))
+    return test_list
+
+def get_test_combinations(test_def):
+    """Return a list of test definitions for different parameter combinations."""
+    test_list = []
+    parameter_list = get_parameter_list(test_def['method_type'])
+    test_list.append(test_def)
+    if 'title' in parameter_list:
+        matching_title = get_matching(test_def['object_type'], 'title')
+        test_list.append(modify_test_def(test_def, title=matching_title))
+    if 'filename' in parameter_list:
+        matching_filename = get_matching(test_def['object_type'], 'filename')
+        test_list.append(modify_test_def(test_def, filename=matching_filename))
+    if 'parent' in parameter_list:
+        for test_parent in ['notebook', 'logbook']:
+            test_list.append(modify_test_def(test_def, parent=test_parent))
+    if 'title' in parameter_list and 'filename' in parameter_list:
+        test_list.append(modify_test_def(test_def,
+                                         title=matching_title,
+                                         filename=matching_filename))
+    if ('title' in parameter_list
+            and 'filename' in parameter_list
+            and 'parent' in parameter_list):
+        for test_parent in ['notebook', 'logbook']:
+            test_list.append(modify_test_def(test_def,
+                                             title=matching_title,
+                                             filename=matching_filename,
+                                             parent=test_parent))
+    if test_def['method_type'] == 'add':
+        return [test for test in test_list if test['parent'] is not None]
+    else:
+        return test_list
+
+def get_parameter_list(method_type):
+    """Return list of the parameters to be tested for different methods."""
+    if method_type == 'create':
+        return ['path', 'title', 'filename', 'parent']
+    elif method_type == 'add':
+        return ['path', 'parent']
+    elif method_type in ['load', 'overwrite']:
+        return ['path']
+    elif method_type.startswith('valid'):
+        parameter_to_check = method_type.split()[1]
+        return [parameter_to_check]
+    elif method_type.startswith('get'):
+        return []
+    else:
+        raise ValueError(f'Invalid method type: {method_type}')
+
+def get_temp_path(object_type):
+    """Return name of temporary object fixture."""
+    if object_type == 'page':
+        return 'tmp_page'
+    elif object_type == 'logbook page':
+        return 'tmp_logbook_page'
+    elif object_type == 'contents':
+        return 'tmp_contents_page'
+    elif object_type == 'logbook contents':
+        return 'tmp_logbook_contents_page'
+    elif object_type == 'logbook month':
+        return 'tmp_logbook_month_page'
+    elif object_type == 'home':
+        return 'tmp_home_page'
+    elif object_type == 'readme':
+        return 'tmp_readme_page'
+    elif object_type == 'logbook readme':
+        return 'tmp_logbook_readme_page'
+    elif object_type == 'notebook':
+        return 'tmp_notebook'
+    elif object_type == 'logbook':
+        return 'tmp_logbook'
+    elif object_type == 'nested':
+        return 'tmp_nested'
+    elif object_type == 'function':
+        return None
+    else:
+        raise ValueError(f'Invalid test object: {object_type}')
+
+def get_test_object(method_type):
+    """Return type of object being checked for function methods."""
+    return ' '.join(method_type.split()[2:])
+
+def get_cloned_path(test_def):
+    """Return path to a particular test object in the cloned repo."""
+    if test_def['object_type'] == 'function':
+        test_object_type = get_test_object(test_def['method_type'])
+    else:
+        test_object_type = test_def['object_type']
+    if test_object_type == 'page':
+        path = 'self.cloned_page'
+    elif test_object_type == 'logbook page':
+        path = 'self.cloned_logbook_page'
+    elif test_object_type == 'contents':
+        path = 'self.cloned_contents_page'
+    elif test_object_type == 'logbook contents':
+        path = 'self.cloned_logbook_contents_page'
+    elif test_object_type == 'logbook month':
+        path = 'self.cloned_logbook_month_page'
+    elif test_object_type == 'home':
+        path = 'self.cloned_home_page'
+    elif test_object_type == 'readme':
+        path = 'self.cloned_readme_page'
+    elif test_object_type == 'logbook readme':
+        path = 'self.cloned_logbook_readme_page'
+    elif test_object_type in ['notebook', 'nested']:
+        path = 'self.cloned_nested_notebook'
+    elif test_object_type == 'logbook':
+        path = 'self.cloned_logbook'
+    else:
+        raise ValueError(f'Invalid test object: {object_type}')
+    return f'pathlib.Path(cloned_repo.working_dir).joinpath({path})'
+
+def get_matching(object_type, parameter):
+    """Return matching values for test parameters."""
+    if object_type == 'page':
+        if parameter == 'title':
+            return 'self.test_page_title'
+        elif parameter == 'filename':
+            return 'tmp_page.stem.strip()'
+        else:
+            raise ValueError(f'Invalid matching parameter: {parameter}')
+    elif object_type == 'logbook page':
+        if parameter == 'title':
+            return 'self.test_logbook_page_title'
+        elif parameter == 'filename':
+            return 'tmp_logbook_page.stem.strip()'
+        else:
+            raise ValueError(f'Invalid matching parameter: {parameter}')
+    elif object_type in ['contents', 'logbook contents']:
+        if parameter == 'title':
+            return 'self.contents_descriptor'
+        elif parameter == 'filename':
+            return 'self.contents_filename'
+        else:
+            raise ValueError(f'Invalid matching parameter: {parameter}')
+    elif object_type == 'home':
+        if parameter == 'title':
+            return 'self.homepage_descriptor'
+        elif parameter == 'filename':
+            return 'self.homepage_filename'
+        else:
+            raise ValueError(f'Invalid matching parameter: {parameter}')
+    elif object_type == 'readme':
+        if parameter == 'title':
+            return 'self.test_notebook_title'
+        elif parameter == 'filename':
+            return 'self.readme_filename'
+        else:
+            raise ValueError(f'Invalid matching parameter: {parameter}')
+    elif object_type == 'logbook readme':
+        if parameter == 'title':
+            return 'self.readme_descriptor'
+        elif parameter == 'filename':
+            return 'self.readme_filename'
+        else:
+            raise ValueError(f'Invalid matching parameter: {parameter}')
+    elif object_type == 'logbook month':
+        if parameter == 'title':
+            return 'self.test_logbook_month_title'
+        elif parameter == 'filename':
+            return 'tmp_logbook_month_page.stem.strip()'
+        else:
+            raise ValueError(f'Invalid matching parameter: {parameter}')
+    elif object_type in ['notebook', 'nested']:
+        if parameter == 'title':
+            return 'self.test_notebook_title'
+        elif parameter == 'filename':
+            return 'self.temp_notebook'
+        else:
+            raise ValueError(f'Invalid matching parameter: {parameter}')
+    elif object_type == 'logbook':
+        if parameter == 'title':
+            return 'self.logbook_folder_name'
+        elif parameter == 'filename':
+            return 'self.temp_logbook'
+        else:
+            raise ValueError(f'Invalid matching parameter: {parameter}')
+    else:
+        raise ValueError(f'Invalid test object: {object_type}')
+
+def get_generator(object_type):
+    """Return code to generate a particular object."""
+    if object_type == 'page':
+        return 'pn.Page()'
+    elif object_type == 'logbook page':
+        return 'pn.LogbookPage()'
+    elif object_type == 'contents':
+        return 'pn.ContentsPage()'
+    elif object_type == 'home':
+        return 'pn.HomePage()'
+    elif object_type == 'readme':
+        return 'pn.ReadmePage()'
+    elif object_type == 'notebook':
+        return 'pn.Notebook()'
+    elif object_type == 'logbook':
+        return 'pn.Logbook()'
+    elif object_type is None:
+        return None
+    elif object_type in test_lines:
+        return f"test_lines['{object_type}']"
+    elif 'newline' in object_type:
+        return f"test_lines['{object_type.split()[0]}'\n]"
+    else:
+        return object_type
+
+def get_filename_error_type(object_type):
+    """Different objects can cause different error types."""
+    if object_type in ['logbook page', 'logbook month']:
+        return 'TypeError'
+    else:
+        return 'ValueError'
+
+def get_parent_error_type(method_type):
+    """Different methods can cause different error types."""
+    if method_type == 'add':
+        return 'AttributeError'
+    else:
+        return 'ValueError'
+
+def get_line_error_type(line_type):
+    """Different methods can cause different error types."""
+    if line_type == 'navigation':
+        return 'TypeError'
+    else:
+        return 'AttributeError'
+
+def get_title_from_filename(filename, object_type):
+    """Work out what the generated filename should be."""
+    if object_type in ['logbook page', 'logbook month']:
+        return filename
+    else:
+        return f"{filename}.replace('_', ' ').replace('-', ' ').strip()"
+
+def get_existing_object(object_type):
+    """Return existing object name, filename and contents for overwrite tests."""
+    if object_type == 'page':
+        object_name = 'existing_page'
+        filename = 'existing_page.md'
+        contents = 'self.test_logbook_page'
+    elif object_type == 'logbook page':
+        object_name = 'existing_page'
+        filename = '2001-01-01.md'
+        contents = 'self.test_logbook_page'
+    elif object_type == 'logbook month':
+        object_name = 'existing_page'
+        filename = '2001-01.md'
+        contents = 'self.test_logbook_page'
+    elif object_type in ['contents', 'logbook contents']:
+        object_name = 'existing_page'
+        filename = 'Contents.md'
+        contents = 'self.test_logbook_page'
+    elif object_type == 'home':
+        object_name = 'existing_page'
+        filename = 'Home.md'
+        contents = 'self.test_logbook_page'
+    elif object_type in ['readme', 'logbook readme']:
+        object_name = 'existing_page'
+        filename = 'Readme.md'
+        contents = 'self.test_logbook_page'
+    elif object_type == 'notebook':
+        object_name = 'existing_notebook'
+        filename = 'existing_notebook'
+        contents = 'tmp_notebook'
+    elif object_type == 'logbook':
+        object_name = 'existing_logbook'
+        filename = 'Logbook'
+        contents = 'tmp_logbook'
+    elif object_type == 'nested':
+        object_name = 'existing_notebook'
+        filename = 'existing_notebook'
+        contents = 'tmp_nested'
+    else:
+        raise ValueError(f'Invalid existing object type: {object_type}')
+    return object_name, filename, contents
+
+def get_existing_generator(object_type):
+    """Return code to generate existing objects for overwrite tests."""
+    _, filename, contents = get_existing_object(object_type)
+    if object_type in ['notebook', 'logbook', 'nested']:
+        return (f"shutil.copytree({contents}, tmp_folder_factory('{filename}'),"
+                                 "dirs_exist_ok=True)")
+    else:
+        return f"shutil.copyfile({contents}, tmp_file_factory('{filename}'))"
+
+def get_method_parameters(method_string):
+    """For method tests, return a dictionary of parameters."""
+    params = {}
+    components = method_string.split()
+    params['get'] = components[1]
+    if len(components) > 2:
+        params['generator'] = components[3]
+    else:
+        params['generator'] = None
+    return params
+
+def is_valid_nesting(test_def):
+    """Does the object fit inside its parent?"""
+    if (test_def['object_type'] in ['notebook', 'logbook', 'nested']
+        and test_def['parent'] == 'logbook'):
+        # Logbooks can't contain nested notebooks
+        return False
+    elif (test_def['object_type'] == 'page'
+        and test_def['parent'] == 'logbook'):
+        # Logbooks can't contain standard pages
+        if (test_def['path'] is None and test_def['method_type'] == 'add'):
+            # This combination creates a default page, so is ok
+            return True
+        else:
+            # Other combinations are not ok
+            return False
+    elif (test_def['object_type'] in ['logbook page', 'logbook month']
+        and test_def['parent'] == 'notebook'):
+        # Standard notebook can't contain logbook pages
+        if test_def['method_type'] == 'add':
+            # This combination creates a default page, so is ok
+            return True
+        else:
+            # Other combinations are not ok
+            return False
+    elif (test_def['object_type'] == 'nested'
+        and test_def['path'] is not None):
+        # Nested notebook fixture has a homepage at the root
+        return False
+    else:
+        return True
+
+def error_expected(test_def):
+    """Is the current test expected to produce an error?"""
+    if test_def['error_type'] is not None:
+        return True
+    expected = expectations(test_def)
+    if 'result' in expected and 'Error' in expected['result']:
+        return True
+    elif 'return type' in expected and 'Error' in expected['return type']:
+        return True
+    return False
+
+# Define expectations for parametric tests
+def expectations(test_def):
+    """Return dictionary of expected values for the current tests."""
+    expected = {}
+    # Expected object properties
+    expected['path'] = 'None'
+    expected['title'] = None
+    expected['filename'] = None
+    expected['link'] = None
+    title_from_contents = None
+    title_from_path = None
+    if test_def['object_type'] == 'page':
+        expected['return type'] = 'pn.Page'
+        title_from_contents = 'self.test_page_title'
+    elif test_def['object_type'] == 'logbook page':
+        expected['return type'] = 'pn.LogbookPage'
+        title_from_path = 'self.test_logbook_page_title'
+    elif test_def['object_type'] in ['contents', 'logbook contents']:
+        expected['return type'] = 'pn.ContentsPage'
+        expected['title'] = 'self.contents_descriptor'
+        expected['filename'] = 'self.contents_filename'
+        expected['link'] = 'self.contents_filename'
+    elif test_def['object_type'] == 'home':
+        expected['return type'] = 'pn.HomePage'
+        expected['title'] = 'self.homepage_descriptor'
+        expected['filename'] = 'self.homepage_filename'
+        expected['link'] = 'self.homepage_filename'
+    elif test_def['object_type'] == 'readme':
+        expected['return type'] = 'pn.ReadmePage'
+        expected['title'] = 'self.readme_descriptor'
+        title_from_contents = 'self.test_notebook_title'
+        expected['filename'] = 'self.readme_filename'
+        expected['link'] = 'self.readme_filename'
+    elif test_def['object_type'] == 'logbook readme':
+        expected['return type'] = 'pn.ReadmePage'
+        expected['title'] = 'self.readme_descriptor'
+        expected['filename'] = 'self.readme_filename'
+        expected['link'] = 'self.readme_filename'
+    elif test_def['object_type'] == 'logbook month':
+        expected['return type'] = 'pn.LogbookPage'
+        title_from_contents = 'self.test_logbook_month_title'
+    elif test_def['object_type'] in ['notebook', 'nested']:
+        expected['return type'] = 'pn.Notebook'
+        title_from_contents = 'self.test_notebook_title'
+        if test_def['parent'] is None:
+            expected['link'] = 'self.homepage_descriptor'
+        else:
+            expected['link'] = 'self.contents_descriptor'
+    elif test_def['object_type'] == 'logbook':
+        expected['return type'] = 'pn.Logbook'
+        title_from_contents = 'self.logbook_folder_name'
+        if test_def['parent'] is None:
+            expected['link'] = 'self.homepage_descriptor'
+        else:
+            expected['link'] = 'self.contents_descriptor'
+    elif test_def['object_type'] == 'function':
+        pass
+    else:
+        raise ValueError(f"Invalid test object type: {test_def['object_type']}")
+    if test_def['filename'] is not None:
+        expected['filename'] = test_def['filename']
+        if test_def['object_type'] not in ['notebook',
+                                           'logbook',
+                                           'nested']:
+            expected['link'] = test_def['filename']
+        expected['title'] = get_title_from_filename(
+            test_def['filename'], test_def['object_type'])
+    if test_def['title'] is not None:
+        expected['title'] = test_def['title']
+    if test_def['method_type'] == 'overwrite':
+        existing_object, *_ = get_existing_object(test_def['object_type'])
+        expected['path'] = existing_object
+        expected['filename'] = f'{existing_object}.stem'
+        if test_def['object_type'] in ['notebook', 'logbook', 'nested']:
+            expected['title'] = title_from_contents
+            expected['link'] = 'self.homepage_descriptor'
+        else:
+            expected['title'] = get_title_from_filename(
+                expected['filename'], test_def['object_type'])
+            expected['link'] = expected['filename']
+    if test_def['path'] is not None:
+        if test_def['method_type'] in ['create', 'add']:
+            expected['path'] = test_def['path']
+            expected['title'] = title_from_path or expected['title']
+            expected['filename'] = str(test_def['path'])+'.stem'
+            if test_def['object_type'] not in ['notebook',
+                                               'logbook',
+                                               'nested']:
+                expected['link'] = str(test_def['path'])+'.stem'
+        expected['contents'] = test_def['path']
+        expected['title'] = title_from_contents or expected['title']
+    else:
+        if test_def['method_type'] == 'overwrite':
+            expected['contents'] = existing_object
+        else:
+            expected['path'] = 'None'
+            expected['contents'] = '[]'
+    expected['title'] = expected['title'] or 'self.unknown_descriptor'
+    expected['filename'] = expected['filename'] or 'self.unknown_descriptor'
+    expected['link'] = expected['link'] or 'self.unknown_descriptor'
+    if test_def['parent'] is not None:
+        if is_valid_nesting(test_def):
+            expected['parent'] = 'test_parent'
+        else:
+            expected['return type'] = 'ValueError'
+            expected['path'] = 'ValueError'
+            expected['contents'] = 'ValueError'
+            expected['title'] = 'ValueError'
+            expected['filename'] = 'ValueError'
+            expected['link'] = 'ValueError'
+            expected['parent'] = 'ValueError'
+            expected['result'] = 'ValueError'
+    else:
+        expected['parent'] = 'None'
+    # Expected method results
+    if test_def['method_type'].startswith('valid'):
+        if test_def['object_type'] == 'function':
+            expected_object_type = get_test_object(test_def['method_type'])
+            given_object_type = test_def['test_object']
+        else:
+            expected_object_type = test_def['test_object']
+            given_object_type = test_def['object_type']
+        if (   (    expected_object_type in ['notebook', 'logbook', 'nested']
+                and given_object_type not in ['notebook', 'logbook', 'nested'])
+            or (    expected_object_type not in ['notebook', 'logbook', 'nested']
+                and given_object_type in ['notebook', 'logbook', 'nested'])):
+            expected['result'] = 'OSError'
+        elif expected_object_type == 'page':
+            expected['result'] = 'True'
+        elif expected_object_type == given_object_type:
+            expected['result'] = 'True'
+        elif (   (    expected_object_type == 'contents'
+                  and given_object_type == 'logbook contents')
+              or (    expected_object_type == 'readme'
+                  and given_object_type == 'logbook readme')
+              or (    expected_object_type == 'logbook page'
+                  and given_object_type == 'logbook month')
+              or (    expected_object_type == 'notebook'
+                  and given_object_type == 'nested')):
+            expected['result'] = 'True'
+        else:
+            expected['result'] = 'False'
+    elif test_def['method_type'].startswith('get'):
+        method = get_method_parameters(test_def['method_type'])
+        if method['generator'] is not None:
+            creation_def = modify_test_def(test_def, method_type='create')
+            creation_expectations = expectations(creation_def)
+            expected_generator = creation_expectations[method['generator']]
+            if 'Error' in expected_generator:
+                expected['result'] = expected_generator
+            else:
+                new_def = build_test_def(test_def['object_type'], 'create')
+                new_def = eval(f"modify_test_def(new_def, "
+                               f"{method['generator']}=expected_generator)")
+                expected['result'] = expectations(new_def)[method['get']]
+        else:
+            if 'Error' not in expected['return type']:
+                expected['return type'] = 'list'
+                if (method['get'] in ['notebooks', 'logbooks']
+                        and test_def['object_type'] != 'nested'):
+                    expected['contents'] = '[]'
+    return expected
+
+
 # Invalid objects for parametrised testing
 invalid_paths = [
-        ('string', AttributeError),
-        (3.142, AttributeError),
-        ([1, 2, 3], AttributeError),
-        (pathlib.Path('/not/a/path'), OSError)]
+        ("'string'", 'AttributeError'),
+        ("3.142", 'AttributeError'),
+        ("[1, 2, 3]", 'AttributeError'),
+        ("pathlib.Path('/not/a/path')", 'OSError')]
 
 invalid_folders = ['.vscode', '.config']
 
-invalid_logbook = invalid_folders + ['Notebooks', 'PKU-2019', 'Software']
+invalid_notebook = invalid_folders + ['Logbook', 'Attachments']
+
+invalid_logbook = invalid_folders + [
+    'Notebooks', 'PKU-2019', 'Software', 'Attachments']
 
 invalid_parents = [
-    'string',
-    3.142,
-    [1, 2, 3],
-    pathlib.Path('/not/a/path'),
-    pathlib.Path.home(),
-    pn.Page()]
+    "'string'",
+    "3.142",
+    "[1, 2, 3]",
+    "pathlib.Path('/not/a/path')",
+    "pathlib.Path.home()",
+    "pn.Page()"]
 
-invalid_lines = [
-    None,
-    3.142,
-    [1, 2, 3],
-    pathlib.Path('/not/a/path'),
-    pathlib.Path.home(),
-    pn.Page(),
-    pn.Notebook()]
+invalid_strings = [
+    "3.142",
+    "[1, 2, 3]",
+    "pathlib.Path('/not/a/path')",
+    "pathlib.Path.home()",
+    "pn.Page()",
+    "pn.Notebook()"]
 
 def invalid_filenames(object_type):
     filename_list = [
@@ -45,18 +870,19 @@ def invalid_filenames(object_type):
     else:
         filename_list.append('Page1.md')
         filename_list.append('2020-01-01-meeting.md')
-        if object_type != 'logbook page':
+        if object_type not in ['logbook page', 'logbook month']:
             filename_list.append('2020-01-01.md')
             filename_list.append('2020-01.md')
         if object_type != 'home':
             filename_list.append('Home.md')
-        if object_type != 'contents':
+        if object_type not in ['contents', 'logbook contents']:
             filename_list.append('Contents.md')
-        if object_type != 'readme':
+        if object_type not in ['readme', 'logbook readme']:
             filename_list.append('Readme.md')
         return filename_list
 
 
+# Main test class
 class TestProcessNotebooks:
 
     # Setup before testing
@@ -90,8 +916,6 @@ class TestProcessNotebooks:
         self.cloned_logbook_month_page = 'PKU-2019/Logbook/2020-01.md'
         self.cloned_logbook_contents_page = 'PKU-2019/Logbook/Contents.md'
         self.cloned_logbook_readme_page = 'PKU-2019/Logbook/Readme.md'
-        self.test_page_title = 'Page title'
-        self.test_notebook_title = 'Notebook title'
         self.temp_notebook = 'temp_notebook'
         self.temp_page = 'temp_file'
         self.temp_pages = ['page1.md', 'page2.md', 'page3.md']
@@ -102,6 +926,10 @@ class TestProcessNotebooks:
                                    '2020-01-02.md',
                                    '2020-01-03.md']
         self.test_message = 'Hello world'
+        self.test_page_title = 'Page title'
+        self.test_logbook_page_title = self.temp_logbook_page
+        self.test_logbook_month_title = 'January 2020'
+        self.test_notebook_title = 'Notebook title'
         self.page_suffix = '.md'
         self.homepage_descriptor = 'Home'
         self.homepage_filename = 'Home'
@@ -117,8 +945,10 @@ class TestProcessNotebooks:
     @pytest.fixture
     def tmp_file_factory(self, tmp_path):
         created_files = []
+        factory_path = tmp_path.joinpath('factory')
+        factory_path.mkdir()
         def _new_temp_file(filename):
-            tempfile = tmp_path.joinpath(filename)
+            tempfile = factory_path.joinpath(filename)
             with open(tempfile, 'w') as f:
                 f.write(self.test_message)
             created_files.append(tempfile)
@@ -127,6 +957,21 @@ class TestProcessNotebooks:
         for file in created_files:
             if file.is_file():
                 file.unlink()
+
+    @pytest.fixture
+    def tmp_folder_factory(self, tmp_path):
+        created_folders = []
+        factory_path = tmp_path.joinpath('folders')
+        factory_path.mkdir()
+        def _new_temp_folder(folder_name):
+            temp_folder = factory_path.joinpath(folder_name)
+            temp_folder.mkdir()
+            created_folders.append(temp_folder)
+            return temp_folder
+        yield _new_temp_folder
+        for folder in created_folders:
+            if folder.is_dir():
+                shutil.rmtree(folder)
 
     @pytest.fixture
     def tmp_page(self, tmp_path):
@@ -310,13 +1155,13 @@ class TestProcessNotebooks:
             test_contents = f.readlines()
         assert test_page.contents == test_contents
 
-    def assert_notebook_contents_match(self, test_notebook, tmp_notebook):
+    def assert_notebook_contents_match(self, notebook_contents, tmp_notebook):
         """Assert that notebook contents match the generator folder."""
         for filename in self.temp_pages:
             this_path = tmp_notebook.joinpath(filename)
-            assert this_path in [item.path for item in test_notebook.contents
+            assert this_path in [item.path for item in notebook_contents
                                  if isinstance(item, pn.Page)]
-        for item in test_notebook.contents:
+        for item in notebook_contents:
             if not isinstance(item, pn.Page):
                 continue
             if isinstance(item, pn.HomePage):
@@ -328,13 +1173,13 @@ class TestProcessNotebooks:
             else:
                 self.assert_page_contents_match(item, self.test_page)
 
-    def assert_logbook_contents_match(self, test_logbook, tmp_logbook):
+    def assert_logbook_contents_match(self, logbook_contents, tmp_logbook):
         """Assert that logbook contents match the generator folder."""
         for filename in self.temp_logbook_pages:
             this_path = tmp_logbook.joinpath(filename)
-            assert this_path in [item.path for item in test_logbook.contents
+            assert this_path in [item.path for item in logbook_contents
                                  if isinstance(item, pn.Page)]
-        for item in test_logbook.contents:
+        for item in logbook_contents:
             if not isinstance(item, pn.Page):
                 continue
             if isinstance(item, pn.ContentsPage):
@@ -347,8 +1192,90 @@ class TestProcessNotebooks:
                 assert isinstance(item, pn.LogbookPage)
                 self.assert_page_contents_match(item, self.test_logbook_page)
 
+    def assert_contents_match(self, test_object, expected):
+        """Select correct assertion based on object type."""
+        if isinstance(test_object, pn.Page):
+            self.assert_page_contents_match(test_object, expected)
+        elif isinstance(test_object, pn.Logbook):
+            self.assert_logbook_contents_match(test_object.contents, expected)
+        elif isinstance(test_object, pn.Notebook):
+            self.assert_notebook_contents_match(test_object.contents, expected)
+        elif isinstance(test_object, list):
+            if isinstance(test_object[0], pn.Notebook):
+                expected = expected.joinpath(test_object[0].filename)
+                test_object = test_object[0].contents
+            if expected.name == self.temp_logbook:
+                self.assert_logbook_contents_match(test_object, expected)
+            else:
+                self.assert_notebook_contents_match(test_object, expected)
+        else:
+            raise ValueError(f'Invalid test object for matching: {test_object}')
 
-    # Test constants
+
+    # Parametric assertions
+    def assert_parametric(self, test_object, test_type, expected):
+        if test_type == 'result':
+            assert test_object == expected
+        elif 'invalid' in test_type:
+            assert test_object == False
+        elif test_type == 'return type':
+            assert isinstance(test_object, expected)
+        elif test_type == 'path':
+            if expected is None:
+                assert test_object.path is None
+            else:
+                assert isinstance(test_object.path, pathlib.Path)
+                assert test_object.path == expected
+        elif test_type == 'contents':
+            if isinstance(test_object, list):
+                contents = test_object
+            else:
+                contents = test_object.contents
+            assert isinstance(contents, list)
+            if expected == []:
+                assert contents == []
+            else:
+                self.assert_contents_match(test_object, expected)
+        elif test_type == 'parent':
+            if expected is None:
+                assert test_object.parent is None
+            else:
+                assert isinstance(test_object.parent, pn.TreeItem)
+                assert test_object.parent == expected
+        elif test_type == 'title':
+            if expected is None:
+                assert test_object.title is None
+            else:
+                assert isinstance(test_object.title, str)
+                assert test_object._is_valid_title(test_object.title)
+                assert test_object.title == expected
+        elif test_type == 'filename':
+            if expected is None:
+                assert test_object.filename is None
+            else:
+                assert isinstance(test_object.filename, str)
+                assert test_object._is_valid_filename(test_object.filename)
+                assert test_object.filename == expected
+        elif test_type == 'link':
+            if expected is None:
+                assert test_object.link is None
+            else:
+                assert isinstance(test_object.link, str)
+                assert test_object._is_valid_link(test_object.link)
+                assert test_object.link == expected
+        elif test_type == 'quiet':
+            assert len(expected) == 0
+        elif test_type == 'no changes':
+            self.assert_repo_unchanged(expected)
+        else:
+            raise ValueError(f'Invalid test type: {test_type}')
+
+
+    # --------------------------------------------------------------------------
+    # Tests start
+    # --------------------------------------------------------------------------
+
+    # Constants
     @pytest.mark.parametrize('constant, value', [
         ('pn.PAGE_SUFFIX', 'self.page_suffix'),
         ('pn.HOME_DESCRIPTOR', 'self.homepage_descriptor'),
@@ -364,2980 +1291,884 @@ class TestProcessNotebooks:
 
 
     # Creating page objects
-    def test_create_page(self, tmp_page):
-        test_page = pn.Page(tmp_page)
-        assert isinstance(test_page, pn.Page)
+    @pytest.mark.parametrize('test_params', build_all_tests('page'))
+    def test_create_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('logbook page'))
+    def test_create_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('contents'))
+    def test_create_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('logbook contents'))
+    def test_create_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('logbook month'))
+    def test_create_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('home'))
+    def test_create_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.HomePage(path=eval(test_params['path']),
+                                    filename=test_filename,
+                                    title=test_title,
+                                    parent=test_parent)
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('readme'))
+    def test_create_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('logbook readme'))
+    def test_create_logbook_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    def test_create_page_path(self, tmp_page):
-        test_page = pn.Page(tmp_page)
-        assert isinstance(test_page.path, pathlib.Path)
-        assert test_page.path == tmp_page
-
-    def test_create_page_contents(self, tmp_page):
-        test_page = pn.Page(tmp_page)
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_page)
-
-    def test_create_page_null(self):
-        test_page = pn.Page()
-        assert test_page.path is None
-        assert test_page.contents == []
-
-    def test_create_page_with_parent(self, tmp_page):
-        test_notebook = pn.Notebook()
-        test_page = pn.Page(tmp_page, parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_page_with_parent_logbook(self, tmp_page):
-        test_logbook = pn.Logbook()
-        test_page = pn.Page(tmp_page, parent=test_logbook)
-        assert test_page.parent == test_logbook
-
-    def test_create_page_without_parent(self, tmp_page):
-        test_page = pn.Page(tmp_page)
-        assert test_page.parent is None
-
-    def test_create_page_null_with_parent(self):
-        test_notebook = pn.Notebook()
-        test_page = pn.Page(parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_page_no_changes(self, cloned_repo):
-        pn.Page(pathlib.Path(cloned_repo.working_dir)
-                .joinpath(self.cloned_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_page_no_output(self, tmp_page, capsys):
-        pn.Page(tmp_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_page_invalid_path(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Page(path)
-
-    @pytest.mark.parametrize('parent', invalid_parents)
-    def test_create_page_invalid_parent(self, tmp_page, parent):
-        with pytest.raises(ValueError):
-            pn.Page(tmp_page, parent=parent)
-
-    def test_create_page_extra_parameter(self, tmp_page):
-        with pytest.raises(TypeError):
-            pn.Page(tmp_page, None, None, None, None, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_create_page_invalid_file_types(self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.Page(tmp_file_factory(filename))
-
-    def test_create_logbook_page(self, tmp_logbook_page):
-        test_page = pn.LogbookPage(tmp_logbook_page)
-        assert isinstance(test_page, pn.LogbookPage)
-
-    def test_create_logbook_page_path(self, tmp_logbook_page):
-        test_page = pn.LogbookPage(tmp_logbook_page)
-        assert isinstance(test_page.path, pathlib.Path)
-        assert test_page.path == tmp_logbook_page
-
-    def test_create_logbook_page_contents(self, tmp_logbook_page):
-        test_page = pn.LogbookPage(tmp_logbook_page)
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_logbook_page)
-
-    def test_create_logbook_page_null(self):
-        test_page = pn.LogbookPage()
-        assert test_page.path is None
-        assert test_page.contents == []
-
-    def test_create_logbook_page_with_parent(self, tmp_logbook_page):
-        test_notebook = pn.Notebook()
-        test_page = pn.LogbookPage(tmp_logbook_page, parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_logbook_page_with_parent_logbook(self, tmp_logbook_page):
-        test_logbook = pn.Logbook()
-        test_page = pn.LogbookPage(tmp_logbook_page, parent=test_logbook)
-        assert test_page.parent == test_logbook
-
-    def test_create_logbook_page_without_parent(self, tmp_logbook_page):
-        test_page = pn.LogbookPage(tmp_logbook_page)
-        assert test_page.parent is None
-
-    def test_create_logbook_page_null_with_parent(self):
-        test_notebook = pn.Notebook()
-        test_page = pn.LogbookPage(parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_logbook_page_no_changes(self, cloned_repo):
-        pn.LogbookPage(pathlib.Path(cloned_repo.working_dir)
-                       .joinpath(self.cloned_logbook_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_logbook_page_no_output(self, tmp_logbook_page, capsys):
-        pn.LogbookPage(tmp_logbook_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_logbook_page_invalid_path(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.LogbookPage(path)
-
-    @pytest.mark.parametrize('parent', invalid_parents)
-    def test_create_logbook_page_invalid_parent(self, tmp_logbook_page, parent):
-        with pytest.raises(ValueError):
-            pn.LogbookPage(tmp_logbook_page, parent=parent)
-
-    def test_create_logbook_page_extra_parameter(self, tmp_logbook_page):
-        with pytest.raises(TypeError):
-            pn.LogbookPage(
-                tmp_logbook_page, None, None, None, None, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_create_logbook_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.LogbookPage(tmp_file_factory(filename))
-
-    def test_create_contents_page(self, tmp_contents_page):
-        test_page = pn.ContentsPage(tmp_contents_page)
-        assert isinstance(test_page, pn.ContentsPage)
-
-    def test_create_contents_page_path(self, tmp_contents_page):
-        test_page = pn.ContentsPage(tmp_contents_page)
-        assert isinstance(test_page.path, pathlib.Path)
-        assert test_page.path == tmp_contents_page
-
-    def test_create_contents_page_contents(self, tmp_contents_page):
-        test_page = pn.ContentsPage(tmp_contents_page)
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_contents_page)
-
-    def test_create_contents_page_no_changes(self, cloned_repo):
-        pn.ContentsPage(pathlib.Path(cloned_repo.working_dir)
-                        .joinpath(self.cloned_contents_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_contents_page_null(self):
-        test_page = pn.ContentsPage()
-        assert test_page.path is None
-        assert test_page.contents == []
-
-    def test_create_contents_page_with_parent(self, tmp_contents_page):
-        test_notebook = pn.Notebook()
-        test_page = pn.ContentsPage(tmp_contents_page, parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_contents_page_with_parent_logbook(self, tmp_contents_page):
-        test_logbook = pn.Logbook()
-        test_page = pn.ContentsPage(tmp_contents_page, parent=test_logbook)
-        assert test_page.parent == test_logbook
-
-    def test_create_contents_page_without_parent(self, tmp_contents_page):
-        test_page = pn.ContentsPage(tmp_contents_page)
-        assert test_page.parent is None
-
-    def test_create_contents_page_null_with_parent(self):
-        test_notebook = pn.Notebook()
-        test_page = pn.ContentsPage(parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_contents_page_no_output(self, tmp_contents_page, capsys):
-        pn.ContentsPage(tmp_contents_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_contents_page_invalid_path(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.ContentsPage(path)
-
-    @pytest.mark.parametrize('parent', invalid_parents)
-    def test_create_contents_page_invalid_parent(self, tmp_contents_page, parent):
-        with pytest.raises(ValueError):
-            pn.ContentsPage(tmp_contents_page, parent=parent)
-
-    def test_create_contents_page_invalid_extra_parameter(
-            self, tmp_contents_page):
-        with pytest.raises(TypeError):
-            pn.ContentsPage(
-                tmp_contents_page, None, None, None, None, 'extra parameter')
-
-    def test_create_contents_page_invalid_filename(self, tmp_page):
-        with pytest.raises(ValueError):
-            pn.ContentsPage(tmp_page)
-
-    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
-    def test_create_contents_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.ContentsPage(tmp_file_factory(filename))
-
-    def test_create_logbook_contents_page(self, tmp_logbook_contents_page):
-        test_page = pn.ContentsPage(tmp_logbook_contents_page)
-        assert isinstance(test_page, pn.ContentsPage)
-
-    def test_create_logbook_contents_page_path(self, tmp_logbook_contents_page):
-        test_page = pn.ContentsPage(tmp_logbook_contents_page)
-        assert isinstance(test_page.path, pathlib.Path)
-        assert test_page.path == tmp_logbook_contents_page
-
-    def test_create_logbook_contents_page_contents(
-            self, tmp_logbook_contents_page):
-        test_page = pn.ContentsPage(tmp_logbook_contents_page)
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_logbook_contents_page)
-
-    def test_create_logbook_contents_page_no_changes(self, cloned_repo):
-        pn.ContentsPage(pathlib.Path(cloned_repo.working_dir)
-                        .joinpath(self.cloned_logbook_contents_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_logbook_contents_page_no_output(
-            self, tmp_logbook_contents_page, capsys):
-        pn.ContentsPage(tmp_logbook_contents_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_create_logbook_month_page(self, tmp_logbook_month_page):
-        test_page = pn.LogbookPage(tmp_logbook_month_page)
-        assert isinstance(test_page, pn.LogbookPage)
-
-    def test_create_logbook_month_page_path(self, tmp_logbook_month_page):
-        test_page = pn.LogbookPage(tmp_logbook_month_page)
-        assert isinstance(test_page.path, pathlib.Path)
-        assert test_page.path == tmp_logbook_month_page
-
-    def test_create_logbook_month_page_contents(
-            self, tmp_logbook_month_page):
-        test_page = pn.LogbookPage(tmp_logbook_month_page)
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_logbook_month_page)
-
-    def test_create_logbook_month_page_no_changes(self, cloned_repo):
-        pn.LogbookPage(pathlib.Path(cloned_repo.working_dir)
-                       .joinpath(self.cloned_logbook_month_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_logbook_month_page_no_output(
-            self, tmp_logbook_month_page, capsys):
-        pn.LogbookPage(tmp_logbook_month_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_create_home_page(self, tmp_home_page):
-        test_page = pn.HomePage(tmp_home_page)
-        assert isinstance(test_page, pn.HomePage)
-
-    def test_create_home_page_path(self, tmp_home_page):
-        test_page = pn.HomePage(tmp_home_page)
-        assert isinstance(test_page.path, pathlib.Path)
-        assert test_page.path == tmp_home_page
-
-    def test_create_home_page_contents(self, tmp_home_page):
-        test_page = pn.HomePage(tmp_home_page)
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_home_page)
-
-    def test_create_home_page_null(self):
-        test_page = pn.HomePage()
-        assert test_page.path is None
-        assert test_page.contents == []
-
-    def test_create_home_page_with_parent(self, tmp_home_page):
-        test_notebook = pn.Notebook()
-        test_page = pn.HomePage(tmp_home_page, parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_home_page_with_parent_logbook(self, tmp_home_page):
-        test_logbook = pn.Logbook()
-        test_page = pn.HomePage(tmp_home_page, parent=test_logbook)
-        assert test_page.parent == test_logbook
-
-    def test_create_home_page_without_parent(self, tmp_home_page):
-        test_page = pn.HomePage(tmp_home_page)
-        assert test_page.parent is None
-
-    def test_create_home_page_null_with_parent(self):
-        test_notebook = pn.Notebook()
-        test_page = pn.HomePage(parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_home_page_no_changes(self, cloned_repo):
-        pn.HomePage(pathlib.Path(cloned_repo.working_dir)
-                    .joinpath(self.cloned_home_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_home_page_no_output(self, tmp_home_page, capsys):
-        pn.HomePage(tmp_home_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_home_page_invalid_path(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.HomePage(path)
-
-    @pytest.mark.parametrize('parent', invalid_parents)
-    def test_create_home_page_invalid_parent(self, tmp_home_page, parent):
-        with pytest.raises(ValueError):
-            pn.HomePage(tmp_home_page, parent=parent)
-
-    def test_create_home_page_extra_parameter(self, tmp_home_page):
-        with pytest.raises(TypeError):
-            pn.HomePage(
-                    tmp_home_page, None, None, None, None, 'extra parameter')
-
-    def test_create_home_page_invalid_filename(self, tmp_page):
-        with pytest.raises(ValueError):
-            pn.HomePage(tmp_page)
-
-    @pytest.mark.parametrize('filename', invalid_filenames('home'))
-    def test_create_home_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.HomePage(tmp_file_factory(filename))
-
-    def test_create_readme_page(self, tmp_readme_page):
-        test_page = pn.ReadmePage(tmp_readme_page)
-        assert isinstance(test_page, pn.ReadmePage)
-
-    def test_create_readme_page_path(self, tmp_readme_page):
-        test_page = pn.ReadmePage(tmp_readme_page)
-        assert isinstance(test_page.path, pathlib.Path)
-        assert test_page.path == tmp_readme_page
-
-    def test_create_readme_page_contents(self, tmp_readme_page):
-        test_page = pn.ReadmePage(tmp_readme_page)
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_readme_page)
-
-    def test_create_readme_page_null(self):
-        test_page = pn.ReadmePage()
-        assert test_page.path is None
-        assert test_page.contents == []
-
-    def test_create_readme_page_with_parent(self, tmp_readme_page):
-        test_notebook = pn.Notebook()
-        test_page = pn.ReadmePage(tmp_readme_page, parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_readme_page_with_parent_logbook(self, tmp_readme_page):
-        test_logbook = pn.Logbook()
-        test_page = pn.ReadmePage(tmp_readme_page, parent=test_logbook)
-        assert test_page.parent == test_logbook
-
-    def test_create_readme_page_without_parent(self, tmp_readme_page):
-        test_page = pn.ReadmePage(tmp_readme_page)
-        assert test_page.parent is None
-
-    def test_create_readme_page_null_with_parent(self):
-        test_notebook = pn.Notebook()
-        test_page = pn.ReadmePage(parent=test_notebook)
-        assert test_page.parent == test_notebook
-
-    def test_create_readme_page_no_changes(self, cloned_repo):
-        page_path = (pathlib.Path(cloned_repo.working_dir)
-                     .joinpath(self.cloned_readme_page))
-        pn.ReadmePage(page_path)
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_readme_page_no_output(self, tmp_readme_page, capsys):
-        pn.ReadmePage(tmp_readme_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_readme_page_invalid_path(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.ReadmePage(path)
-
-    @pytest.mark.parametrize('parent', invalid_parents)
-    def test_create_readme_page_invalid_parent(self, tmp_readme_page, parent):
-        with pytest.raises(ValueError):
-            pn.ReadmePage(tmp_readme_page, parent=parent)
-
-    def test_create_readme_page_extra_parameter(self, tmp_readme_page):
-        with pytest.raises(TypeError):
-            pn.ReadmePage(
-                tmp_readme_page, None, None, None, None, 'extra parameter')
-
-    def test_create_readme_page_invalid_filename(self, tmp_page):
-        with pytest.raises(ValueError):
-            pn.ReadmePage(tmp_page)
-
-    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
-    def test_create_readme_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.ReadmePage(tmp_file_factory(filename))
-
-    def test_create_logbook_readme_page(self, tmp_logbook_readme_page):
-        test_page = pn.ReadmePage(tmp_logbook_readme_page)
-        assert isinstance(test_page, pn.ReadmePage)
-
-    def test_create_logbook_readme_page_path(self, tmp_logbook_readme_page):
-        test_page = pn.ReadmePage(tmp_logbook_readme_page)
-        assert isinstance(test_page.path, pathlib.Path)
-        assert test_page.path == tmp_logbook_readme_page
-
-    def test_create_logbook_readme_page_contents(self, tmp_logbook_readme_page):
-        test_page = pn.ReadmePage(tmp_logbook_readme_page)
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_logbook_readme_page)
-
-    def test_create_logbook_readme_page_no_changes(self, cloned_repo):
-        page_path = (pathlib.Path(cloned_repo.working_dir)
-                     .joinpath(self.cloned_logbook_readme_page))
-        pn.ReadmePage(page_path)
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_logbook_readme_page_no_output(
-            self, tmp_logbook_readme_page, capsys):
-        pn.ReadmePage(tmp_logbook_readme_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
 
     # Loading data to page objects
-    def test_page_load_contents(self, tmp_page):
-        test_page = pn.Page()
-        test_page.path = tmp_page
-        test_page.load_contents()
-        self.assert_page_contents_match(test_page, tmp_page)
+    @pytest.mark.parametrize('test_params', build_all_tests('page', 'load'))
+    def test_load_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page):
+        with eval(test_params['error condition']):
+            existing_page = eval(test_params['existing'])
+            test_page = pn.Page(path=existing_page)
+            test_page.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    def test_page_load_contents_null(self):
-        test_page = pn.Page()
-        test_page.path = None
-        test_page.load_contents()
-        assert test_page.contents == []
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'load'))
+    def test_load_contents_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            existing_page = eval(test_params['existing'])
+            test_page = pn.LogbookPage(path=existing_page)
+            test_page.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    def test_page_load_contents_no_changes(self, cloned_repo):
-        test_page = pn.Page()
-        test_page.path = (pathlib.Path(cloned_repo.working_dir)
-                          .joinpath(self.cloned_page))
-        test_page.load_contents()
-        self.assert_repo_unchanged(cloned_repo)
+    @pytest.mark.parametrize('test_params', build_all_tests('contents', 'load'))
+    def test_load_contents_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            existing_page = eval(test_params['existing'])
+            test_page = pn.ContentsPage(path=existing_page)
+            test_page.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    def test_page_load_contents_no_output(self, tmp_page, capsys):
-        test_page = pn.Page()
-        test_page.path = tmp_page
-        test_page.load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'load'))
+    def test_load_contents_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            existing_page = eval(test_params['existing'])
+            test_page = pn.ContentsPage(path=existing_page)
+            test_page.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    def test_page_load_contents_null_no_output(self, capsys):
-        pn.Page().load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'load'))
+    def test_load_contents_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            existing_page = eval(test_params['existing'])
+            test_page = pn.LogbookPage(path=existing_page)
+            test_page.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    def test_page_load_contents_extra_parameter(self, tmp_page):
-        test_page = pn.Page()
-        with pytest.raises(TypeError):
-            test_page.load_contents(None, 'extra parameter')
+    @pytest.mark.parametrize('test_params', build_all_tests('home', 'load'))
+    def test_load_contents_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            existing_page = eval(test_params['existing'])
+            test_page = pn.HomePage(path=existing_page)
+            test_page.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_page_load_contents_invalid_file_types(
-            self, tmp_file_factory, filename):
-        test_page = pn.Page()
-        test_page.path = tmp_file_factory(filename)
-        with pytest.raises(ValueError):
-            test_page.load_contents()
+    @pytest.mark.parametrize('test_params', build_all_tests('readme', 'load'))
+    def test_load_contents_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page):
+        with eval(test_params['error condition']):
+            existing_page = eval(test_params['existing'])
+            test_page = pn.ReadmePage(path=existing_page)
+            test_page.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    def test_logbook_page_load_contents(self, tmp_logbook_page):
-        test_logbook_page = pn.LogbookPage()
-        test_logbook_page.path = tmp_logbook_page
-        test_logbook_page.load_contents()
-        assert isinstance(test_logbook_page.contents, list)
-        self.assert_page_contents_match(test_logbook_page, tmp_logbook_page)
-
-    def test_logbook_page_load_contents_null(self):
-        test_logbook_page = pn.LogbookPage()
-        test_logbook_page.path = None
-        test_logbook_page.load_contents()
-        assert test_logbook_page.contents == []
-
-    def test_logbook_page_load_contents_no_changes(self, cloned_repo):
-        test_logbook_page = pn.LogbookPage()
-        test_logbook_page.path = (pathlib.Path(cloned_repo.working_dir)
-                                  .joinpath(self.cloned_logbook_page))
-        test_logbook_page.load_contents()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_page_load_contents_no_output(self, capsys):
-        pn.LogbookPage().load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_page_load_contents_null_no_output(
-            self, tmp_logbook_page, capsys):
-        test_logbook_page = pn.LogbookPage()
-        test_logbook_page.path = tmp_logbook_page
-        test_logbook_page.load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_page_load_contents_extra_parameter(self, tmp_logbook_page):
-        test_logbook_page = pn.LogbookPage()
-        with pytest.raises(TypeError):
-            test_logbook_page.load_contents(None, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_logbook_page_load_contents_invalid_file_types(
-            self, tmp_file_factory, filename):
-        test_page = pn.LogbookPage()
-        test_page.path = tmp_file_factory(filename)
-        with pytest.raises(ValueError):
-            test_page.load_contents()
-
-    def test_contents_page_load_contents(self, tmp_contents_page):
-        test_page = pn.ContentsPage()
-        test_page.path = tmp_contents_page
-        test_page.load_contents()
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_contents_page)
-
-    def test_contents_page_load_contents_null(self):
-        test_page = pn.ContentsPage()
-        test_page.path = None
-        test_page.load_contents()
-        assert test_page.path is None
-        assert test_page.contents == []
-
-    def test_contents_page_load_contents_no_changes(self, cloned_repo):
-        test_page = pn.ContentsPage()
-        test_page.path = (pathlib.Path(cloned_repo.working_dir)
-                          .joinpath(self.cloned_contents_page))
-        test_page.load_contents()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_contents_page_load_contents_no_output(
-            self, tmp_contents_page, capsys):
-        test_page = pn.ContentsPage()
-        test_page.path = tmp_contents_page
-        test_page.load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_contents_page_load_contents_extra_parameter(self, tmp_contents_page):
-        test_page = pn.ContentsPage()
-        test_page.path = tmp_contents_page
-        with pytest.raises(TypeError):
-            test_page.load_contents(None, 'extra parameter')
-
-    def test_contents_page_load_contents_invalid_filename(self, tmp_page):
-        test_page = pn.ContentsPage()
-        test_page.path = tmp_page
-        with pytest.raises(ValueError):
-            test_page.load_contents()
-
-    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
-    def test_contents_page_load_contents_invalid_file_types(
-            self, tmp_file_factory, filename):
-        test_page = pn.ContentsPage()
-        test_page.path = tmp_file_factory(filename)
-        with pytest.raises(ValueError):
-            test_page.load_contents()
-
-    def test_logbook_contents_page_load_contents(self, tmp_logbook_contents_page):
-        test_page = pn.ContentsPage()
-        test_page.path = tmp_logbook_contents_page
-        test_page.load_contents()
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_logbook_contents_page)
-
-    def test_logbook_contents_page_load_contents_no_changes(self, cloned_repo):
-        test_page = pn.ContentsPage()
-        test_page.path = (pathlib.Path(cloned_repo.working_dir)
-                          .joinpath(self.cloned_logbook_contents_page))
-        test_page.load_contents()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_contents_page_load_contents_no_output(
-            self, tmp_logbook_contents_page, capsys):
-        test_page = pn.ContentsPage()
-        test_page.path = tmp_logbook_contents_page
-        test_page.load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_contents_page_load_contents_extra_parameter(
-            self, tmp_logbook_contents_page):
-        test_page = pn.ContentsPage()
-        test_page.path = tmp_logbook_contents_page
-        with pytest.raises(TypeError):
-            test_page.load_contents(None, 'extra parameter')
-
-    def test_home_page_load_contents(self, tmp_home_page):
-        test_page = pn.HomePage()
-        test_page.path = tmp_home_page
-        test_page.load_contents()
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_home_page)
-
-    def test_home_page_load_contents_null(self):
-        test_page = pn.HomePage()
-        test_page.path = None
-        test_page.load_contents()
-        assert test_page.path is None
-        assert test_page.contents == []
-
-    def test_home_page_load_contents_no_changes(self, cloned_repo):
-        test_page = pn.HomePage()
-        test_page.path = (pathlib.Path(cloned_repo.working_dir)
-                          .joinpath(self.cloned_home_page))
-        test_page.load_contents()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_home_page_load_contents_no_output(self, tmp_home_page, capsys):
-        test_page = pn.HomePage()
-        test_page.path = tmp_home_page
-        test_page.load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_home_page_load_contents_extra_parameter(self, tmp_home_page):
-        test_page = pn.HomePage()
-        test_page.path = tmp_home_page
-        with pytest.raises(TypeError):
-            test_page.load_contents(None, 'extra parameter')
-
-    def test_home_page_load_contents_invalid_filename(self, tmp_page):
-        test_page = pn.HomePage()
-        test_page.path = tmp_page
-        with pytest.raises(ValueError):
-            test_page.load_contents()
-
-    @pytest.mark.parametrize('filename', invalid_filenames('home'))
-    def test_home_page_load_contents_invalid_file_types(
-            self, tmp_file_factory, filename):
-        test_page = pn.HomePage()
-        test_page.path = tmp_file_factory(filename)
-        with pytest.raises(ValueError):
-            test_page.load_contents()
-
-    def test_readme_page_load_contents(self, tmp_readme_page):
-        test_page = pn.ReadmePage()
-        test_page.path = tmp_readme_page
-        test_page.load_contents()
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_readme_page)
-
-    def test_readme_page_load_contents_null(self):
-        test_page = pn.ReadmePage()
-        test_page.path = None
-        test_page.load_contents()
-        assert test_page.path is None
-        assert test_page.contents == []
-
-    def test_readme_page_load_contents_no_changes(self, cloned_repo):
-        test_page = pn.ReadmePage()
-        test_page.path = (pathlib.Path(cloned_repo.working_dir)
-                          .joinpath(self.cloned_readme_page))
-        test_page.load_contents()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_readme_page_load_contents_no_output(self, tmp_readme_page, capsys):
-        test_page = pn.ReadmePage()
-        test_page.path = tmp_readme_page
-        test_page.load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_readme_page_load_contents_extra_parameter(self, tmp_readme_page):
-        test_page = pn.ReadmePage()
-        test_page.path = tmp_readme_page
-        with pytest.raises(TypeError):
-            test_page.load_contents(None, 'extra parameter')
-
-    def test_readme_page_load_contents_invalid_filename(self, tmp_page):
-        test_page = pn.ReadmePage()
-        test_page.path = tmp_page
-        with pytest.raises(ValueError):
-            test_page.load_contents()
-
-    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
-    def test_readme_page_load_contents_invalid_file_types(
-            self, tmp_file_factory, filename):
-        test_page = pn.ReadmePage()
-        test_page.path = tmp_file_factory(filename)
-        with pytest.raises(ValueError):
-            test_page.load_contents()
-
-    def test_logbook_readme_page_load_contents(self, tmp_logbook_readme_page):
-        test_page = pn.ReadmePage()
-        test_page.path = tmp_logbook_readme_page
-        test_page.load_contents()
-        assert isinstance(test_page.contents, list)
-        self.assert_page_contents_match(test_page, tmp_logbook_readme_page)
-
-    def test_logbook_readme_page_load_contents_no_changes(self, cloned_repo):
-        test_page = pn.ReadmePage()
-        test_page.path = (pathlib.Path(cloned_repo.working_dir)
-                          .joinpath(self.cloned_logbook_readme_page))
-        test_page.load_contents()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_readme_page_load_contents_no_output(
-            self, tmp_logbook_readme_page, capsys):
-        test_page = pn.ReadmePage()
-        test_page.path = tmp_logbook_readme_page
-        test_page.load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_readme_page_load_contents_extra_parameter(
-            self, tmp_logbook_readme_page):
-        test_page = pn.ReadmePage()
-        test_page.path = tmp_logbook_readme_page
-        with pytest.raises(TypeError):
-            test_page.load_contents(None, 'extra parameter')
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook readme', 'load'))
+    def test_load_contents_logbook_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_readme_page):
+        with eval(test_params['error condition']):
+            existing_page = eval(test_params['existing'])
+            test_page = pn.ReadmePage(path=existing_page)
+            test_page.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
 
     # Getting information from page objects
-    def test_page_get_title(self, tmp_page):
-        test_title = pn.Page(tmp_page).title
-        assert isinstance(test_title, str)
-        assert test_title == self.test_page_title
-
-    def test_page_get_title_null(self, tmp_page):
-        test_title = pn.Page().title
-        assert test_title == self.unknown_descriptor
-
-    def test_contents_page_get_title(self, tmp_contents_page):
-        test_title = pn.ContentsPage(tmp_contents_page).title
-        assert isinstance(test_title, str)
-        assert test_title == self.contents_filename
-
-    def test_contents_page_get_title_null(self):
-        test_title = pn.ContentsPage().title
-        assert test_title == self.contents_filename
-
-    def test_home_page_get_title(self, tmp_home_page):
-        test_title = pn.HomePage(tmp_home_page).title
-        assert isinstance(test_title, str)
-        assert test_title == self.homepage_filename
-
-    def test_home_page_get_title_null(self):
-        test_title = pn.HomePage().title
-        assert test_title == self.homepage_filename
-
-    def test_readme_page_get_title(self, tmp_readme_page):
-        test_title = pn.ReadmePage(tmp_readme_page).title
-        assert isinstance(test_title, str)
-        assert test_title == self.test_notebook_title
-
-    def test_readme_page_get_title_null(self):
-        test_title = pn.ReadmePage().title
-        assert test_title == self.readme_filename
-
-    def test_page_is_valid_path(self, tmp_page):
-        assert pn.Page()._is_valid_path(tmp_page) is True
-
-    def test_page_is_valid_path_logbook_page(self, tmp_logbook_page):
-        assert pn.Page()._is_valid_path(tmp_logbook_page) is True
-
-    def test_page_is_valid_path_contents_page(self, tmp_contents_page):
-        assert pn.Page()._is_valid_path(tmp_contents_page) is True
-
-    def test_page_is_valid_path_home_page(self, tmp_home_page):
-        assert pn.Page()._is_valid_path(tmp_home_page) is True
-
-    def test_page_is_valid_path_readme_page(self, tmp_readme_page):
-        assert pn.Page()._is_valid_path(tmp_readme_page) is True
-
-    @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_page_is_valid_path_invalid_file_types(
-            self, tmp_file_factory, filename):
-        assert pn.Page()._is_valid_path(tmp_file_factory(filename)) is False
-
-    def test_page_is_valid_path_invalid_file(self, tmp_file_factory):
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn.Page()._is_valid_path(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-
-    def test_page_is_valid_path_no_changes(self, cloned_repo):
-        pn.Page()._is_valid_path(pathlib.Path(cloned_repo.working_dir)
-                                 .joinpath(self.cloned_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_page_is_valid_path_no_output(self, tmp_page, capsys):
-        pn.Page()._is_valid_path(tmp_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_page_is_valid_path_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Page()._is_valid_path(path)
-
-    def test_page_is_valid_path_extra_parameter(self, tmp_page):
-        with pytest.raises(TypeError):
-            pn.Page()._is_valid_path(tmp_page, 'extra parameter')
-
-    def test_logbook_page_is_valid_path(self, tmp_logbook_page):
-        assert pn.LogbookPage()._is_valid_path(tmp_logbook_page) is True
-
-    def test_logbook_page_is_valid_path_notebook_page(self, tmp_page):
-        assert pn.LogbookPage()._is_valid_path(tmp_page) is False
-
-    def test_logbook_page_is_valid_path_logbook_page(self, tmp_logbook_page):
-        assert pn.LogbookPage()._is_valid_path(tmp_logbook_page) is True
-
-    def test_logbook_page_is_valid_path_contents_page(self, tmp_contents_page):
-        assert pn.LogbookPage()._is_valid_path(tmp_contents_page) is False
-
-    def test_logbook_page_is_valid_path_home_page(self, tmp_home_page):
-        assert pn.LogbookPage()._is_valid_path(tmp_home_page) is False
-
-    def test_logbook_page_is_valid_path_readme_page(self, tmp_readme_page):
-        assert pn.LogbookPage()._is_valid_path(tmp_readme_page) is False
-
-    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_logbook_page_is_valid_path_invalid_file_types(
-            self, tmp_file_factory, filename):
-        assert pn.LogbookPage()._is_valid_path(
-            tmp_file_factory(filename)) is False
-
-    def test_logbook_page_is_valid_path_invalid_file(self, tmp_file_factory):
-        tmp_file = tmp_file_factory('is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn.LogbookPage()._is_valid_path(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-
-    def test_logbook_page_is_valid_path_no_changes(self, cloned_repo):
-        test_page = pn.LogbookPage()
-        test_page._is_valid_path(pathlib.Path(cloned_repo.working_dir)
-                                 .joinpath(self.cloned_logbook_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_page_is_valid_path_no_output(
-            self, tmp_logbook_page, capsys):
-        pn.LogbookPage()._is_valid_path(tmp_logbook_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_page_is_valid_path_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.LogbookPage()._is_valid_path(path)
-
-    def test_logbook_page_is_valid_path_extra_parameter(self, tmp_logbook_page):
-        with pytest.raises(TypeError):
-            pn.LogbookPage()._is_valid_path(tmp_logbook_page, 'extra parameter')
-
-    def test_contents_page_is_valid_path(self, tmp_contents_page):
-        test_page = pn.ContentsPage()
-        assert test_page._is_valid_path(tmp_contents_page) is True
-
-    def test_contents_page_is_valid_path_notebook_page(self, tmp_page):
-        test_page = pn.ContentsPage()
-        assert test_page._is_valid_path(tmp_page) is False
-
-    def test_contents_page_is_valid_path_logbook_page(self, tmp_logbook_page):
-        test_page = pn.ContentsPage()
-        assert test_page._is_valid_path(tmp_logbook_page) is False
-
-    def test_contents_page_is_valid_path_contents_page(self, tmp_contents_page):
-        test_page = pn.ContentsPage()
-        assert test_page._is_valid_path(tmp_contents_page) is True
-
-    def test_contents_page_is_valid_path_home_page(self, tmp_home_page):
-        test_page = pn.ContentsPage()
-        assert test_page._is_valid_path(tmp_home_page) is False
-
-    def test_contents_page_is_valid_path_readme_page(self, tmp_readme_page):
-        test_page = pn.ContentsPage()
-        assert test_page._is_valid_path(tmp_readme_page) is False
-
-    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
-    def test_contents_page_is_valid_path_invalid_file_types(
-            self, tmp_file_factory, filename):
-        assert pn.ContentsPage()._is_valid_path(
-            tmp_file_factory(filename)) is False
-
-    def test_contents_page_is_valid_path_invalid_file(self, tmp_file_factory):
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn.ContentsPage()._is_valid_path(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-
-    def test_contents_page_is_valid_path_no_changes(self, cloned_repo):
-        test_page = pn.ContentsPage()
-        test_page._is_valid_path(pathlib.Path(cloned_repo.working_dir)
-                                 .joinpath(self.cloned_contents_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_contents_page_is_valid_path_no_output(
-            self, tmp_contents_page, capsys):
-        pn.ContentsPage()._is_valid_path(tmp_contents_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_contents_page_is_valid_path_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.ContentsPage()._is_valid_path(path)
-
-    def test_contents_page_is_valid_path_extra_parameter(
-            self, tmp_contents_page):
-        with pytest.raises(TypeError):
-            pn.ContentsPage()._is_valid_path(
-                tmp_contents_page, 'extra parameter')
-
-    def test_home_page_is_valid_path(self, tmp_home_page):
-        test_page = pn.HomePage()
-        assert test_page._is_valid_path(tmp_home_page) is True
-
-    def test_home_page_is_valid_path_notebook_page(self, tmp_page):
-        test_page = pn.HomePage()
-        assert test_page._is_valid_path(tmp_page) is False
-
-    def test_home_page_is_valid_path_logbook_page(self, tmp_logbook_page):
-        test_page = pn.HomePage()
-        assert test_page._is_valid_path(tmp_logbook_page) is False
-
-    def test_home_page_is_valid_path_contents_page(self, tmp_contents_page):
-        test_page = pn.HomePage()
-        assert test_page._is_valid_path(tmp_contents_page) is False
-
-    def test_home_page_is_valid_path_home_page(self, tmp_home_page):
-        test_page = pn.HomePage()
-        assert test_page._is_valid_path(tmp_home_page) is True
-
-    def test_home_page_is_valid_path_readme_page(self, tmp_readme_page):
-        test_page = pn.HomePage()
-        assert test_page._is_valid_path(tmp_readme_page) is False
-
-    @pytest.mark.parametrize('filename', invalid_filenames('home'))
-    def test_home_page_is_valid_path_invalid_file_types(
-            self, tmp_file_factory, filename):
-        assert pn.HomePage()._is_valid_path(tmp_file_factory(filename)) is False
-
-    def test_home_page_is_valid_path_invalid_file(self, tmp_file_factory):
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn.HomePage()._is_valid_path(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-
-    def test_home_page_is_valid_path_no_changes(self, cloned_repo):
-        test_page = pn.HomePage()
-        test_page._is_valid_path(pathlib.Path(cloned_repo.working_dir)
-                                 .joinpath(self.cloned_home_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_home_page_is_valid_path_no_output(self, tmp_home_page, capsys):
-        pn.HomePage()._is_valid_path(tmp_home_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_home_page_is_valid_path_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.HomePage()._is_valid_path(path)
-
-    def test_home_page_is_valid_path_extra_parameter(self, tmp_home_page):
-        with pytest.raises(TypeError):
-            pn.HomePage()._is_valid_path(tmp_home_page, 'extra parameter')
-
-    def test_readme_page_is_valid_path(self, tmp_readme_page):
-        test_page = pn.ReadmePage()
-        assert test_page._is_valid_path(tmp_readme_page) is True
-
-    def test_readme_page_is_valid_path_notebook_page(self, tmp_page):
-        test_page = pn.ReadmePage()
-        assert test_page._is_valid_path(tmp_page) is False
-
-    def test_readme_page_is_valid_path_logbook_page(self, tmp_logbook_page):
-        test_page = pn.ReadmePage()
-        assert test_page._is_valid_path(tmp_logbook_page) is False
-
-    def test_readme_page_is_valid_path_contents_page(self, tmp_contents_page):
-        test_page = pn.ReadmePage()
-        assert test_page._is_valid_path(tmp_contents_page) is False
-
-    def test_readme_page_is_valid_path_home_page(self, tmp_home_page):
-        test_page = pn.ReadmePage()
-        assert test_page._is_valid_path(tmp_home_page) is False
-
-    def test_readme_page_is_valid_path_readme_page(self, tmp_readme_page):
-        test_page = pn.ReadmePage()
-        assert test_page._is_valid_path(tmp_readme_page) is True
-
-    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
-    def test_readme_page_is_valid_path_invalid_file_types(
-            self, tmp_file_factory, filename):
-        assert pn.ReadmePage()._is_valid_path(
-            tmp_file_factory(filename)) is False
-
-    def test_readme_page_is_valid_path_invalid_file(self, tmp_file_factory):
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn.ReadmePage()._is_valid_path(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-
-    def test_readme_page_is_valid_path_no_changes(self, cloned_repo):
-        test_page = pn.ReadmePage()
-        test_page._is_valid_path(pathlib.Path(cloned_repo.working_dir)
-                                 .joinpath(self.cloned_readme_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_readme_page_is_valid_path_no_output(
-            self, tmp_readme_page, capsys):
-        pn.ReadmePage()._is_valid_path(tmp_readme_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_readme_page_is_valid_path_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.ReadmePage()._is_valid_path(path)
-
-    def test_readme_page_is_valid_path_extra_parameter(self, tmp_readme_page):
-        with pytest.raises(TypeError):
-            pn.ReadmePage()._is_valid_path(tmp_readme_page, 'extra parameter')
-
-    def test_page_get_title_from_filename(self, tmp_page):
-        test_title = pn.Page(tmp_page)._get_title_from_filename()
-        assert isinstance(test_title, str)
-        expected = tmp_page.stem.replace('_', ' ').replace('-', ' ').strip()
-        assert test_title == expected
-
-    def test_page_get_title_from_filename_null(self):
-        test_title = pn.Page()._get_title_from_filename()
-        assert test_title == self.unknown_descriptor
-
-    def test_page_get_title_from_filename_no_changes(self, cloned_repo):
-        test_page = pn.Page(pathlib.Path(cloned_repo.working_dir)
-                            .joinpath(self.cloned_page))
-        test_page._get_title_from_filename()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_page_get_title_from_filename_no_output(self, tmp_page, capsys):
-        pn.Page(tmp_page)._get_title_from_filename()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_page_get_title_from_filename_extra_parameter(self, tmp_page):
-        with pytest.raises(TypeError):
-            pn.Page(tmp_page)._get_title_from_filename('extra parameter')
-
-    def test_logbook_page_get_title_from_filename(self, tmp_logbook_page):
-        test_title = pn.LogbookPage(tmp_logbook_page)._get_title_from_filename()
-        assert isinstance(test_title, str)
-        expected = tmp_logbook_page.stem.strip()
-        assert test_title == expected
-
-    def test_logbook_page_get_title_from_filename_null(self):
-        test_title = pn.LogbookPage()._get_title_from_filename()
-        assert test_title == self.unknown_descriptor
-
-    def test_logbook_page_get_title_from_filename_no_changes(self, cloned_repo):
-        test_page = pn.LogbookPage(pathlib.Path(cloned_repo.working_dir)
-                                   .joinpath(self.cloned_logbook_page))
-        test_page._get_title_from_filename()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_page_get_title_from_filename_no_output(
-            self, tmp_logbook_page, capsys):
-        pn.LogbookPage(tmp_logbook_page)._get_title_from_filename()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_page_get_title_from_filename_extra_parameter(
-            self, tmp_logbook_page):
-        with pytest.raises(TypeError):
-            (pn.LogbookPage(tmp_logbook_page)
-               ._get_title_from_filename('extra parameter'))
-
-    def test_contents_page_get_title_from_filename(self, tmp_contents_page):
-        test_title = (pn.ContentsPage(tmp_contents_page)
-                        ._get_title_from_filename())
-        assert isinstance(test_title, str)
-        expected = tmp_contents_page.stem.strip()
-        assert test_title == expected
-
-    def test_contents_page_get_title_from_filename_null(self):
-        test_title = pn.ContentsPage()._get_title_from_filename()
-        assert test_title == self.contents_descriptor
-
-    def test_contents_page_get_title_from_filename_no_changes(self, cloned_repo):
-        test_page = pn.ContentsPage(pathlib.Path(cloned_repo.working_dir)
-                                   .joinpath(self.cloned_contents_page))
-        test_page._get_title_from_filename()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_contents_page_get_title_from_filename_no_output(
-            self, tmp_contents_page, capsys):
-        pn.ContentsPage(tmp_contents_page)._get_title_from_filename()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_contents_page_get_title_from_filename_extra_parameter(
-            self, tmp_contents_page):
-        with pytest.raises(TypeError):
-            (pn.ContentsPage(tmp_contents_page)
-                ._get_title_from_filename('extra parameter'))
-
-    def test_home_page_get_title_from_filename(self, tmp_home_page):
-        test_title = pn.HomePage(tmp_home_page)._get_title_from_filename()
-        assert isinstance(test_title, str)
-        expected = tmp_home_page.stem.strip()
-        assert test_title == expected
-
-    def test_home_page_get_title_from_filename_null(self):
-        test_title = pn.HomePage()._get_title_from_filename()
-        assert test_title == self.homepage_descriptor
-
-    def test_home_page_get_title_from_filename_no_changes(self, cloned_repo):
-        test_page = pn.HomePage(pathlib.Path(cloned_repo.working_dir)
-                                   .joinpath(self.cloned_home_page))
-        test_page._get_title_from_filename()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_home_page_get_title_from_filename_no_output(
-            self, tmp_home_page, capsys):
-        pn.HomePage(tmp_home_page)._get_title_from_filename()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_home_page_get_title_from_filename_extra_parameter(
-            self, tmp_home_page):
-        with pytest.raises(TypeError):
-            (pn.HomePage(tmp_home_page)
-                ._get_title_from_filename('extra parameter'))
-
-    def test_readme_page_get_title_from_filename(self, tmp_readme_page):
-        test_title = pn.ReadmePage(tmp_readme_page)._get_title_from_filename()
-        assert isinstance(test_title, str)
-        expected = tmp_readme_page.stem.strip()
-        assert test_title == expected
-
-    def test_readme_page_get_title_from_filename_null(self):
-        test_title = pn.ReadmePage()._get_title_from_filename()
-        assert test_title == self.readme_descriptor
-
-    def test_readme_page_get_title_from_filename_no_changes(self, cloned_repo):
-        test_page = pn.ReadmePage(pathlib.Path(cloned_repo.working_dir)
-                                   .joinpath(self.cloned_readme_page))
-        test_page._get_title_from_filename()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_readme_page_get_title_from_filename_no_output(
-            self, tmp_readme_page, capsys):
-        pn.ReadmePage(tmp_readme_page)._get_title_from_filename()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_readme_page_get_title_from_filename_extra_parameter(
-            self, tmp_readme_page):
-        with pytest.raises(TypeError):
-            (pn.ReadmePage(tmp_readme_page)
-                ._get_title_from_filename('extra parameter'))
+    @pytest.mark.parametrize('test_params', build_all_tests('page', 'valid path'))
+    def test_is_valid_path_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page):
+        with eval(test_params['error condition']):
+            test_page = eval(test_params['object'])
+            result = test_page._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'valid path'))
+    def test_is_valid_path_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_page = eval(test_params['object'])
+            result = test_page._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents', 'valid path'))
+    def test_is_valid_path_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_page = eval(test_params['object'])
+            result = test_page._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'valid path'))
+    def test_is_valid_path_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            test_page = eval(test_params['object'])
+            result = test_page._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'valid path'))
+    def test_is_valid_path_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_page = eval(test_params['object'])
+            result = test_page._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('home', 'valid path'))
+    def test_is_valid_path_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            test_page = eval(test_params['object'])
+            result = test_page._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('readme', 'valid path'))
+    def test_is_valid_path_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page):
+        with eval(test_params['error condition']):
+            test_page = eval(test_params['object'])
+            result = test_page._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'get title from filename'))
+    def test_get_title_from_filename_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._get_title_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page',
+                                             'get title from filename'))
+    def test_get_title_from_filename_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            result = test_page._get_title_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents',
+                                             'get title from filename'))
+    def test_get_title_from_filename_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_page._get_title_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('home', 'get title from filename'))
+    def test_get_title_from_filename_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.HomePage(path=eval(test_params['path']),
+                                    filename=test_filename,
+                                    title=test_title,
+                                    parent=test_parent)
+            result = test_page._get_title_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('readme',
+                                             'get title from filename'))
+    def test_get_title_from_filename_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            result = test_page._get_title_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
 
     # Creating notebook objects
-    def test_create_notebook(self, tmp_notebook):
-        test_notebook = pn.Notebook(tmp_notebook)
-        assert isinstance(test_notebook, pn.Notebook)
+    @pytest.mark.parametrize('test_params', build_all_tests('notebook'))
+    def test_create_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    def test_create_notebook_path(self, tmp_notebook):
-        test_notebook = pn.Notebook(tmp_notebook)
-        assert isinstance(test_notebook.path, pathlib.Path)
-        assert test_notebook.path == tmp_notebook
+    @pytest.mark.parametrize('test_params', build_all_tests('logbook'))
+    def test_create_logbook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_logbook = pn.Logbook(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            self.assert_parametric(test_logbook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
-    def test_create_notebook_contents(self, tmp_notebook):
-        test_notebook = pn.Notebook(tmp_notebook)
-        self.assert_notebook_contents_match(test_notebook, tmp_notebook)
-
-    def test_create_notebook_no_changes(self, cloned_repo):
-        notebook_path = pathlib.Path(cloned_repo.working_dir)
-        pn.Notebook(notebook_path)
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_notebook_null(self):
-        test_notebook = pn.Notebook()
-        assert isinstance(test_notebook, pn.Notebook)
-        assert test_notebook.path is None
-        assert test_notebook.contents == []
-
-    def test_create_notebook_with_parent(self, tmp_notebook):
-        test_notebook = pn.Notebook()
-        nested_notebook = pn.Notebook(tmp_notebook, parent=test_notebook)
-        assert nested_notebook.parent == test_notebook
-
-    def test_create_notebook_with_parent_logbook(self, tmp_notebook):
-        test_logbook = pn.Logbook()
-        with pytest.raises(ValueError):
-            pn.Notebook(tmp_notebook, parent=test_logbook)
-
-    def test_create_notebook_without_parent(self, tmp_notebook):
-        test_notebook = pn.Notebook(tmp_notebook)
-        assert test_notebook.parent is None
-
-    def test_create_notebook_null_with_parent(self):
-        test_notebook = pn.Notebook()
-        nested_notebook = pn.Notebook(parent=test_notebook)
-        assert nested_notebook.parent == test_notebook
-
-    def test_create_notebook_no_output(self, tmp_notebook, capsys):
-        pn.Notebook(tmp_notebook)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_notebook_invalid_path(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Notebook(path)
-
-    @pytest.mark.parametrize('parent', invalid_parents)
-    def test_create_notebook_invalid_parent(self, tmp_notebook, parent):
-        with pytest.raises(ValueError):
-            pn.Notebook(tmp_notebook, parent=parent)
-
-    def test_create_notebook_extra_parameter(self, tmp_notebook):
-        with pytest.raises(TypeError):
-            pn.Notebook(tmp_notebook, None, None, None, None, 'extra parameter')
-
-    def test_create_logbook(self, tmp_logbook):
-        test_logbook = pn.Logbook(tmp_logbook)
-        assert isinstance(test_logbook, pn.Logbook)
-
-    def test_create_logbook_path(self, tmp_logbook):
-        test_logbook = pn.Logbook(tmp_logbook)
-        assert isinstance(test_logbook.path, pathlib.Path)
-        assert test_logbook.path == tmp_logbook
-
-    def test_create_logbook_contents(self, tmp_logbook):
-        test_logbook = pn.Logbook(tmp_logbook)
-        self.assert_logbook_contents_match(test_logbook, tmp_logbook)
-
-    def test_create_logbook_no_changes(self, cloned_repo):
-        logbook_path = (pathlib.Path(cloned_repo.working_dir)
-                        .joinpath('PKU-2019/Logbook'))
-        pn.Logbook(logbook_path)
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_create_logbook_null(self):
-        test_logbook = pn.Logbook()
-        assert isinstance(test_logbook, pn.Logbook)
-        assert test_logbook.path is None
-        assert test_logbook.contents == []
-
-    def test_create_logbook_with_parent(self, tmp_logbook):
-        test_notebook = pn.Notebook()
-        nested_logbook = pn.Logbook(tmp_logbook, parent=test_notebook)
-        assert nested_logbook.parent == test_notebook
-
-    def test_create_logbook_with_parent_logbook(self, tmp_logbook):
-        test_logbook = pn.Logbook()
-        with pytest.raises(ValueError):
-            pn.Logbook(tmp_logbook, parent=test_logbook)
-
-    def test_create_logbook_without_parent(self, tmp_logbook):
-        test_notebook = pn.Logbook(tmp_logbook)
-        assert test_notebook.parent is None
-
-    def test_create_logbook_null_with_parent(self):
-        test_notebook = pn.Notebook()
-        nested_logbook = pn.Logbook(parent=test_notebook)
-        assert nested_logbook.parent == test_notebook
-
-    def test_create_logbook_no_output(self, tmp_logbook, capsys):
-        pn.Logbook(tmp_logbook)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_create_logbook_invalid_path(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Logbook(path)
-
-    @pytest.mark.parametrize('parent', invalid_parents)
-    def test_create_logbook_invalid_parent(self, tmp_logbook, parent):
-        with pytest.raises(ValueError):
-            pn.Logbook(tmp_logbook, parent=parent)
-
-    def test_create_logbook_extra_parameter(self, tmp_logbook):
-        with pytest.raises(TypeError):
-            pn.Logbook(tmp_logbook, None, None, None, None, 'extra parameter')
-
-    def test_create_notebook_nested(self, tmp_nested):
-        test_notebook = pn.Notebook(tmp_nested)
-        assert isinstance(test_notebook.path, pathlib.Path)
-        assert test_notebook.path == tmp_nested
-
-    def test_create_notebook_nested_contents(self, tmp_nested):
-        test_notebook = pn.Notebook(tmp_nested)
-        notebook_contents = [item.path for item in test_notebook.contents]
-        for filename in self.temp_pages:
-            this_path = tmp_nested.joinpath(filename)
-            assert this_path in notebook_contents
-        assert tmp_nested.joinpath(self.temp_notebook) in notebook_contents
-        assert tmp_nested.joinpath(self.temp_logbook) in notebook_contents
+    @pytest.mark.parametrize('test_params', build_all_tests('nested'))
+    def test_create_notebook_nested(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
 
     # Loading data to notebook objects
-    def test_notebook_add_page(self, tmp_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_page(tmp_page)
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.Page)
-
-    def test_notebook_add_page_path(self, tmp_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_page(tmp_page)
-        assert tmp_page in [this_page.path
-                            for this_page in test_notebook.contents]
-        last_item = test_notebook.contents[-1]
-        assert last_item.path == tmp_page
-
-    def test_notebook_add_page_contents(self, tmp_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_page(tmp_page)
-        last_item = test_notebook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_page)
-
-    def test_notebook_add_page_null(self):
-        test_notebook = pn.Notebook()
-        test_notebook.add_page()
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.Page)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_notebook_add_page_parent(self, tmp_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_page(tmp_page)
-        last_item = test_notebook.contents[-1]
-        assert last_item.parent == test_notebook
-
-    def test_notebook_add_page_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook()
-        test_notebook.add_page(pathlib.Path(cloned_repo.working_dir)
-                               .joinpath(self.cloned_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_add_page_no_output(self, tmp_page, capsys):
-        pn.Notebook().add_page(tmp_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_add_page_null_no_output(self, capsys):
-        pn.Notebook().add_page()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_add_page_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Notebook().add_page(path)
-
-    def test_notebook_add_page_extra_parameter(self, tmp_page):
-        with pytest.raises(TypeError):
-            pn.Notebook().add_page(tmp_page, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_notebook_add_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.Notebook().add_page(tmp_file_factory(filename))
-
-    def test_logbook_add_page(self, tmp_logbook_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_page(tmp_logbook_page)
-        assert isinstance(test_logbook.contents, list)
-        last_item = test_logbook.contents[-1]
-        assert isinstance(last_item, pn.LogbookPage)
-
-    def test_logbook_add_page_path(self, tmp_logbook_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_page(tmp_logbook_page)
-        last_item = test_logbook.contents[-1]
-        assert last_item.path == tmp_logbook_page
-
-    def test_logbook_add_page_contents(self, tmp_logbook_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_page(tmp_logbook_page)
-        last_item = test_logbook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_logbook_page)
-
-    def test_logbook_add_page_null(self):
-        test_logbook = pn.Logbook()
-        test_logbook.add_page()
-        assert isinstance(test_logbook.contents, list)
-        last_item = test_logbook.contents[-1]
-        assert isinstance(last_item, pn.LogbookPage)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_logbook_add_page_parent(self, tmp_logbook_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_page(tmp_logbook_page)
-        last_item = test_logbook.contents[-1]
-        assert last_item.parent == test_logbook
-
-    def test_logbook_add_page_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook()
-        test_logbook.add_page(pathlib.Path(cloned_repo.working_dir)
-                              .joinpath(self.cloned_logbook_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_add_page_no_output(self, tmp_logbook_page, capsys):
-        pn.Logbook().add_page(tmp_logbook_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_add_page_null_no_output(self, capsys):
-        pn.Logbook().add_page()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_add_page_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Logbook().add_page(path)
-
-    def test_logbook_add_page_extra_parameter(self, tmp_logbook_page):
-        with pytest.raises(TypeError):
-            pn.Logbook().add_page(tmp_logbook_page, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_logbook_add_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.Logbook().add_page(tmp_file_factory(filename))
-
-    def test_notebook_add_contents_page(self, tmp_contents_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_contents_page(tmp_contents_page)
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.ContentsPage)
-
-    def test_notebook_add_contents_page_path(self, tmp_contents_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_contents_page(tmp_contents_page)
-        assert tmp_contents_page in [this_page.path
-                                     for this_page in test_notebook.contents]
-        last_item = test_notebook.contents[-1]
-        assert last_item.path == tmp_contents_page
-
-    def test_notebook_add_contents_page_contents(self, tmp_contents_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_contents_page(tmp_contents_page)
-        last_item = test_notebook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_contents_page)
-
-    def test_notebook_add_contents_page_null(self):
-        test_notebook = pn.Notebook()
-        test_notebook.add_contents_page()
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.Page)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_notebook_add_contents_page_parent(self, tmp_contents_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_contents_page(tmp_contents_page)
-        last_item = test_notebook.contents[-1]
-        assert last_item.parent == test_notebook
-
-    def test_notebook_add_contents_page_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook()
-        test_notebook.add_contents_page(pathlib.Path(cloned_repo.working_dir)
-                                        .joinpath(self.cloned_contents_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_add_contents_page_no_output(self, tmp_contents_page, capsys):
-        pn.Notebook().add_contents_page(tmp_contents_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_add_contents_page_null_no_output(self, capsys):
-        pn.Notebook().add_contents_page()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_add_contents_page_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Notebook().add_contents_page(path)
-
-    def test_notebook_add_contents_page_extra_parameter(self, tmp_contents_page):
-        with pytest.raises(TypeError):
-            pn.Notebook().add_contents_page(tmp_contents_page, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
-    def test_notebook_add_contents_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.Notebook().add_contents_page(tmp_file_factory(filename))
-
-    def test_logbook_add_contents_page(self, tmp_logbook_contents_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_contents_page(tmp_logbook_contents_page)
-        assert isinstance(test_logbook.contents, list)
-        last_item = test_logbook.contents[-1]
-        assert isinstance(last_item, pn.ContentsPage)
-
-    def test_logbook_add_contents_page_path(self, tmp_logbook_contents_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_contents_page(tmp_logbook_contents_page)
-        assert tmp_logbook_contents_page in [this_page.path
-                                             for this_page
-                                             in test_logbook.contents]
-        last_item = test_logbook.contents[-1]
-        assert last_item.path == tmp_logbook_contents_page
-
-    def test_logbook_add_contents_page_contents(self, tmp_logbook_contents_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_contents_page(tmp_logbook_contents_page)
-        last_item = test_logbook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_logbook_contents_page)
-
-    def test_logbook_add_contents_page_null(self):
-        test_logbook = pn.Logbook()
-        test_logbook.add_contents_page()
-        assert isinstance(test_logbook.contents, list)
-        last_item = test_logbook.contents[-1]
-        assert isinstance(last_item, pn.Page)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_logbook_add_contents_page_parent(self, tmp_contents_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_contents_page(tmp_contents_page)
-        last_item = test_logbook.contents[-1]
-        assert last_item.parent == test_logbook
-
-    def test_logbook_add_contents_page_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook()
-        test_logbook.add_contents_page(
-            pathlib.Path(cloned_repo.working_dir)
-            .joinpath(self.cloned_logbook_contents_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_add_contents_page_no_output(
-            self, tmp_logbook_contents_page, capsys):
-        pn.Logbook().add_contents_page(tmp_logbook_contents_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_add_contents_page_null_no_output(self, capsys):
-        pn.Logbook().add_contents_page()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_add_contents_page_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Logbook().add_contents_page(path)
-
-    def test_logbook_add_contents_page_extra_parameter(
-            self, tmp_logbook_contents_page):
-        with pytest.raises(TypeError):
-            pn.Logbook().add_contents_page(
-                tmp_logbook_contents_page, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
-    def test_logbook_add_contents_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.Logbook().add_contents_page(tmp_file_factory(filename))
-
-    def test_notebook_add_home_page(self, tmp_home_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_home_page(tmp_home_page)
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.HomePage)
-
-    def test_notebook_add_home_page_path(self, tmp_home_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_home_page(tmp_home_page)
-        assert tmp_home_page in [this_page.path
-                            for this_page in test_notebook.contents]
-        last_item = test_notebook.contents[-1]
-        assert last_item.path == tmp_home_page
-
-    def test_notebook_add_home_page_contents(self, tmp_home_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_home_page(tmp_home_page)
-        last_item = test_notebook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_home_page)
-
-    def test_notebook_add_home_page_null(self):
-        test_notebook = pn.Notebook()
-        test_notebook.add_home_page()
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.Page)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_notebook_add_home_page_parent(self, tmp_home_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_home_page(tmp_home_page)
-        last_item = test_notebook.contents[-1]
-        assert last_item.parent == test_notebook
-
-    def test_notebook_add_home_page_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook()
-        test_notebook.add_home_page(pathlib.Path(cloned_repo.working_dir)
-                                    .joinpath(self.cloned_home_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_add_home_page_no_output(self, tmp_home_page, capsys):
-        pn.Notebook().add_home_page(tmp_home_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_add_home_page_null_no_output(self, capsys):
-        pn.Notebook().add_home_page()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_add_home_page_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Notebook().add_home_page(path)
-
-    def test_notebook_add_home_page_extra_parameter(self, tmp_home_page):
-        with pytest.raises(TypeError):
-            pn.Notebook().add_home_page(tmp_home_page, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('home'))
-    def test_notebook_add_home_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.Notebook().add_home_page(tmp_file_factory(filename))
-
-    def test_logbook_add_home_page(self, tmp_home_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_home_page(tmp_home_page)
-        assert isinstance(test_logbook.contents, list)
-        last_item = test_logbook.contents[-1]
-        assert isinstance(last_item, pn.HomePage)
-
-    def test_logbook_add_home_page_path(self, tmp_home_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_home_page(tmp_home_page)
-        assert tmp_home_page in [this_page.path
-                            for this_page in test_logbook.contents]
-        last_item = test_logbook.contents[-1]
-        assert last_item.path == tmp_home_page
-
-    def test_logbook_add_home_page_contents(self, tmp_home_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_home_page(tmp_home_page)
-        last_item = test_logbook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_home_page)
-
-    def test_logbook_add_home_page_null(self):
-        test_logbook = pn.Logbook()
-        test_logbook.add_home_page()
-        assert isinstance(test_logbook.contents, list)
-        last_item = test_logbook.contents[-1]
-        assert isinstance(last_item, pn.Page)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_logbook_add_home_page_parent(self, tmp_home_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_home_page(tmp_home_page)
-        last_item = test_logbook.contents[-1]
-        assert last_item.parent == test_logbook
-
-    def test_logbook_add_home_page_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook()
-        test_logbook.add_home_page(pathlib.Path(cloned_repo.working_dir)
-                                   .joinpath(self.cloned_home_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_add_home_page_no_output(self, tmp_home_page, capsys):
-        pn.Logbook().add_home_page(tmp_home_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_add_home_page_null_no_output(self, capsys):
-        pn.Logbook().add_home_page()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_add_home_page_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Logbook().add_home_page(path)
-
-    def test_logbook_add_home_page_extra_parameter(self, tmp_home_page):
-        with pytest.raises(TypeError):
-            pn.Logbook().add_home_page(tmp_home_page, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('home'))
-    def test_logbook_add_home_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.Logbook().add_home_page(tmp_file_factory(filename))
-
-    def test_notebook_add_readme_page(self, tmp_readme_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_readme_page(tmp_readme_page)
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.ReadmePage)
-
-    def test_notebook_add_readme_page_path(self, tmp_readme_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_readme_page(tmp_readme_page)
-        assert tmp_readme_page in [this_page.path
-                            for this_page in test_notebook.contents]
-        last_item = test_notebook.contents[-1]
-        assert last_item.path == tmp_readme_page
-
-    def test_notebook_add_readme_page_contents(self, tmp_readme_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_readme_page(tmp_readme_page)
-        last_item = test_notebook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_readme_page)
-
-    def test_notebook_add_readme_page_null(self):
-        test_notebook = pn.Notebook()
-        test_notebook.add_readme_page()
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.Page)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_notebook_add_readme_page_parent(self, tmp_readme_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_readme_page(tmp_readme_page)
-        last_item = test_notebook.contents[-1]
-        assert last_item.parent == test_notebook
-
-    def test_notebook_add_readme_page_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook()
-        test_notebook.add_readme_page(pathlib.Path(cloned_repo.working_dir)
-                                      .joinpath(self.cloned_readme_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_add_readme_page_no_output(self, tmp_readme_page, capsys):
-        pn.Notebook().add_readme_page(tmp_readme_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_add_readme_page_null_no_output(self, capsys):
-        pn.Notebook().add_readme_page()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_add_readme_page_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Notebook().add_readme_page(path)
-
-    def test_notebook_add_readme_page_extra_parameter(self, tmp_readme_page):
-        with pytest.raises(TypeError):
-            pn.Notebook().add_readme_page(tmp_readme_page, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
-    def test_notebook_add_readme_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.Notebook().add_readme_page(tmp_file_factory(filename))
-
-    def test_logbook_add_readme_page(self, tmp_logbook_readme_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_readme_page(tmp_logbook_readme_page)
-        assert isinstance(test_logbook.contents, list)
-        last_item = test_logbook.contents[-1]
-        assert isinstance(last_item, pn.ReadmePage)
-
-    def test_logbook_add_readme_page_path(self, tmp_logbook_readme_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_readme_page(tmp_logbook_readme_page)
-        assert tmp_logbook_readme_page in [this_page.path
-                                           for this_page
-                                           in test_logbook.contents]
-        last_item = test_logbook.contents[-1]
-        assert last_item.path == tmp_logbook_readme_page
-
-    def test_logbook_add_readme_page_contents(self, tmp_logbook_readme_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_readme_page(tmp_logbook_readme_page)
-        last_item = test_logbook.contents[-1]
-        self.assert_page_contents_match(last_item, tmp_logbook_readme_page)
-
-    def test_logbook_add_readme_page_null(self):
-        test_logbook = pn.Logbook()
-        test_logbook.add_readme_page()
-        assert isinstance(test_logbook.contents, list)
-        last_item = test_logbook.contents[-1]
-        assert isinstance(last_item, pn.Page)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_logbook_add_readme_page_parent(self, tmp_readme_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_readme_page(tmp_readme_page)
-        last_item = test_logbook.contents[-1]
-        assert last_item.parent == test_logbook
-
-    def test_logbook_add_readme_page_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook()
-        test_logbook.add_readme_page(pathlib.Path(cloned_repo.working_dir)
-                                     .joinpath(self.cloned_logbook_readme_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_add_readme_page_no_output(
-            self, tmp_logbook_readme_page, capsys):
-        pn.Logbook().add_readme_page(tmp_logbook_readme_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_add_readme_page_null_no_output(self, capsys):
-        pn.Logbook().add_readme_page()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_add_readme_page_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Logbook().add_readme_page(path)
-
-    def test_logbook_add_readme_page_extra_parameter(
-            self, tmp_logbook_readme_page):
-        with pytest.raises(TypeError):
-            pn.Logbook().add_readme_page(
-                tmp_logbook_readme_page, 'extra parameter')
-
-    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
-    def test_logbook_add_readme_page_invalid_file_types(
-            self, tmp_file_factory, filename):
-        with pytest.raises(ValueError):
-            pn.Logbook().add_readme_page(tmp_file_factory(filename))
-
-    def test_notebook_add_notebook(self, tmp_notebook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_notebook(tmp_notebook)
-        assert isinstance(test_notebook.contents, list)
-        assert tmp_notebook in [this_item.path
-                                for this_item in test_notebook.contents]
-
-    def test_notebook_add_notebook_contents(self, tmp_notebook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_notebook(tmp_notebook)
-        last_item = test_notebook.contents[-1]
-        self.assert_notebook_contents_match(last_item, tmp_notebook)
-
-    def test_notebook_add_notebook_null(self):
-        test_notebook = pn.Notebook()
-        test_notebook.add_notebook()
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.Notebook)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_notebook_add_notebook_parent(self, tmp_notebook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_notebook(tmp_notebook)
-        last_item = test_notebook.contents[-1]
-        assert last_item.parent == test_notebook
-
-    def test_notebook_add_notebook_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook()
-        test_notebook.add_notebook(pathlib.Path(cloned_repo.working_dir)
-                                   .joinpath(self.cloned_nested_notebook))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_add_notebook_no_output(self, tmp_notebook, capsys):
-        pn.Notebook().add_notebook(tmp_notebook)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_add_notebook_null_no_output(self, capsys):
-        pn.Notebook().add_notebook()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_add_notebook_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Notebook().add_notebook(path)
-
-    def test_notebook_add_notebook_extra_parameter(self, tmp_notebook):
-        with pytest.raises(TypeError):
-            pn.Notebook().add_notebook(tmp_notebook, 'extra parameter')
-
-    def test_logbook_add_notebook_fail(self, tmp_notebook):
-        test_logbook = pn.Logbook()
-        test_logbook.add_notebook(tmp_notebook)
-        assert isinstance(test_logbook.contents, list)
-        assert tmp_notebook not in [this_item.path
-                                    for this_item in test_logbook.contents]
-
-    def test_logbook_add_notebook_null(self):
-        test_logbook = pn.Logbook()
-        test_logbook.add_notebook()
-        assert isinstance(test_logbook.contents, list)
-        assert len(test_logbook.contents) == 0
-
-    def test_logbook_add_notebook_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook()
-        test_logbook.add_notebook(pathlib.Path(cloned_repo.working_dir)
-                                  .joinpath(self.cloned_nested_notebook))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_add_notebook_no_output(self, tmp_notebook, capsys):
-        pn.Logbook().add_notebook(tmp_notebook)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_add_notebook_null_no_output(self, capsys):
-        pn.Logbook().add_notebook()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_add_logbook(self, tmp_logbook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_logbook(tmp_logbook)
-        assert isinstance(test_notebook.contents, list)
-        assert tmp_logbook in [this_item.path
-                                for this_item in test_notebook.contents]
-
-    def test_notebook_add_logbook_contents(self, tmp_logbook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_logbook(tmp_logbook)
-        last_item = test_notebook.contents[-1]
-        self.assert_logbook_contents_match(last_item, tmp_logbook)
-
-    def test_notebook_add_logbook_null(self):
-        test_notebook = pn.Notebook()
-        test_notebook.add_logbook()
-        assert isinstance(test_notebook.contents, list)
-        last_item = test_notebook.contents[-1]
-        assert isinstance(last_item, pn.Notebook)
-        assert last_item.path is None
-        assert last_item.contents == []
-
-    def test_notebook_add_logbook_parent(self, tmp_logbook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_logbook(tmp_logbook)
-        last_item = test_notebook.contents[-1]
-        assert last_item.parent == test_notebook
-
-    def test_notebook_add_logbook_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook()
-        test_notebook.add_logbook(pathlib.Path(cloned_repo.working_dir)
-                                  .joinpath(self.cloned_logbook))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_add_logbook_no_output(self, tmp_logbook, capsys):
-        pn.Notebook().add_logbook(tmp_logbook)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_add_logbook_null_no_output(self, capsys):
-        pn.Notebook().add_logbook()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_add_logbook_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Notebook().add_logbook(path)
-
-    def test_notebook_add_logbook_extra_parameter(self, tmp_logbook):
-        with pytest.raises(TypeError):
-            pn.Notebook().add_logbook(tmp_logbook, 'extra parameter')
-
-    def test_logbook_add_logbook_fail(self, tmp_logbook):
-        test_logbook = pn.Logbook()
-        test_logbook.add_logbook(tmp_logbook)
-        assert isinstance(test_logbook.contents, list)
-        assert tmp_logbook not in [this_item.path
-                                   for this_item in test_logbook.contents]
-
-    def test_logbook_add_logbook_null(self):
-        test_logbook = pn.Logbook()
-        test_logbook.add_logbook()
-        assert isinstance(test_logbook.contents, list)
-        assert len(test_logbook.contents) == 0
-
-    def test_logbook_add_logbook_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook()
-        test_logbook.add_logbook(pathlib.Path(cloned_repo.working_dir)
-                                 .joinpath(self.cloned_logbook))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_add_logbook_no_output(self, tmp_logbook, capsys):
-        pn.Logbook().add_logbook(tmp_logbook)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_add_logbook_null_no_output(self, capsys):
-        pn.Logbook().add_logbook()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_load_contents(self, tmp_notebook):
-        test_notebook = pn.Notebook()
-        test_notebook.path = tmp_notebook
-        test_notebook.load_contents()
-        self.assert_notebook_contents_match(test_notebook, tmp_notebook)
-
-    def test_notebook_load_contents_null(self):
-        test_notebook = pn.Notebook()
-        test_notebook.path = None
-        test_notebook.load_contents()
-        assert test_notebook.contents == []
-
-    def test_notebook_load_contents_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook()
-        test_notebook.path = pathlib.Path(cloned_repo.working_dir)
-        test_notebook.load_contents()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_load_contents_no_output(self, tmp_notebook, capsys):
-        test_notebook = pn.Notebook()
-        test_notebook.path = tmp_notebook
-        test_notebook.load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_load_contents_null_no_output(self, capsys):
-        pn.Notebook().load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_load_contents_extra_parameter(self, tmp_logbook_page):
-        test_notebook = pn.Notebook()
-        with pytest.raises(TypeError):
-            test_notebook.load_contents(None, 'extra parameter')
-
-    def test_logbook_load_contents(self, tmp_logbook):
-        test_logbook = pn.Logbook()
-        test_logbook.path = tmp_logbook
-        test_logbook.load_contents()
-        self.assert_logbook_contents_match(test_logbook, tmp_logbook)
-
-    def test_logbook_load_contents_null(self):
-        test_logbook = pn.Logbook()
-        test_logbook.path = None
-        test_logbook.load_contents()
-        assert test_logbook.contents == []
-
-    def test_logbook_load_contents_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook()
-        test_logbook.path = (pathlib.Path(cloned_repo.working_dir)
-                             .joinpath(self.cloned_logbook))
-        test_logbook.load_contents()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_load_contents_no_output(self, tmp_logbook, capsys):
-        test_logbook = pn.Logbook()
-        test_logbook.path = tmp_logbook
-        test_logbook.load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_load_contents_null_no_output(self, capsys):
-        pn.Logbook().load_contents()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_load_contents_extra_parameter(self, tmp_logbook_page):
-        test_logbook = pn.Logbook()
-        with pytest.raises(TypeError):
-            test_logbook.load_contents(None, 'extra parameter')
+    @pytest.mark.parametrize('test_params', build_all_tests('page', 'add'))
+    def test_add_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_page(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('contents', 'add'))
+    def test_add_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_contents_page(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('home', 'add'))
+    def test_add_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_home_page(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('readme', 'add'))
+    def test_add_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_readme_page(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('notebook', 'add'))
+    def test_add_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_notebook(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('logbook', 'add'))
+    def test_add_logbook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_logbook(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('notebook', 'load'))
+    def test_load_contents_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_notebook, tmp_path):
+        with eval(test_params['error condition']):
+            existing_notebook = eval(test_params['existing'])
+            test_notebook = pn.Notebook(path=existing_notebook)
+            test_notebook.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params', build_all_tests('logbook', 'load'))
+    def test_load_contents_logbook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_logbook, tmp_path):
+        with eval(test_params['error condition']):
+            existing_logbook = eval(test_params['existing'])
+            test_logbook = pn.Logbook(path=existing_logbook)
+            test_logbook.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_logbook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'load'))
+    def test_load_contents_nested_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_nested, tmp_path):
+        with eval(test_params['error condition']):
+            existing_notebook = eval(test_params['existing'])
+            test_notebook = pn.Notebook(path=existing_notebook)
+            test_notebook.load_contents(eval(test_params['path']))
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
 
     # Getting information from notebook objects
-    def test_notebook_get_title(self, tmp_notebook):
-        test_title = pn.Notebook(tmp_notebook).title
-        assert isinstance(test_title, str)
-        assert test_title == self.test_notebook_title
-
-    def test_notebook_get_title_without_readme(self, tmp_notebook_without_readme):
-        test_notebook = pn.Notebook(tmp_notebook_without_readme)
-        test_notebook.contents = [item for item in test_notebook.contents
-                                  if not isinstance(item, pn.ReadmePage)]
-        test_title = test_notebook.title
-        assert isinstance(test_title, str)
-        assert test_title == (tmp_notebook_without_readme.stem
-                              .replace('_', ' ').replace('-', ' ').strip())
-
-    def test_notebook_get_title_null(self, tmp_notebook):
-        test_title = pn.Notebook().title
-        assert test_title == self.unknown_descriptor
-
-    def test_logbook_get_title(self, tmp_logbook):
-        test_title = pn.Logbook(tmp_logbook).title
-        assert isinstance(test_title, str)
-        assert test_title == self.temp_logbook
-
-    def test_logbook_get_title_without_readme(self, tmp_logbook_without_readme):
-        test_logbook = pn.Logbook(tmp_logbook_without_readme)
-        test_logbook.contents = [item for item in test_logbook.contents
-                                  if not isinstance(item, pn.ReadmePage)]
-        test_title = test_logbook.title
-        assert isinstance(test_title, str)
-        assert test_title == (tmp_logbook_without_readme.stem
-                              .replace('_', ' ').replace('-', ' ').strip())
-
-    def test_logbook_get_title_null(self, tmp_logbook):
-        test_title = pn.Logbook().title
-        assert test_title == self.unknown_descriptor
-
-    def test_notebook_is_valid_page_file(self, tmp_page):
-        test_notebook = pn.Notebook()
-        assert test_notebook._is_valid_page_file(tmp_page) is True
-
-    def test_notebook_is_valid_page_file_logbook_page(self, tmp_logbook_page):
-        test_notebook = pn.Notebook()
-        assert test_notebook._is_valid_page_file(tmp_logbook_page) is True
-
-    @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_notebook_is_valid_page_file_invalid_file_types(
-            self, tmp_file_factory, filename):
-        assert pn.Notebook()._is_valid_page_file(tmp_file_factory(filename)) is False
-
-    def test_notebook_is_valid_page_file_invalid_file(self, tmp_file_factory):
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn.Notebook()._is_valid_page_file(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-
-    def test_notebook_is_valid_page_file_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook()
-        test_notebook._is_valid_page_file(pathlib.Path(cloned_repo.working_dir)
-                                     .joinpath(self.cloned_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_is_valid_page_file_no_output(self, tmp_page, capsys):
-        pn.Notebook()._is_valid_page_file(tmp_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_is_valid_page_file_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Notebook()._is_valid_page_file(path)
-
-    def test_notebook_is_valid_page_file_extra_parameter(self, tmp_page):
-        with pytest.raises(TypeError):
-            pn.Notebook()._is_valid_page_file(tmp_page, 'extra parameter')
-
-    def test_logbook_is_valid_page_file(self, tmp_logbook_page):
-        test_logbook = pn.Logbook()
-        assert test_logbook._is_valid_page_file(tmp_logbook_page) is True
-
-    def test_logbook_is_valid_page_file_notebook_page(self, tmp_page):
-        test_logbook = pn.Logbook()
-        assert test_logbook._is_valid_page_file(tmp_page) is False
-
-    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_logbook_is_valid_page_file_invalid_file_types(
-            self, tmp_file_factory, filename):
-        assert pn.Logbook()._is_valid_page_file(
-            tmp_file_factory(filename)) is False
-
-    def test_logbook_is_valid_page_file_invalid_file(self, tmp_file_factory):
-        tmp_file = tmp_file_factory(f'is-a-file{self.page_suffix}')
-        with pytest.raises(OSError):
-            pn.Logbook()._is_valid_page_file(
-                tmp_file.parent.joinpath(f'not-a-file{self.page_suffix}'))
-
-    def test_logbook_is_valid_page_file_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook()
-        test_logbook._is_valid_page_file(pathlib.Path(cloned_repo.working_dir)
-                                    .joinpath(self.cloned_logbook_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_is_valid_page_file_no_output(self, tmp_page, capsys):
-        pn.Logbook()._is_valid_page_file(tmp_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_is_valid_page_file_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Logbook()._is_valid_page_file(path)
-
-    def test_logbook_is_valid_page_file_extra_parameter(self, tmp_page):
-        with pytest.raises(TypeError):
-            pn.Logbook()._is_valid_page_file(tmp_page, 'extra parameter')
-
-    def test_notebook_is_valid_path(self, tmp_path):
-        assert pn.Notebook()._is_valid_path(
-            tmp_path) is True
-
-    def test_notebook_is_valid_path_notebook(self, tmp_notebook):
-        assert pn.Notebook()._is_valid_path(
-            tmp_notebook) is True
-
-    def test_notebook_is_valid_path_logbook(self, tmp_logbook):
-        assert pn.Notebook()._is_valid_path(
-            tmp_logbook) is True
-
-    @pytest.mark.parametrize('folder_name', invalid_folders)
-    def test_notebook_is_valid_path_fail(self, tmp_path_factory, folder_name):
-        assert pn.Notebook()._is_valid_path(
-            tmp_path_factory.mktemp(folder_name)) is False
-
-    def test_notebook_is_valid_path_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook()
-        test_notebook._is_valid_path(pathlib.Path(cloned_repo.working_dir))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_is_valid_path_no_output(self, tmp_path, capsys):
-        pn.Notebook()._is_valid_path(tmp_path)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_notebook_is_valid_path_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Notebook()._is_valid_path(path)
-
-    def test_notebook_is_valid_path_missing_parameter(self):
-        with pytest.raises(TypeError):
-            pn.Notebook()._is_valid_path()
-
-    def test_notebook_is_valid_path_extra_parameter(self, tmp_path):
-        with pytest.raises(TypeError):
-            pn.Notebook()._is_valid_path(tmp_path, 'extra parameter')
-
-    def test_logbook_is_valid_path(self, tmp_path):
-        assert pn.Logbook()._is_valid_path(tmp_path) is False
-
-    def test_logbook_is_valid_path_notebook(self, tmp_notebook):
-        assert pn.Logbook()._is_valid_path(tmp_notebook) is False
-
-    def test_logbook_is_valid_path_logbook(self, tmp_logbook):
-        assert pn.Logbook()._is_valid_path(tmp_logbook) is True
-
-    @pytest.mark.parametrize('folder_name', invalid_logbook)
-    def test_logbook_is_valid_path_fail(self, tmp_path_factory, folder_name):
-        assert pn.Logbook()._is_valid_path(
-            tmp_path_factory.mktemp(folder_name)) is False
-
-    def test_logbook_is_valid_path_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook()
-        test_logbook._is_valid_path(pathlib.Path(cloned_repo.working_dir)
-                                      .joinpath(self.cloned_logbook))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_is_valid_path_no_output(self, tmp_path, capsys):
-        pn.Logbook()._is_valid_path(tmp_path)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_logbook_is_valid_path_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn.Logbook()._is_valid_path(path)
-
-    def test_logbook_is_valid_path_missing_parameter(self):
-        with pytest.raises(TypeError):
-            pn.Logbook()._is_valid_path()
-
-    def test_logbook_is_valid_path_extra_parameter(self, tmp_logbook):
-        with pytest.raises(TypeError):
-            pn.Logbook()._is_valid_path(tmp_logbook, 'extra parameter')
-
-    def test_notebook_get_pages(self, tmp_notebook):
-        test_notebook = pn.Notebook(tmp_notebook)
-        test_pages = test_notebook.get_pages()
-        assert isinstance(test_pages, list)
-        assert len(test_pages) == len(self.temp_pages)
-
-    def test_notebook_get_pages_contents(self, tmp_notebook):
-        test_notebook = pn.Notebook(tmp_notebook)
-        test_pages = test_notebook.get_pages()
-        for filename in self.temp_pages:
-            this_path = tmp_notebook.joinpath(filename)
-            assert this_path in [page.path for page in test_pages]
-        for page in test_pages:
-            assert isinstance(page, pn.Page)
-            self.assert_page_contents_match(page, self.test_page)
-
-    def test_notebook_get_pages_selective(self, tmp_page):
-        test_notebook = pn.Notebook()
-        test_notebook.add_page()
-        test_notebook.add_page(tmp_page)
-        test_notebook.add_notebook()
-        test_notebook.add_logbook()
-        test_pages = test_notebook.get_pages()
-        assert isinstance(test_pages, list)
-        assert len(test_pages) == 2
-        assert tmp_page in [page.path for page in test_pages]
-
-    def test_notebook_get_pages_null(self):
-        test_notebook = pn.Notebook()
-        test_pages = test_notebook.get_pages()
-        assert test_pages == []
-
-    def test_notebook_get_pages_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook(pathlib.Path(cloned_repo.working_dir))
-        test_notebook.get_pages()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_get_pages_no_output(self, capsys):
-        pn.Notebook().get_pages()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_get_pages_extra_parameter(self):
-        with pytest.raises(TypeError):
-            pn.Notebook().get_pages('extra parameter')
-
-    def test_logbook_get_pages(self, tmp_logbook):
-        test_logbook = pn.Logbook(tmp_logbook)
-        test_pages = test_logbook.get_pages()
-        assert isinstance(test_pages, list)
-        assert len(test_pages) == len(self.temp_logbook_pages)
-
-    def test_logbook_get_pages_contents(self, tmp_logbook):
-        test_logbook = pn.Logbook(tmp_logbook)
-        test_pages = test_logbook.get_pages()
-        for filename in self.temp_logbook_pages:
-            this_path = tmp_logbook.joinpath(filename)
-            assert this_path in [page.path for page in test_pages]
-        for page in test_pages:
-            assert isinstance(page, pn.LogbookPage)
-            self.assert_page_contents_match(page, self.test_logbook_page)
-
-    def test_logbook_get_pages_selective(self, tmp_logbook_page):
-        test_logbook = pn.Logbook()
-        test_logbook.add_page()
-        test_logbook.add_page(tmp_logbook_page)
-        test_logbook.add_notebook()
-        test_logbook.add_logbook()
-        test_pages = test_logbook.get_pages()
-        assert isinstance(test_pages, list)
-        assert len(test_pages) == 2
-        assert tmp_logbook_page in [page.path for page in test_pages]
-
-    def test_logbook_get_pages_null(self):
-        test_logbook = pn.Logbook()
-        test_pages = test_logbook.get_pages()
-        assert test_pages == []
-
-    def test_logbook_get_pages_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook(pathlib.Path(cloned_repo.working_dir)
-                                  .joinpath(self.cloned_logbook))
-        test_logbook.get_pages()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_get_pages_no_output(self, capsys):
-        pn.Logbook().get_pages()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_get_pages_extra_parameter(self):
-        with pytest.raises(TypeError):
-            pn.Logbook().get_pages('extra parameter')
-
-    def test_notebook_get_notebooks(self, tmp_notebook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_notebook(tmp_notebook)
-        notebook_list = test_notebook.get_notebooks()
-        assert isinstance(notebook_list, list)
-        assert len(notebook_list) == 1
-
-    def test_notebook_get_notebooks_contents(self, tmp_notebook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_notebook(tmp_notebook)
-        notebook_list = test_notebook.get_notebooks()
-        nested_notebook = notebook_list[0]
-        self.assert_notebook_contents_match(nested_notebook, tmp_notebook)
-
-    def test_notebook_get_notebooks_selective(self, tmp_notebook, tmp_logbook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_page()
-        test_notebook.add_notebook()
-        test_notebook.add_notebook(tmp_notebook)
-        test_notebook.add_logbook()
-        test_notebook.add_logbook(tmp_logbook)
-        notebook_list = test_notebook.get_notebooks()
-        assert isinstance(notebook_list, list)
-        assert len(notebook_list) == 2
-        assert tmp_notebook in [item.path for item in notebook_list]
-        assert tmp_logbook not in [item.path for item in notebook_list]
-
-    def test_notebook_get_notebooks_null(self):
-        test_notebook = pn.Notebook()
-        notebook_list = test_notebook.get_notebooks()
-        assert notebook_list == []
-
-    def test_notebook_get_notebooks_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook(pathlib.Path(cloned_repo.working_dir))
-        test_notebook.get_notebooks()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_get_notebooks_no_output(self, capsys):
-        pn.Notebook().get_notebooks()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_get_notebooks_extra_parameter(self):
-        include_logbooks = True
-        with pytest.raises(TypeError):
-            pn.Notebook().get_notebooks(include_logbooks, 'extra parameter')
-
-    def test_logbook_get_notebooks(self, tmp_notebook):
-        test_logbook = pn.Logbook()
-        test_logbook.add_notebook(tmp_notebook)
-        notebook_list = test_logbook.get_notebooks()
-        assert isinstance(notebook_list, list)
-        assert len(notebook_list) == 0
-
-    def test_logbook_get_notebooks_selective(self, tmp_notebook, tmp_logbook):
-        test_logbook = pn.Logbook()
-        test_logbook.add_page()
-        test_logbook.add_notebook()
-        test_logbook.add_notebook(tmp_notebook)
-        test_logbook.add_logbook()
-        test_logbook.add_logbook(tmp_logbook)
-        notebook_list = test_logbook.get_notebooks()
-        assert isinstance(notebook_list, list)
-        assert len(notebook_list) == 0
-
-    def test_logbook_get_notebooks_null(self):
-        test_logbook = pn.Logbook()
-        notebook_list = test_logbook.get_notebooks()
-        assert notebook_list == []
-
-    def test_logbook_get_notebooks_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook(pathlib.Path(cloned_repo.working_dir)
-                                  .joinpath(self.cloned_logbook))
-        test_logbook.get_notebooks()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_get_notebooks_no_output(self, capsys):
-        pn.Logbook().get_notebooks()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_get_notebooks_extra_parameter(self):
-        include_logbooks = True
-        with pytest.raises(TypeError):
-            pn.Logbook().get_notebooks(include_logbooks, 'extra parameter')
-
-    def test_notebook_get_logbooks(self, tmp_logbook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_logbook(tmp_logbook)
-        logbook_list = test_notebook.get_logbooks()
-        assert isinstance(logbook_list, list)
-        assert len(logbook_list) == 1
-
-    def test_notebook_get_logbooks_contents(self, tmp_logbook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_logbook(tmp_logbook)
-        logbook_list = test_notebook.get_logbooks()
-        nested_logbook = logbook_list[0]
-        self.assert_logbook_contents_match(nested_logbook, tmp_logbook)
-
-    def test_notebook_get_logbooks_selective(self, tmp_notebook, tmp_logbook):
-        test_notebook = pn.Notebook()
-        test_notebook.add_page()
-        test_notebook.add_notebook()
-        test_notebook.add_notebook(tmp_notebook)
-        test_notebook.add_logbook()
-        test_notebook.add_logbook(tmp_logbook)
-        logbook_list = test_notebook.get_logbooks()
-        assert isinstance(logbook_list, list)
-        assert len(logbook_list) == 2
-        assert tmp_logbook in [item.path for item in logbook_list]
-        assert tmp_notebook not in [item.path for item in logbook_list]
-
-    def test_notebook_get_logbooks_null(self):
-        test_notebook = pn.Notebook()
-        logbook_list = test_notebook.get_logbooks()
-        assert logbook_list == []
-
-    def test_notebook_get_logbooks_no_changes(self, cloned_repo):
-        test_notebook = pn.Notebook(pathlib.Path(cloned_repo.working_dir))
-        test_notebook.get_logbooks()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_notebook_get_logbooks_no_output(self, capsys):
-        pn.Notebook().get_logbooks()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_notebook_get_logbooks_extra_parameter(self):
-        with pytest.raises(TypeError):
-            pn.Notebook().get_logbooks('extra parameter')
-
-    def test_logbook_get_logbooks(self, tmp_logbook):
-        test_logbook = pn.Logbook()
-        test_logbook.add_logbook(tmp_logbook)
-        logbook_list = test_logbook.get_logbooks()
-        assert isinstance(logbook_list, list)
-        assert len(logbook_list) == 0
-
-    def test_logbook_get_logbooks_selective(self, tmp_notebook, tmp_logbook):
-        test_logbook = pn.Logbook()
-        test_logbook.add_page()
-        test_logbook.add_notebook()
-        test_logbook.add_notebook(tmp_notebook)
-        test_logbook.add_logbook()
-        test_logbook.add_logbook(tmp_logbook)
-        logbook_list = test_logbook.get_logbooks()
-        assert isinstance(logbook_list, list)
-        assert len(logbook_list) == 0
-
-    def test_logbook_get_logbooks_null(self):
-        test_logbook = pn.Logbook()
-        logbook_list = test_logbook.get_logbooks()
-        assert logbook_list == []
-
-    def test_logbook_get_logbooks_no_changes(self, cloned_repo):
-        test_logbook = pn.Logbook(pathlib.Path(cloned_repo.working_dir)
-                                  .joinpath(self.cloned_logbook))
-        test_logbook.get_logbooks()
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_logbook_get_logbooks_no_output(self, capsys):
-        pn.Logbook().get_logbooks()
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_logbook_get_logbooks_extra_parameter(self):
-        with pytest.raises(TypeError):
-            pn.Logbook().get_logbooks('extra parameter')
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('notebook', 'valid path'))
+    def test_is_valid_path_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_notebook = eval(test_params['object'])
+            result = test_notebook._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook', 'valid path'))
+    def test_is_valid_path_logbook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_notebook = eval(test_params['object'])
+            result = test_notebook._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'valid path'))
+    def test_is_valid_path_nested_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            test_notebook = eval(test_params['object'])
+            result = test_notebook._is_valid_path(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('notebook', 'get pages'))
+    def test_get_pages_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_pages()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook', 'get pages'))
+    def test_get_pages_logbook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_logbook = pn.Logbook(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            result = test_logbook.get_pages()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'get pages'))
+    def test_get_pages_nested_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_pages()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('notebook', 'get notebooks'))
+    def test_get_notebooks_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_notebooks()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook', 'get notebooks'))
+    def test_get_notebooks_logbook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_logbook = pn.Logbook(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            result = test_logbook.get_notebooks()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'get notebooks'))
+    def test_get_notebooks_nested_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_notebooks()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('notebook', 'get logbooks'))
+    def test_get_logbooks_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_logbooks()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook', 'get logbooks'))
+    def test_get_logbooks_logbook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_logbook = pn.Logbook(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            result = test_logbook.get_logbooks()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'get logbooks'))
+    def test_get_logbooks_nested_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_logbooks()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
 
     # Utility functions
-    def test_is_valid_page_file(self, tmp_page):
-        assert pn._is_valid_page_file(tmp_page) is True
-
-    def test_is_valid_page_file_notebook_page(self, tmp_page):
-        assert pn._is_valid_page_file(tmp_page) is True
-
-    def test_is_valid_page_file_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_page_file(tmp_logbook_page) is True
-
-    def test_is_valid_page_file_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_page_file(tmp_contents_page) is True
-
-    def test_is_valid_page_file_logbook_contents_page(
-            self, tmp_logbook_contents_page):
-        assert pn._is_valid_page_file(tmp_logbook_contents_page) is True
-
-    def test_is_valid_page_file_logbook_month_page(self, tmp_logbook_month_page):
-        assert pn._is_valid_page_file(tmp_logbook_month_page) is True
-
-    def test_is_valid_page_file_home_page(self, tmp_home_page):
-        assert pn._is_valid_page_file(tmp_home_page) is True
-
-    def test_is_valid_page_file_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_page_file(tmp_readme_page) is True
-
-    def test_is_valid_page_file_logbook_readme_page(self, tmp_logbook_readme_page):
-        assert pn._is_valid_page_file(tmp_logbook_readme_page) is True
-
-    @pytest.mark.parametrize('filename', invalid_filenames('page'))
-    def test_is_valid_page_file_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_page_file(tmp_file_factory(filename)) is False
-
-    def test_is_valid_page_file_no_changes(self, cloned_repo):
-        pn._is_valid_page_file(pathlib.Path(cloned_repo.working_dir)
-                          .joinpath(self.cloned_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_is_valid_page_file_no_output(self, tmp_page, capsys):
-        pn._is_valid_page_file(tmp_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_page_file_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn._is_valid_page_file(path)
-
-    def test_is_valid_page_file_extra_parameter(self, tmp_page):
-        with pytest.raises(TypeError):
-            pn._is_valid_page_file(tmp_page, 'extra parameter')
-
-    def test_is_valid_logbook_page_file(self, tmp_logbook_page):
-        assert pn._is_valid_logbook_page_file(tmp_logbook_page) is True
-
-    def test_is_valid_logbook_page_file_notebook_page(self, tmp_page):
-        assert pn._is_valid_logbook_page_file(tmp_page) is False
-
-    def test_is_valid_logbook_page_file_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_logbook_page_file(tmp_logbook_page) is True
-
-    def test_is_valid_logbook_page_file_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_logbook_page_file(tmp_contents_page) is False
-
-    def test_is_valid_logbook_page_file_logbook_contents_page(
-            self, tmp_logbook_contents_page):
-        assert pn._is_valid_logbook_page_file(tmp_logbook_contents_page) is False
-
-    def test_is_valid_logbook_page_file_logbook_month_page(
-            self, tmp_logbook_month_page):
-        assert pn._is_valid_logbook_page_file(tmp_logbook_month_page) is True
-
-    def test_is_valid_logbook_page_file_home_page(self, tmp_home_page):
-        assert pn._is_valid_logbook_page_file(tmp_home_page) is False
-
-    def test_is_valid_logbook_page_file_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_logbook_page_file(tmp_readme_page) is False
-
-    def test_is_valid_logbook_page_file_logbook_readme_page(
-            self, tmp_logbook_readme_page):
-        assert pn._is_valid_logbook_page_file(tmp_logbook_readme_page) is False
-
-    @pytest.mark.parametrize('filename', invalid_filenames('logbook page'))
-    def test_is_valid_logbook_page_file_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_logbook_page_file(tmp_file_factory(filename)) is False
-
-    def test_is_valid_logbook_page_file_no_changes(self, cloned_repo):
-        pn._is_valid_logbook_page_file(pathlib.Path(cloned_repo.working_dir)
-                                  .joinpath(self.cloned_logbook_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_is_valid_logbook_page_file_no_output(self, tmp_logbook_page, capsys):
-        pn._is_valid_logbook_page_file(tmp_logbook_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_logbook_page_file_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn._is_valid_logbook_page_file(path)
-
-    def test_is_valid_logbook_page_file_extra_parameter(self, tmp_logbook_page):
-        with pytest.raises(TypeError):
-            pn._is_valid_logbook_page_file(tmp_logbook_page, 'extra parameter')
-
-    def test_is_valid_contents_page_file(self, tmp_contents_page):
-        assert pn._is_valid_contents_page_file(tmp_contents_page) is True
-
-    def test_is_valid_contents_page_file_notebook_page(self, tmp_page):
-        assert pn._is_valid_contents_page_file(tmp_page) is False
-
-    def test_is_valid_contents_page_file_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_contents_page_file(tmp_logbook_page) is False
-
-    def test_is_valid_contents_page_file_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_contents_page_file(tmp_contents_page) is True
-
-    def test_is_valid_contents_page_file_logbook_contents_page(
-            self, tmp_logbook_contents_page):
-        assert pn._is_valid_contents_page_file(tmp_logbook_contents_page) is True
-
-    def test_is_valid_contents_page_file_logbook_month_page(
-            self, tmp_logbook_month_page):
-        assert pn._is_valid_contents_page_file(tmp_logbook_month_page) is False
-
-    def test_is_valid_contents_page_file_home_page(self, tmp_home_page):
-        assert pn._is_valid_contents_page_file(tmp_home_page) is False
-
-    def test_is_valid_contents_page_file_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_contents_page_file(tmp_readme_page) is False
-
-    def test_is_valid_contents_page_file_logbook_readme_page(
-            self, tmp_logbook_readme_page):
-        assert pn._is_valid_contents_page_file(tmp_logbook_readme_page) is False
-
-    @pytest.mark.parametrize('filename', invalid_filenames('contents'))
-    def test_is_valid_contents_page_file_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_contents_page_file(tmp_file_factory(filename)) is False
-
-    def test_is_valid_contents_page_file_no_changes(self, cloned_repo):
-        pn._is_valid_contents_page_file(pathlib.Path(cloned_repo.working_dir)
-                                   .joinpath(self.cloned_contents_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_is_valid_contents_page_file_no_output(self, tmp_contents_page, capsys):
-        pn._is_valid_contents_page_file(tmp_contents_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_contents_page_file_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn._is_valid_contents_page_file(path)
-
-    def test_is_valid_contents_page_file_extra_parameter(self, tmp_contents_page):
-        with pytest.raises(TypeError):
-            pn._is_valid_contents_page_file(tmp_contents_page, 'extra parameter')
-
-    def test_is_valid_home_page_file(self, tmp_home_page):
-        assert pn._is_valid_home_page_file(tmp_home_page) is True
-
-    def test_is_valid_home_page_file_notebook_page(self, tmp_page):
-        assert pn._is_valid_home_page_file(tmp_page) is False
-
-    def test_is_valid_home_page_file_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_home_page_file(tmp_logbook_page) is False
-
-    def test_is_valid_home_page_file_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_home_page_file(tmp_contents_page) is False
-
-    def test_is_valid_home_page_file_logbook_contents_page(
-            self, tmp_logbook_contents_page):
-        assert pn._is_valid_home_page_file(tmp_logbook_contents_page) is False
-
-    def test_is_valid_home_page_file_logbook_month_page(
-            self, tmp_logbook_month_page):
-        assert pn._is_valid_home_page_file(tmp_logbook_month_page) is False
-
-    def test_is_valid_home_page_file_home_page(self, tmp_home_page):
-        assert pn._is_valid_home_page_file(tmp_home_page) is True
-
-    def test_is_valid_home_page_file_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_home_page_file(tmp_readme_page) is False
-
-    def test_is_valid_home_page_file_logbook_readme_page(
-            self, tmp_logbook_readme_page):
-        assert pn._is_valid_home_page_file(tmp_logbook_readme_page) is False
-
-    @pytest.mark.parametrize('filename', invalid_filenames('home'))
-    def test_is_valid_home_page_file_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_home_page_file(tmp_file_factory(filename)) is False
-
-    def test_is_valid_home_page_file_no_changes(self, cloned_repo):
-        pn._is_valid_home_page_file(pathlib.Path(cloned_repo.working_dir)
-                               .joinpath(self.cloned_home_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_is_valid_home_page_file_no_output(self, tmp_home_page, capsys):
-        pn._is_valid_home_page_file(tmp_home_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_home_page_file_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn._is_valid_home_page_file(path)
-
-    def test_is_valid_home_page_file_extra_parameter(self, tmp_home_page):
-        with pytest.raises(TypeError):
-            pn._is_valid_home_page_file(tmp_home_page, 'extra parameter')
-
-    def test_is_valid_readme_page_file(self, tmp_readme_page):
-        assert pn._is_valid_readme_page_file(tmp_readme_page) is True
-
-    def test_is_valid_readme_page_file_notebook_page(self, tmp_page):
-        assert pn._is_valid_readme_page_file(tmp_page) is False
-
-    def test_is_valid_readme_page_file_logbook_page(self, tmp_logbook_page):
-        assert pn._is_valid_readme_page_file(tmp_logbook_page) is False
-
-    def test_is_valid_readme_page_file_contents_page(self, tmp_contents_page):
-        assert pn._is_valid_readme_page_file(tmp_contents_page) is False
-
-    def test_is_valid_readme_page_file_logbook_contents_page(
-            self, tmp_logbook_contents_page):
-        assert pn._is_valid_readme_page_file(tmp_logbook_contents_page) is False
-
-    def test_is_valid_readme_page_file_logbook_month_page(
-            self, tmp_logbook_month_page):
-        assert pn._is_valid_readme_page_file(tmp_logbook_month_page) is False
-
-    def test_is_valid_readme_page_file_home_page(self, tmp_home_page):
-        assert pn._is_valid_readme_page_file(tmp_home_page) is False
-
-    def test_is_valid_readme_page_file_readme_page(self, tmp_readme_page):
-        assert pn._is_valid_readme_page_file(tmp_readme_page) is True
-
-    def test_is_valid_readme_page_file_logbook_readme_page(
-            self, tmp_logbook_readme_page):
-        assert pn._is_valid_readme_page_file(tmp_logbook_readme_page) is True
-
-    @pytest.mark.parametrize('filename', invalid_filenames('readme'))
-    def test_is_valid_readme_page_file_fail(self, tmp_file_factory, filename):
-        assert pn._is_valid_readme_page_file(tmp_file_factory(filename)) is False
-
-    def test_is_valid_readme_page_file_no_changes(self, cloned_repo):
-        pn._is_valid_readme_page_file(pathlib.Path(cloned_repo.working_dir)
-                                 .joinpath(self.cloned_readme_page))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_is_valid_readme_page_file_no_output(self, tmp_readme_page, capsys):
-        pn._is_valid_readme_page_file(tmp_readme_page)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_readme_page_file_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn._is_valid_readme_page_file(path)
-
-    def test_is_valid_readme_page_file_extra_parameter(self, tmp_readme_page):
-        with pytest.raises(TypeError):
-            pn._is_valid_readme_page_file(tmp_readme_page, 'extra parameter')
-
-    def test_is_valid_folder(self, tmp_path):
-        assert pn._is_valid_folder(tmp_path) is True
-
-    def test_is_valid_folder_notebook(self, tmp_notebook):
-        assert pn._is_valid_folder(tmp_notebook) is True
-
-    def test_is_valid_folder_logbook(self, tmp_logbook):
-        assert pn._is_valid_folder(tmp_logbook) is True
-
-    @pytest.mark.parametrize('folder_name', invalid_folders)
-    def test_is_valid_folder_fail(self, tmp_path_factory, folder_name):
-        assert pn._is_valid_folder(
-            tmp_path_factory.mktemp(folder_name)) is False
-
-    def test_is_valid_folder_no_changes(self, cloned_repo):
-        pn._is_valid_folder(pathlib.Path(cloned_repo.working_dir))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_is_valid_folder_no_output(self, tmp_path, capsys):
-        pn._is_valid_folder(tmp_path)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_is_valid_folder_page(self, tmp_page):
-        with pytest.raises(OSError):
-            pn._is_valid_folder(tmp_page)
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_folder_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn._is_valid_folder(path)
-
-    def test_is_valid_folder_missing_parameter(self):
-        with pytest.raises(TypeError):
-            pn._is_valid_folder()
-
-    def test_is_valid_folder_extra_parameter(self, tmp_path):
-        with pytest.raises(TypeError):
-            pn._is_valid_folder(tmp_path, 'extra parameter')
-
-    def test_is_valid_logbook_folder(self, tmp_path):
-        assert pn._is_valid_logbook_folder(tmp_path) is False
-
-    def test_is_valid_logbook_folder_notebook(self, tmp_notebook):
-        assert pn._is_valid_logbook_folder(tmp_notebook) is False
-
-    def test_is_valid_logbook_folder_logbook(self, tmp_logbook):
-        assert pn._is_valid_logbook_folder(tmp_logbook) is True
-
-    @pytest.mark.parametrize('folder_name', invalid_logbook)
-    def test_is_valid_logbook_folder_fail(self, tmp_path_factory, folder_name):
-        assert pn._is_valid_logbook_folder(
-            tmp_path_factory.mktemp(folder_name)) is False
-
-    def test_is_valid_logbook_folder_no_changes(self, cloned_repo):
-        pn._is_valid_logbook_folder(pathlib.Path(cloned_repo.working_dir)
-                                    .joinpath(self.cloned_logbook))
-        self.assert_repo_unchanged(cloned_repo)
-
-    def test_is_valid_logbook_folder_no_output(self, tmp_path, capsys):
-        pn._is_valid_logbook_folder(tmp_path)
-        captured = capsys.readouterr()
-        assert len(captured.out) == 0
-
-    def test_is_valid_logbook_folder_page(self, tmp_logbook_page):
-        with pytest.raises(OSError):
-            pn._is_valid_folder(tmp_logbook_page)
-
-    @pytest.mark.parametrize('path, error_type', invalid_paths)
-    def test_is_valid_logbook_folder_invalid_input(self, path, error_type):
-        with pytest.raises(error_type):
-            pn._is_valid_logbook_folder(path)
-
-    def test_is_valid_logbook_folder_missing_parameter(self):
-        with pytest.raises(TypeError):
-            pn._is_valid_logbook_folder()
-
-    def test_is_valid_logbook_folder_extra_parameter(self, tmp_path):
-        with pytest.raises(TypeError):
-            pn._is_valid_logbook_folder(tmp_path, 'extra parameter')
-
-    def test_is_blank_line_blank(self):
-        assert pn._is_blank_line('') is True
-
-    def test_is_blank_line_newline(self):
-        assert pn._is_blank_line('\n') is True
-
-    def test_is_blank_line_text(self):
-        assert pn._is_blank_line('text') is False
-        assert pn._is_blank_line('text\n') is False
-
-    def test_is_blank_line_title(self):
-        assert pn._is_blank_line('# Page title') is False
-        assert pn._is_blank_line('# Page title\n') is False
-
-    def test_is_blank_line_link(self):
-        assert pn._is_blank_line('[link]: link') is False
-        assert pn._is_blank_line('[link]: link\n') is False
-
-    def test_is_blank_line_navigation(self):
-        assert pn._is_blank_line('[page](link)') is False
-        assert pn._is_blank_line('[page](link)\n') is False
-
-    @pytest.mark.parametrize('test_line', invalid_lines)
-    def test_is_blank_line_invalid_input(self, test_line):
-        with pytest.raises(AttributeError):
-            pn._is_blank_line(test_line)
-
-    def test_is_navigation_line_blank(self):
-        assert pn._is_navigation_line('') is False
-
-    def test_is_navigation_line_newline(self):
-        assert pn._is_navigation_line('\n') is False
-
-    def test_is_navigation_line_text(self):
-        assert pn._is_navigation_line('text') is False
-        assert pn._is_navigation_line('text\n') is False
-
-    def test_is_navigation_line_title(self):
-        assert pn._is_navigation_line('# Page title') is False
-        assert pn._is_navigation_line('# Page title\n') is False
-
-    def test_is_navigation_line_link(self):
-        assert pn._is_navigation_line('[link]: link') is False
-        assert pn._is_navigation_line('[link]: link\n') is False
-
-    def test_is_navigation_line_navigation(self):
-        assert pn._is_navigation_line('[page](link)') is True
-        assert pn._is_navigation_line('[page](link)\n') is True
-
-    @pytest.mark.parametrize('test_line', invalid_lines)
-    def test_is_navigation_line_invalid_input(self, test_line):
-        with pytest.raises(TypeError):
-            pn._is_navigation_line(test_line)
-
-    def test_is_title_line_blank(self):
-        assert pn._is_title_line('') is False
-
-    def test_is_title_line_newline(self):
-        assert pn._is_title_line('\n') is False
-
-    def test_is_title_line_text(self):
-        assert pn._is_title_line('text') is False
-        assert pn._is_title_line('text\n') is False
-
-    def test_is_title_line_title(self):
-        assert pn._is_title_line('# Page title') is True
-        assert pn._is_title_line('# Page title\n') is True
-
-    def test_is_title_line_link(self):
-        assert pn._is_title_line('[link]: link') is False
-        assert pn._is_title_line('[link]: link\n') is False
-
-    def test_is_title_line_navigation(self):
-        assert pn._is_title_line('[page](link)') is False
-        assert pn._is_title_line('[page](link)\n') is False
-
-    @pytest.mark.parametrize('test_line', invalid_lines)
-    def test_is_title_line_invalid_input(self, test_line):
-        with pytest.raises(AttributeError):
-            pn._is_title_line(test_line)
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid path page'))
+    def test_is_valid_page_file(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._is_valid_page_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'valid path logbook page'))
+    def test_is_valid_logbook_page_file(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._is_valid_logbook_page_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'valid path contents'))
+    def test_is_valid_contents_page_file(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._is_valid_contents_page_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'valid path home'))
+    def test_is_valid_home_page_file(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._is_valid_home_page_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'valid path readme'))
+    def test_is_valid_readme_page_file(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._is_valid_readme_page_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'valid path notebook'))
+    def test_is_valid_notebook_folder(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._is_valid_notebook_folder(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'valid path logbook'))
+    def test_is_valid_logbook_folder(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._is_valid_logbook_folder(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line blank'))
+    def test_is_blank_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            result = pn._is_blank_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line navigation'))
+    def test_is_navigation_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            result = pn._is_navigation_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line title'))
+    def test_is_title_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            result = pn._is_title_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
