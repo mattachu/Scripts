@@ -51,7 +51,7 @@
     background_jobs         # presence of background jobs
     direnv                  # direnv status (https://direnv.net/)
     asdf                    # asdf version manager (https://github.com/asdf-vm/asdf)
-    virtualenv              # python virtual environment (https://docs.python.org/3/library/venv.html)
+    # virtualenv              # python virtual environment (https://docs.python.org/3/library/venv.html)
     anaconda                # conda environment (https://conda.io/)
     pyenv                   # python environment (https://github.com/pyenv/pyenv)
     goenv                   # go environment (https://github.com/syndbg/goenv)
@@ -901,10 +901,10 @@
   typeset -g POWERLEVEL9K_PYENV_PROMPT_ALWAYS_SHOW=true
   # If set to false, hide python version if it's equal to "system".
   typeset -g POWERLEVEL9K_PYENV_SHOW_SYSTEM=true
-  # Hide `pyenv` segment if its content has no dots ('.') to avoid duplication.
-  typeset -g POWERLEVEL9K_PYENV_CONTENT_EXPANSION='${(M)P9K_CONTENT:#*.*}'
+  # Show version number and environment name
+  typeset -g POWERLEVEL9K_PYENV_CONTENT_EXPANSION='${P9K_CONTENT}${${P9K_PYENV_PYTHON_VERSION:#$P9K_CONTENT}:+ $P9K_PYENV_PYTHON_VERSION}'
   # Custom icon (again, hide if no dots).
-  typeset -g POWERLEVEL9K_PYENV_VISUAL_IDENTIFIER_EXPANSION='${${(M)P9K_CONTENT:#*.*}:+🐍}'
+  typeset -g POWERLEVEL9K_PYENV_VISUAL_IDENTIFIER_EXPANSION='🐍'
 
   ################[ goenv: go environment (https://github.com/syndbg/goenv) ]################
   # Goenv color.
