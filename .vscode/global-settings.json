@@ -8,6 +8,7 @@
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
     "explorer.confirmDelete": false,
+    "python.dataScience.askForKernelRestart": false,
     "window.autoDetectColorScheme": true,
     "window.title": "${rootName}${separator}${activeEditorShort}",
     "terminal.integrated.shell.osx": "/bin/zsh",
