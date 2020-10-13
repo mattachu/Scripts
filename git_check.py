@@ -10,6 +10,19 @@ import termcolor
 import colorama
 import configparser
 
+# Coloured messages
+def print_colour(message, message_type):
+    colour = {'good':    'green',
+              'bad':     'red',
+              'error':   'blue',
+              'status':  'cyan',
+              'heading': 'magenta'}
+    bold = ['bad', 'error', 'heading']
+    if message_type in bold:
+        print(termcolor.colored(message, colour[message_type], attrs=['bold']))
+    else:
+        print(termcolor.colored(message, colour[message_type]))
+
 
 # Methods working with list of repos
 def get_repo_path_list(config_file=None):
@@ -167,17 +180,15 @@ def report(repo, fetch=True):
     """Report remotes, branches and status of given repo"""
     if not isinstance(repo, git.repo.base.Repo): raise ValueError
     if not isinstance(fetch, bool): raise ValueError
-    print(termcolor.colored('Checking Git status at '
-                            f'{repo.working_tree_dir}...\n',
-                            'blue', attrs=['bold']))
-    print(termcolor.colored('## Remotes', 'green'))
+    print_colour(f'Checking Git status at {repo.working_tree_dir}...\n', 'status')
+    print_colour('## Remotes', 'heading')
     list_remotes(repo)
     if fetch: fetch_all_remotes(repo, show_progress=True)
     print()
-    print(termcolor.colored('## Branches', 'green'))
+    print_colour('## Branches', 'heading')
     list_branches(repo)
     print()
-    print(termcolor.colored('## Status', 'green'))
+    print_colour('## Status', 'heading')
     show_status(repo)
     print()
 
@@ -194,40 +205,37 @@ def show_all(branches=True):
     error_count = 0
     for repo in repo_status_list:
         if repo['state'] == 'clean':
-            print(termcolor.colored(f'{repo["path"]} is clean.', 'green'))
+            print_colour(f'{repo["path"]} is clean.', 'good')
             clean_count += 1
             if branches:
                 print('    ' + get_branch_report(repo['branches']))
         elif repo['state'] == 'dirty':
-            print(termcolor.colored(f'{repo["path"]} is dirty.',
-                                    'blue', attrs=['bold']))
+            print_colour(f'{repo["path"]} is dirty.', 'bad')
             dirty_count += 1
             if branches:
                 print('    ' + get_branch_report(repo['branches']))
         elif repo['state'] == 'out-of-sync':
-            print(termcolor.colored(f'{repo["path"]} is out of sync with remote.',
-                                    'blue', attrs=['bold']))
+            print_colour(f'{repo["path"]} is out of sync with remote.', 'bad')
             dirty_count += 1
             if branches:
                 print('    ' + get_branch_report(repo['branches']))
         elif repo['state'] == 'missing':
-            print(termcolor.colored(f'{repo["path"]} does not exist.', 'red'))
+            print_colour(f'{repo["path"]} does not exist.', 'error')
             missing_count += 1
         elif repo['state'] == 'not_folder':
-            print(termcolor.colored(f'{repo["path"]} is not a folder.', 'red'))
+            print_colour(f'{repo["path"]} is not a folder.', 'error')
             missing_count += 1
         elif repo['state'] == 'not_repo':
-            print(termcolor.colored(f'{repo["path"]} is not a Git repo.', 'red'))
+            print_colour(f'{repo["path"]} is not a Git repo.', 'error')
             missing_count += 1
         elif repo['state'] == 'error':
-            print(termcolor.colored(f'{repo["path"]} gave an error.', 'red'))
+            print_colour(f'{repo["path"]} gave an error.', 'error')
             error_count += 1
         elif repo['state'] == 'check_failed':
-            print(termcolor.colored(f'{repo["path"]} check failed.', 'red'))
+            print_colour(f'{repo["path"]} check failed.', 'error')
             error_count += 1
         else:
-            print(termcolor.colored(f'{repo["path"]} could not be processed.',
-                                    'red'))
+            print_colour(f'{repo["path"]} could not be processed.', 'error')
             error_count += 1
     message = f'Checked {path_count} {"path" if path_count == 1 else "paths"}. '
     if clean_count > 0 or dirty_count > 0:
@@ -269,7 +277,7 @@ def fetch_all(show_progress=False):
                 print('done.')
         except:
             if show_progress:
-                print(termcolor.colored(f'{repo_path} gave an error.', 'red'))
+                print_colour(f'{repo_path} gave an error.', 'error')
             continue
 
 def report_all(filter='none', fetch=True):
@@ -346,12 +354,12 @@ if __name__ == '__main__':
         try:
             repo = git.Repo(sys.argv[1])
         except git.exc.NoSuchPathError:
-            print(termcolor.colored('Path given as command-line argument '
-                                    'does not exist.\n', 'red'))
+            print_colour('Path given as command-line argument does not exist.\n',
+                         'error')
             raise
         except git.exc.InvalidGitRepositoryError:
-            print(termcolor.colored('Path given as command-line argument '
-                                    'is not a Git repo.\n', 'red'))
+            print_colour('Path given as command-line argument is not a Git repo.\n',
+                         'error')
             raise
         else:
             report(repo, fetch=True)
