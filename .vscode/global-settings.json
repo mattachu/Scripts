@@ -106,5 +106,6 @@
     "gitlens.views.lineHistory.location": "gitlens",
     "gitlens.views.compare.location": "gitlens",
     "gitlens.views.search.location": "gitlens",
+    "git.allowForcePush": true,
     "workbench.colorTheme": "Default Light+"
 }
