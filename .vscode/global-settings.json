@@ -109,5 +109,6 @@
     "gitlens.views.compare.location": "gitlens",
     "gitlens.views.search.location": "gitlens",
     "git.allowForcePush": true,
+    "python.terminal.activateEnvironment": false,
     "workbench.colorTheme": "Default Light+"
 }
