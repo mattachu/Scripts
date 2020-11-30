@@ -113,16 +113,13 @@ tmate_connect() {
 
 # Start main and backup sessions and record urls
 tmate_start() {
-    if tmate -S "${TMATE_MAIN_SOCKET}" has-session -t "${TMATE_MAIN_SESSION}"; then
+    if ! tmate -S "${TMATE_MAIN_SOCKET}" has-session -t "${TMATE_MAIN_SESSION}"; then
         tmate_unpair "${TMATE_MAIN_SESSION}"
         sleep 1
     fi
     tmate_pair "${TMATE_MAIN_SESSION}"
     tmate_url "${TMATE_MAIN_SESSION}" > "${TMATE_URL_FILE}"
-    if tmate -S "${TMATE_BACKUP_SOCKET}" has-session -t "${TMATE_BACKUP_SESSION}"; then
-        tmate_unpair "${TMATE_BACKUP_SESSION}"
-        sleep 1
-    fi
+    tmate_unpair "${TMATE_BACKUP_SESSION}"; sleep 1
     tmate_pair "${TMATE_BACKUP_SESSION}"
     tmate_url "${TMATE_BACKUP_SESSION}" >> "${TMATE_URL_FILE}"
 }
