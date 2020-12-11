@@ -261,7 +261,7 @@ def get_method_tests(test_def):
     test_list = []
     expected = expectations(test_def)
     method = get_method_parameters(test_def['method_type'])
-    if method['get'] in ['title']:
+    if method['get'] in ['title', 'summary']:
         test_list.append(get_test('result', test_def, expected))
     elif method['get'] in ['pages', 'notebooks', 'logbooks']:
         test_list.append(get_test('return type', test_def, expected))
@@ -722,36 +722,47 @@ def expectations(test_def):
     if test_def['object_type'] == 'page':
         expected['return type'] = 'pn.Page'
         title_from_contents = 'self.test_page_title'
+        summary = 'self.test_page_summary'
     elif test_def['object_type'] == 'logbook page':
         expected['return type'] = 'pn.LogbookPage'
         title_from_path = 'self.test_logbook_page_title'
+        summary = 'self.test_logbook_page_summary'
     elif test_def['object_type'] in ['contents', 'logbook contents']:
         expected['return type'] = 'pn.ContentsPage'
         expected['title'] = 'self.contents_descriptor'
         expected['filename'] = 'self.contents_filename'
         expected['link'] = 'self.contents_filename'
+        if test_def['object_type'] == 'logbook contents':
+            summary = 'self.test_logbook_contents_page_summary'
+        else:
+            summary = 'self.test_contents_page_summary'
     elif test_def['object_type'] == 'home':
         expected['return type'] = 'pn.HomePage'
         expected['title'] = 'self.homepage_descriptor'
         expected['filename'] = 'self.homepage_filename'
         expected['link'] = 'self.homepage_filename'
+        summary = 'self.test_home_page_summary'
     elif test_def['object_type'] == 'readme':
         expected['return type'] = 'pn.ReadmePage'
         expected['title'] = 'self.readme_descriptor'
         title_from_contents = 'self.test_notebook_title'
         expected['filename'] = 'self.readme_filename'
         expected['link'] = 'self.readme_filename'
+        summary = 'self.test_readme_page_summary'
     elif test_def['object_type'] == 'logbook readme':
         expected['return type'] = 'pn.ReadmePage'
         expected['title'] = 'self.readme_descriptor'
         expected['filename'] = 'self.readme_filename'
         expected['link'] = 'self.readme_filename'
+        summary = 'self.test_logbook_readme_page_summary'
     elif test_def['object_type'] == 'logbook month':
         expected['return type'] = 'pn.LogbookPage'
         title_from_contents = 'self.test_logbook_month_title'
+        summary = 'None'
     elif test_def['object_type'] in ['notebook', 'nested']:
         expected['return type'] = 'pn.Notebook'
         title_from_contents = 'self.test_notebook_title'
+        summary = 'self.test_readme_page_summary'
         if test_def['parent'] is None:
             expected['link'] = 'self.homepage_descriptor'
         else:
@@ -759,6 +770,7 @@ def expectations(test_def):
     elif test_def['object_type'] == 'logbook':
         expected['return type'] = 'pn.Logbook'
         title_from_contents = 'self.logbook_folder_name'
+        summary = 'self.test_logbook_readme_page_summary'
         if test_def['parent'] is None:
             expected['link'] = 'self.homepage_descriptor'
         else:
@@ -865,10 +877,16 @@ def expectations(test_def):
                 expected['result'] = expectations(new_def)[method['get']]
         else:
             if 'Error' not in expected['return type']:
-                expected['return type'] = 'list'
-                if (method['get'] in ['notebooks', 'logbooks']
-                        and test_def['object_type'] != 'nested'):
-                    expected['contents'] = '[]'
+                if method['get'] in ['summary']:
+                    if test_def['path'] is not None:
+                        expected['result'] = summary
+                    else:
+                        expected['result'] = 'None'
+                elif method['get'] in ['pages', 'notebooks', 'logbooks']:
+                    expected['return type'] = 'list'
+                    if (method['get'] in ['notebooks', 'logbooks']
+                            and test_def['object_type'] != 'nested'):
+                        expected['contents'] = '[]'
     elif test_def['method_type'].startswith('find'):
         method = get_method_parameters(test_def['method_type'])
         if method['get'] == 'blank':
@@ -980,6 +998,13 @@ class TestProcessNotebooks:
         self.test_logbook_page_title = self.temp_logbook_page
         self.test_logbook_month_title = 'January 2020'
         self.test_notebook_title = 'Notebook title'
+        self.test_page_summary = 'Page summary, including some `code` or [links][].'
+        self.test_logbook_page_summary = 'Page *summary*, including some `code` or [links][].'
+        self.test_contents_page_summary = 'Description of notebook scope and contents.'
+        self.test_home_page_summary = 'This page explains the overall contents.'
+        self.test_readme_page_summary = 'Description of notebook scope and contents.'
+        self.test_logbook_contents_page_summary = None
+        self.test_logbook_readme_page_summary = 'Logbook for this notebook scope.'
         self.page_suffix = '.md'
         self.homepage_descriptor = 'Home'
         self.homepage_filename = 'Home'
@@ -1749,6 +1774,77 @@ class TestProcessNotebooks:
                                    test_params['test_type'],
                                    eval(test_params['expected']))
 
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'get summary'))
+    def test_get_summary_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params, tmp_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page.get_summary()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'get summary'))
+    def test_get_summary_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            result = test_page.get_summary()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents', 'get summary'))
+    def test_get_summary_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_page.get_summary()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('home', 'get summary'))
+    def test_get_summary_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.HomePage(path=eval(test_params['path']),
+                                    filename=test_filename,
+                                    title=test_title,
+                                    parent=test_parent)
+            result = test_page.get_summary()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
 
     # Creating notebook objects
     @pytest.mark.parametrize('test_params', build_all_tests('notebook'))
@@ -2106,6 +2202,60 @@ class TestProcessNotebooks:
                                         title=test_title,
                                         parent=test_parent)
             result = test_notebook.get_logbooks()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('notebook', 'get summary'))
+    def test_get_summary_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_summary()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook', 'get summary'))
+    def test_get_summary_logbook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Logbook(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            result = test_notebook.get_summary()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'get summary'))
+    def test_get_summary_nested_notebook(
+            self, capsys, tmp_folder_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_summary()
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))

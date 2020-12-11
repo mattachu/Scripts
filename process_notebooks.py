@@ -175,10 +175,19 @@ class TreeItem():
     def _get_title_from_contents(self):
         raise NotImplementedError
 
+    def get_summary(self):
+        raise NotImplementedError
+
 
 class Page(TreeItem):
     """Standard page in a notebook."""
     _descriptor = 'page'
+
+    def get_summary(self):
+        start_line = _find_first_text_line(self.contents)
+        if start_line is not None:
+            lines = _find_first_blank_line(self.contents[start_line:]) or 1
+            return ' '.join(self.contents[start_line:start_line+lines]).strip()
 
     def _load_contents_from_path(self, file_path):
         """Load the content of the page from file."""
@@ -366,6 +375,10 @@ class Notebook(TreeItem):
     def get_logbooks(self):
         """Return a list of contents that are logbooks."""
         return [item for item in self.contents if type(item) == Logbook]
+
+    def get_summary(self):
+        if self._has_readme_page():
+            return self.get_readme_page().get_summary()
 
     def _has_contents_page(self):
         return any([isinstance(item, ContentsPage) for item in self.contents])
