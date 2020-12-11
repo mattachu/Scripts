@@ -524,6 +524,14 @@ def _is_text_line(line):
     else:
         return True
 
+def _find_first_blank_line(content):
+    return next((idx for idx, line in enumerate(content)
+                 if _is_blank_line(line)), None)
+
+def _find_first_text_line(content):
+    return next((idx for idx, line in enumerate(content)
+                 if _is_text_line(line)), None)
+
 
 # Processing procedures
 def process_all(arguments):
