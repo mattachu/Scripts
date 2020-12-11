@@ -26,6 +26,37 @@ test_lines = {
     'navigation': '[page](link)',
     'link': '[link]: link'}
 
+test_contents = {
+    'empty': [],
+    'blank': [''],
+    'standard': ['[< Home](../Contents)',
+                 '',
+                 '# Page title',
+                 '',
+                 'Page summary, including some `code` or [links][].',
+                 '',
+                 'Page content.'],
+    'plain': ['Page content.'],
+    'no-title': ['[< Home](../Contents)',
+                 '',
+                 'Page summary, including some `code` or [links][].',
+                 '',
+                 'Page content.']}
+
+first_blank_line = {
+    'empty': 'None',
+    'blank': '0',
+    'standard': '1',
+    'plain': 'None',
+    'no-title': '1'}
+
+first_text_line = {
+    'empty': 'None',
+    'blank': 'None',
+    'standard': '4',
+    'plain': '0',
+    'no-title': '2'}
+
 def build_test_def(
         object_type='page', method_type='create', test_object=None,
         error_type=None, path=None, filename=None, title=None, parent=None):
@@ -86,13 +117,16 @@ def build_test_params(test_type, test_def, expected):
         params['existing'] = get_existing_generator(test_def['object_type'])
     elif test_def['method_type'].startswith('valid'):
         params['object'] = get_generator(test_def['test_object'])
+    elif test_def['method_type'].startswith('find'):
+        params['object'] = test_contents[test_def['test_object']]
     return params
 
 def build_test_string(test_type, test_def, expected):
     """Create a test description string for a parametric test"""
     if test_def['method_type'] == 'overwrite':
         test_id = f"{test_def['method_type']}, {test_type}"
-    elif (test_def['method_type'].startswith('valid')
+    elif ((test_def['method_type'].startswith('valid')
+            or test_def['method_type'].startswith('find'))
             and test_def['test_object'] is not None):
         test_id = f"{test_def['test_object']}, {test_type}"
     else:
@@ -174,6 +208,11 @@ def get_tests(object_type, method_type):
             test_list = test_list + get_method_tests(new_path_def)
         test_list = test_list + get_io_tests(test_def)
         test_list = test_list + get_io_tests(path_def)
+    elif method_type.startswith('find'):
+        if 'content' in parameter_list:
+            for content in test_contents:
+                object_def = modify_test_def(test_def, test_object=content)
+                test_list = test_list + get_validation_tests(object_def)
     else:
         raise ValueError(f'Invalid test method type: {method_type}')
     return test_list
@@ -374,6 +413,8 @@ def get_parameter_list(method_type):
         return [parameter_to_check]
     elif method_type.startswith('get'):
         return []
+    elif method_type.startswith('find'):
+        return ['content']
     else:
         raise ValueError(f'Invalid method type: {method_type}')
 
@@ -828,6 +869,14 @@ def expectations(test_def):
                 if (method['get'] in ['notebooks', 'logbooks']
                         and test_def['object_type'] != 'nested'):
                     expected['contents'] = '[]'
+    elif test_def['method_type'].startswith('find'):
+        method = get_method_parameters(test_def['method_type'])
+        if method['get'] == 'blank':
+            expected['result'] = first_blank_line[test_def['test_object']]
+        elif method['get'] == 'text':
+            expected['result'] = first_text_line[test_def['test_object']]
+        else:
+            raise ValueError(f"Unexpected object to find: {method['get']}")
     return expected
 
 
@@ -2188,6 +2237,24 @@ class TestProcessNotebooks:
     def test_is_text_line(self, capsys, test_params):
         with eval(test_params['error condition']):
             result = pn._is_text_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'find blank'))
+    def test_find_first_blank_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            result = pn._find_first_blank_line(test_params['object'])
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'find text'))
+    def test_find_first_text_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            result = pn._find_first_text_line(test_params['object'])
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
