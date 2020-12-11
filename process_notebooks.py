@@ -505,6 +505,25 @@ def _is_navigation_line(line):
 def _is_title_line(line):
     return line.startswith('# ')
 
+def _is_link_line(line):
+    if re.search(r'\[[^]]*\]\: ', line) is not None:
+        return True
+    return False
+
+def _is_text_line(line):
+    if not isinstance(line, str):
+        raise ValueError(f'Not a valid content line: {line}')
+    elif _is_blank_line(line):
+        return False
+    elif _is_title_line(line):
+        return False
+    elif _is_link_line(line):
+        return False
+    elif _is_navigation_line(line):
+        return False
+    else:
+        return True
+
 
 # Processing procedures
 def process_all(arguments):

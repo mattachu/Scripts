@@ -21,7 +21,7 @@ test_objects = [
 
 test_lines = {
     'blank': '',
-    'text': 'text',
+    'text': 'Page content, including some `code` or [links][].',
     'title': '# Page title',
     'navigation': '[page](link)',
     'link': '[link]: link'}
@@ -549,8 +549,10 @@ def get_parent_error_type(method_type):
 
 def get_line_error_type(line_type):
     """Different methods can cause different error types."""
-    if line_type == 'navigation':
+    if line_type in ['navigation', 'link']:
         return 'TypeError'
+    elif line_type == 'text':
+        return 'ValueError'
     else:
         return 'AttributeError'
 
@@ -2168,6 +2170,24 @@ class TestProcessNotebooks:
     def test_is_title_line(self, capsys, test_params):
         with eval(test_params['error condition']):
             result = pn._is_title_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line link'))
+    def test_is_link_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            result = pn._is_link_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line text'))
+    def test_is_text_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            result = pn._is_text_line(eval(test_params['object']))
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
