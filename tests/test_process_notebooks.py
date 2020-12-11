@@ -24,8 +24,7 @@ test_lines = {
     'text': 'text',
     'title': '# Page title',
     'navigation': '[page](link)',
-    'link': '[link]: link'
-}
+    'link': '[link]: link'}
 
 def build_test_def(
         object_type='page', method_type='create', test_object=None,
@@ -438,7 +437,7 @@ def get_cloned_path(test_def):
     elif test_object_type == 'logbook':
         path = 'self.cloned_logbook'
     else:
-        raise ValueError(f'Invalid test object: {object_type}')
+        raise ValueError(f'Invalid test object: {test_object_type}')
     return f'pathlib.Path(cloned_repo.working_dir).joinpath({path})'
 
 def get_matching(object_type, parameter):
