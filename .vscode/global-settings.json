@@ -76,7 +76,6 @@
             "label": "WSL bash"
         }
     ],
-    "python.pythonPath": "/Users/matt/.pyenv/shims/python",
     "git.autofetch": true,
     "git.confirmSync": false,
     "[markdown]": {
@@ -95,7 +94,11 @@
         "markdown"
     ],
     "cSpell.userWords": [
+        "beamline",
+        "CLAPA",
+        "multiparticle",
         "quadrupoles",
+        "Twiss",
         "underway",
         "unphysical"
     ],
@@ -106,5 +109,8 @@
     "gitlens.views.lineHistory.location": "gitlens",
     "gitlens.views.compare.location": "gitlens",
     "gitlens.views.search.location": "gitlens",
+    "git.allowForcePush": true,
+    "python.terminal.activateEnvironment": false,
+    "jupyter.askForKernelRestart": false,
     "workbench.colorTheme": "Default Light+"
 }
