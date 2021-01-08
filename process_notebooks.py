@@ -178,16 +178,19 @@ class TreeItem():
     def get_summary(self):
         raise NotImplementedError
 
+    def get_outline(self):
+        raise NotImplementedError
+
 
 class Page(TreeItem):
     """Standard page in a notebook."""
     _descriptor = 'page'
 
     def get_summary(self):
-        start_line = _find_first_text_line(self.contents)
-        if start_line is not None:
-            lines = _find_first_blank_line(self.contents[start_line:]) or 1
-            return ' '.join(self.contents[start_line:start_line+lines]).strip()
+        return _get_summary_from_contents(self.contents)
+
+    def get_outline(self):
+        return _get_outline_from_contents(self.contents)
 
     def _load_contents_from_path(self, file_path):
         """Load the content of the page from file."""
@@ -205,14 +208,7 @@ class Page(TreeItem):
         return _is_valid_page_file(file_path)
 
     def _get_title_from_contents(self):
-        if self.contents is not None:
-            for line in self.contents:
-                if _is_blank_line(line) or _is_navigation_line(line):
-                    continue
-                if _is_title_line(line):
-                    return line[2:].strip()
-                else:
-                    return None
+        return _get_title_from_contents(self.contents)
 
 
 class HomePage(Page):
@@ -230,6 +226,9 @@ class HomePage(Page):
         kwargs['filename'] = HOMEPAGE_FILENAME
         kwargs['title'] = HOME_DESCRIPTOR
         super().__init__(*args, **kwargs)
+
+    def get_outline(self):
+        raise TypeError('Home pages do not produce outlines.')
 
     def _is_valid_path(self, page_file):
         return _is_valid_home_page_file(page_file)
@@ -250,6 +249,9 @@ class ContentsPage(Page):
         kwargs['filename'] = CONTENTS_FILENAME
         kwargs['title'] = CONTENTS_DESCRIPTOR
         super().__init__(*args, **kwargs)
+
+    def get_outline(self):
+        raise TypeError('Contents pages do not produce outlines.')
 
     def _is_valid_path(self, page_file):
         return _is_valid_contents_page_file(page_file)
@@ -379,6 +381,9 @@ class Notebook(TreeItem):
     def get_summary(self):
         if self._has_readme_page():
             return self.get_readme_page().get_summary()
+
+    def get_outline(self):
+        raise TypeError('Notebooks do not produce outlines.')
 
     def _has_contents_page(self):
         return any([isinstance(item, ContentsPage) for item in self.contents])
@@ -544,6 +549,84 @@ def _find_first_blank_line(content):
 def _find_first_text_line(content):
     return next((idx for idx, line in enumerate(content)
                  if _is_text_line(line)), None)
+
+def _strip_links(line, types='reference'):
+    if types not in ['default', 'reference', 'absolute', 'all']:
+        raise ValueError(f'Invalid link type for stripping: {types}')
+    if types in ['default', 'reference', 'all']:
+        line = _strip_reference_links(line)
+    if types in ['absolute', 'all']:
+        line = _strip_absolute_links(line)
+    return line
+
+def _strip_reference_links(line):
+    if _is_link_line(line):
+        return ''
+    return re.sub(r'\[([^\]]*)\]\[[^\]]*\]', r'\1', line)
+
+def _strip_absolute_links(line):
+    return re.sub(r'\[([^\]]*)\]\([^\)]*\)', r'\1', line)
+
+def _get_title_from_contents(contents):
+    if contents is not None:
+        for line in contents:
+            if _is_blank_line(line) or _is_navigation_line(line):
+                continue
+            if _is_title_line(line):
+                return line[2:].strip()
+            else:
+                return None
+
+def _get_summary_from_contents(contents):
+    start_line = _find_first_text_line(contents)
+    if start_line is not None:
+        lines = _find_first_blank_line(contents[start_line:]) or 1
+        summary = ' '.join(contents[start_line:start_line+lines]).strip()
+        return _strip_links(summary, 'reference')
+
+def _get_sections_from_contents(contents):
+    if _get_title_from_contents(contents) is not None:
+        section_heading = '## '
+    else:
+        section_heading = '# '
+    section_ids = [idx for idx, line in enumerate(contents)
+                   if line.startswith(section_heading)]
+    sections = [contents[i:j]
+                for i, j in zip(section_ids, section_ids[1:]+[None])]
+    if section_heading == '## ':
+        return [[line.replace('## ', '# ') for line in section]
+                for section in sections]
+    else:
+        return sections
+
+def _get_outline_from_contents(contents):
+    summary = _get_summary_from_contents(contents)
+    if summary is not None:
+        outline = [summary]
+        sections = _get_sections_from_contents(contents)
+        for section in sections:
+            outline = outline + _get_bullets(section)
+        return outline
+
+def _get_bullets(section, bullet='*'):
+    if bullet == '*':
+        next_bullet = '    -'
+    elif bullet == '    -':
+        next_bullet = '        +'
+    elif bullet == '        +':
+        next_bullet = None
+    else:
+        raise ValueError(f'Invalid bullet type: {bullet}')
+    title = _get_title_from_contents(section)
+    summary = _get_summary_from_contents(section)
+    if title is not None:
+        text = f'{bullet} {title}'
+        if summary is not None:
+            text = f'{text}: {summary}'
+        bullets = [text]
+        for subsection in _get_sections_from_contents(section):
+            bullets = bullets + _get_bullets(subsection, next_bullet)
+        return bullets
 
 
 # Processing procedures
