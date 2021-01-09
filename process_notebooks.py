@@ -374,6 +374,10 @@ class ContentsPage(Page):
     def get_outline(self):
         raise TypeError('Contents pages do not produce outlines.')
 
+    def _get_title_from_contents(self):
+        """Return `None` because contents pages have a fixed title."""
+        return None
+
     def _is_valid_path(self, page_file):
         return _is_valid_contents_page_file(page_file)
 
