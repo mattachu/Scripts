@@ -21,31 +21,34 @@ test_objects = [
 
 test_lines = {
     'blank': '',
-    'text': 'Page content, including some `code` or [links][].',
+    'text': ('Page content, including some `code` '
+             'or [different](link1) [types][link2] of [links][].'),
     'title': '# Page title',
-    'navigation': '[page](link)',
-    'link': '[link]: link'}
+    'navigation': '[Home](link1) > [Folder](link2) > [Notebook](link3)',
+    'link': '[link]: https://link.com/link'}
 
 test_lines_strip_all_links = {
     'blank': '',
-    'text': 'Page content, including some `code` or links.',
+    'text': 'Page content, including some `code` or different types of links.',
     'title': '# Page title',
-    'navigation': 'page',
+    'navigation': 'Home > Folder > Notebook',
     'link': ''}
 
 test_lines_strip_reference_links = {
     'blank': '',
-    'text': 'Page content, including some `code` or links.',
+    'text': ('Page content, including some `code` '
+             'or [different](link1) types of links.'),
     'title': '# Page title',
-    'navigation': '[page](link)',
+    'navigation': '[Home](link1) > [Folder](link2) > [Notebook](link3)',
     'link': ''}
 
 test_lines_strip_absolute_links = {
     'blank': '',
-    'text': 'Page content, including some `code` or [links][].',
+    'text': ('Page content, including some `code` '
+             'or different [types][link2] of [links][].'),
     'title': '# Page title',
-    'navigation': 'page',
-    'link': '[link]: link'}
+    'navigation': 'Home > Folder > Notebook',
+    'link': '[link]: https://link.com/link'}
 
 test_contents = {
     'empty': [],

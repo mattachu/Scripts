@@ -214,7 +214,10 @@ class Page(TreeItem):
         return line.strip() == ''
 
     def _is_navigation_line(self, line):
-        if re.search(r'\[[^]]*\]\([^\)]*\)', line) is not None:
+        link = r'\[[^]]*\]\([^\)]*\)'
+        separator = r'[\|>]'
+        pattern = f'^{link}( {separator} {link})*$'
+        if re.search(pattern, line) is not None:
             return True
         return False
 
@@ -222,7 +225,9 @@ class Page(TreeItem):
         return line.startswith('# ')
 
     def _is_link_line(self, line):
-        if re.search(r'\[[^]]*\]\: ', line) is not None:
+        reference = r'\[[^]]*\]\: [^\s]*'
+        descriptive = r'.*\: \[[^]]*\](\([^\)]*\)|\[[^\]]*\])'
+        if re.search(f'({reference}|{descriptive})', line) is not None:
             return True
         return False
 
