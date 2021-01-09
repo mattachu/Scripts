@@ -2114,6 +2114,280 @@ class TestProcessNotebooks:
                                    eval(test_params['expected']))
 
 
+    # Handling page contents
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line blank'))
+    def test_is_blank_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._is_blank_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line navigation'))
+    def test_is_navigation_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._is_navigation_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line title'))
+    def test_is_title_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._is_title_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line link'))
+    def test_is_link_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._is_link_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line text'))
+    def test_is_text_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._is_text_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'find blank'))
+    def test_find_first_blank_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._find_first_blank_line(test_params['object'])
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'find text'))
+    def test_find_first_text_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._find_first_text_line(test_params['object'])
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'strip line reference'))
+    def test_strip_reference_links(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._strip_reference_links(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'strip line absolute'))
+    def test_strip_absolute_links(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._strip_absolute_links(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'strip line all'))
+    def test_strip_links_all(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._strip_links(eval(test_params['object']), 'all')
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'strip line reference'))
+    def test_strip_links_reference(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._strip_links(eval(test_params['object']), 'reference')
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'strip line absolute'))
+    def test_strip_links_absolute(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._strip_links(eval(test_params['object']), 'absolute')
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'strip line default'))
+    def test_strip_links_default(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._strip_links(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'find title'))
+    def test_get_title_from_contents(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._get_title(test_params['object'])
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'find summary'))
+    def test_get_summary_from_contents(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._get_summary(test_params['object'])
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'find sections'))
+    def test_get_sections_from_contents(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._get_sections(test_params['object'])
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'find outline'))
+    def test_get_outline_from_contents(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._get_outline(test_params['object'])
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+
     # Creating notebook objects
     @pytest.mark.parametrize('test_params', build_all_tests('notebook'))
     def test_create_notebook(
@@ -2664,159 +2938,6 @@ class TestProcessNotebooks:
             tmp_readme_page, tmp_notebook, tmp_logbook):
         with eval(test_params['error condition']):
             result = pn._is_valid_logbook_folder(eval(test_params['path']))
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'valid line blank'))
-    def test_is_blank_line(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._is_blank_line(eval(test_params['object']))
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'valid line navigation'))
-    def test_is_navigation_line(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._is_navigation_line(eval(test_params['object']))
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'valid line title'))
-    def test_is_title_line(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._is_title_line(eval(test_params['object']))
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'valid line link'))
-    def test_is_link_line(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._is_link_line(eval(test_params['object']))
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'valid line text'))
-    def test_is_text_line(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._is_text_line(eval(test_params['object']))
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'find blank'))
-    def test_find_first_blank_line(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._find_first_blank_line(test_params['object'])
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'find text'))
-    def test_find_first_text_line(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._find_first_text_line(test_params['object'])
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'strip line reference'))
-    def test_strip_reference_links(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._strip_reference_links(eval(test_params['object']))
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'strip line absolute'))
-    def test_strip_absolute_links(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._strip_absolute_links(eval(test_params['object']))
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'strip line all'))
-    def test_strip_links_all(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._strip_links(eval(test_params['object']), 'all')
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'strip line reference'))
-    def test_strip_links_reference(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._strip_links(eval(test_params['object']), 'reference')
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'strip line absolute'))
-    def test_strip_links_absolute(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._strip_links(eval(test_params['object']), 'absolute')
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'strip line default'))
-    def test_strip_links_default(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._strip_links(eval(test_params['object']))
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'find title'))
-    def test_get_title_from_contents(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._get_title_from_contents(test_params['object'])
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'find summary'))
-    def test_get_summary_from_contents(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._get_summary_from_contents(test_params['object'])
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'find sections'))
-    def test_get_sections_from_contents(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._get_sections_from_contents(test_params['object'])
-            self.assert_parametric(result,
-                                   test_params['test_type'],
-                                   eval(test_params['expected']))
-
-    @pytest.mark.parametrize('test_params',
-                             build_all_tests('function', 'find outline'))
-    def test_get_outline_from_contents(self, capsys, test_params):
-        with eval(test_params['error condition']):
-            result = pn._get_outline_from_contents(test_params['object'])
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))

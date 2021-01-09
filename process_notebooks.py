@@ -136,6 +136,12 @@ class TreeItem():
         """Return a Markdown link to the given item, relative to this item."""
         return f'[{other.title}]({self.get_relative_path(other)})'
 
+    def get_summary(self):
+        raise NotImplementedError
+
+    def get_outline(self):
+        raise NotImplementedError
+
     def _is_valid_parent(self, parent):
         return isinstance(parent, TreeItem)
 
@@ -175,22 +181,16 @@ class TreeItem():
     def _get_title_from_contents(self):
         raise NotImplementedError
 
-    def get_summary(self):
-        raise NotImplementedError
-
-    def get_outline(self):
-        raise NotImplementedError
-
 
 class Page(TreeItem):
     """Standard page in a notebook."""
     _descriptor = 'page'
 
     def get_summary(self):
-        return _get_summary_from_contents(self.contents)
+        return self._get_summary(self.contents)
 
     def get_outline(self):
-        return _get_outline_from_contents(self.contents)
+        return self._get_outline(self.contents)
 
     def _load_contents_from_path(self, file_path):
         """Load the content of the page from file."""
@@ -208,7 +208,123 @@ class Page(TreeItem):
         return _is_valid_page_file(file_path)
 
     def _get_title_from_contents(self):
-        return _get_title_from_contents(self.contents)
+        return self._get_title(self.contents)
+
+    def _is_blank_line(self, line):
+        return line.strip() == ''
+
+    def _is_navigation_line(self, line):
+        if re.search(r'\[[^]]*\]\([^\)]*\)', line) is not None:
+            return True
+        return False
+
+    def _is_title_line(self, line):
+        return line.startswith('# ')
+
+    def _is_link_line(self, line):
+        if re.search(r'\[[^]]*\]\: ', line) is not None:
+            return True
+        return False
+
+    def _is_text_line(self, line):
+        if not isinstance(line, str):
+            raise ValueError(f'Not a valid content line: {line}')
+        elif self._is_blank_line(line):
+            return False
+        elif self._is_title_line(line):
+            return False
+        elif self._is_link_line(line):
+            return False
+        elif self._is_navigation_line(line):
+            return False
+        else:
+            return True
+
+    def _find_first_blank_line(self, content):
+        return next((idx for idx, line in enumerate(content)
+                    if self._is_blank_line(line)), None)
+
+    def _find_first_text_line(self, content):
+        return next((idx for idx, line in enumerate(content)
+                    if self._is_text_line(line)), None)
+
+    def _strip_links(self, line, types='reference'):
+        if types not in ['default', 'reference', 'absolute', 'all']:
+            raise ValueError(f'Invalid link type for stripping: {types}')
+        if types in ['default', 'reference', 'all']:
+            line = self._strip_reference_links(line)
+        if types in ['absolute', 'all']:
+            line = self._strip_absolute_links(line)
+        return line
+
+    def _strip_reference_links(self, line):
+        if self._is_link_line(line):
+            return ''
+        return re.sub(r'\[([^\]]*)\]\[[^\]]*\]', r'\1', line)
+
+    def _strip_absolute_links(self, line):
+        return re.sub(r'\[([^\]]*)\]\([^\)]*\)', r'\1', line)
+
+    def _get_title(self, contents):
+        if contents is not None:
+            for line in contents:
+                if self._is_blank_line(line) or self._is_navigation_line(line):
+                    continue
+                if self._is_title_line(line):
+                    return line[2:].strip()
+                else:
+                    return None
+
+    def _get_summary(self, contents):
+        start_line = self._find_first_text_line(contents)
+        if start_line is not None:
+            lines = self._find_first_blank_line(contents[start_line:]) or 1
+            summary = ' '.join(contents[start_line:start_line+lines]).strip()
+            return self._strip_links(summary, 'reference')
+
+    def _get_outline(self, contents):
+        summary = self._get_summary(contents)
+        if summary is not None:
+            outline = [summary]
+            sections = self._get_sections(contents)
+            for section in sections:
+                outline = outline + self._get_bullets(section)
+            return outline
+
+    def _get_sections(self, contents):
+        if self._get_title(contents) is not None:
+            section_heading = '## '
+        else:
+            section_heading = '# '
+        section_ids = [idx for idx, line in enumerate(contents)
+                    if line.startswith(section_heading)]
+        sections = [contents[i:j]
+                    for i, j in zip(section_ids, section_ids[1:]+[None])]
+        if section_heading == '## ':
+            return [[line.replace('## ', '# ') for line in section]
+                    for section in sections]
+        else:
+            return sections
+
+    def _get_bullets(self, section, bullet='*'):
+        if bullet == '*':
+            next_bullet = '    -'
+        elif bullet == '    -':
+            next_bullet = '        +'
+        elif bullet == '        +':
+            next_bullet = None
+        else:
+            raise ValueError(f'Invalid bullet type: {bullet}')
+        title = self._get_title(section)
+        summary = self._get_summary(section)
+        if title is not None:
+            text = f'{bullet} {title}'
+            if summary is not None:
+                text = f'{text}: {summary}'
+            bullets = [text]
+            for subsection in self._get_sections(section):
+                bullets = bullets + self._get_bullets(subsection, next_bullet)
+            return bullets
 
 
 class HomePage(Page):
@@ -511,122 +627,6 @@ def _is_valid_logbook_folder(folder_path):
     if _is_valid_folder(folder_path):
         return folder_path.name == LOGBOOK_FOLDER_NAME
     return False
-
-def _is_blank_line(line):
-    return line.strip() == ''
-
-def _is_navigation_line(line):
-    if re.search(r'\[[^]]*\]\([^\)]*\)', line) is not None:
-        return True
-    return False
-
-def _is_title_line(line):
-    return line.startswith('# ')
-
-def _is_link_line(line):
-    if re.search(r'\[[^]]*\]\: ', line) is not None:
-        return True
-    return False
-
-def _is_text_line(line):
-    if not isinstance(line, str):
-        raise ValueError(f'Not a valid content line: {line}')
-    elif _is_blank_line(line):
-        return False
-    elif _is_title_line(line):
-        return False
-    elif _is_link_line(line):
-        return False
-    elif _is_navigation_line(line):
-        return False
-    else:
-        return True
-
-def _find_first_blank_line(content):
-    return next((idx for idx, line in enumerate(content)
-                 if _is_blank_line(line)), None)
-
-def _find_first_text_line(content):
-    return next((idx for idx, line in enumerate(content)
-                 if _is_text_line(line)), None)
-
-def _strip_links(line, types='reference'):
-    if types not in ['default', 'reference', 'absolute', 'all']:
-        raise ValueError(f'Invalid link type for stripping: {types}')
-    if types in ['default', 'reference', 'all']:
-        line = _strip_reference_links(line)
-    if types in ['absolute', 'all']:
-        line = _strip_absolute_links(line)
-    return line
-
-def _strip_reference_links(line):
-    if _is_link_line(line):
-        return ''
-    return re.sub(r'\[([^\]]*)\]\[[^\]]*\]', r'\1', line)
-
-def _strip_absolute_links(line):
-    return re.sub(r'\[([^\]]*)\]\([^\)]*\)', r'\1', line)
-
-def _get_title_from_contents(contents):
-    if contents is not None:
-        for line in contents:
-            if _is_blank_line(line) or _is_navigation_line(line):
-                continue
-            if _is_title_line(line):
-                return line[2:].strip()
-            else:
-                return None
-
-def _get_summary_from_contents(contents):
-    start_line = _find_first_text_line(contents)
-    if start_line is not None:
-        lines = _find_first_blank_line(contents[start_line:]) or 1
-        summary = ' '.join(contents[start_line:start_line+lines]).strip()
-        return _strip_links(summary, 'reference')
-
-def _get_sections_from_contents(contents):
-    if _get_title_from_contents(contents) is not None:
-        section_heading = '## '
-    else:
-        section_heading = '# '
-    section_ids = [idx for idx, line in enumerate(contents)
-                   if line.startswith(section_heading)]
-    sections = [contents[i:j]
-                for i, j in zip(section_ids, section_ids[1:]+[None])]
-    if section_heading == '## ':
-        return [[line.replace('## ', '# ') for line in section]
-                for section in sections]
-    else:
-        return sections
-
-def _get_outline_from_contents(contents):
-    summary = _get_summary_from_contents(contents)
-    if summary is not None:
-        outline = [summary]
-        sections = _get_sections_from_contents(contents)
-        for section in sections:
-            outline = outline + _get_bullets(section)
-        return outline
-
-def _get_bullets(section, bullet='*'):
-    if bullet == '*':
-        next_bullet = '    -'
-    elif bullet == '    -':
-        next_bullet = '        +'
-    elif bullet == '        +':
-        next_bullet = None
-    else:
-        raise ValueError(f'Invalid bullet type: {bullet}')
-    title = _get_title_from_contents(section)
-    summary = _get_summary_from_contents(section)
-    if title is not None:
-        text = f'{bullet} {title}'
-        if summary is not None:
-            text = f'{text}: {summary}'
-        bullets = [text]
-        for subsection in _get_sections_from_contents(section):
-            bullets = bullets + _get_bullets(subsection, next_bullet)
-        return bullets
 
 
 # Processing procedures
