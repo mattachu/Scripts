@@ -224,6 +224,12 @@ class Page(TreeItem):
     def _is_title_line(self, line):
         return line.startswith('# ')
 
+    def _is_subtitle_line(self, line, starting_level=1):
+        if starting_level == 0:
+            return line.startswith('#')
+        else:
+            return line.startswith('##')
+
     def _is_link_line(self, line):
         reference = r'\[[^]]*\]\: [^\s]*'
         descriptive = r'.*\: \[[^]]*\](\([^\)]*\)|\[[^\]]*\])'
@@ -237,6 +243,8 @@ class Page(TreeItem):
         elif self._is_blank_line(line):
             return False
         elif self._is_title_line(line):
+            return False
+        elif self._is_subtitle_line(line):
             return False
         elif self._is_link_line(line):
             return False
@@ -252,6 +260,14 @@ class Page(TreeItem):
     def _find_first_text_line(self, content):
         return next((idx for idx, line in enumerate(content)
                     if self._is_text_line(line)), None)
+
+    def _find_first_subtitle(self, content):
+        if self._get_title(content) is not None:
+            starting_level = 1
+        else:
+            starting_level = 0
+        return next((idx for idx, line in enumerate(content)
+                    if self._is_subtitle_line(line, starting_level)), None)
 
     def _strip_links(self, line, types='reference'):
         if types not in ['default', 'reference', 'absolute', 'all']:
@@ -276,13 +292,16 @@ class Page(TreeItem):
                 if self._is_blank_line(line) or self._is_navigation_line(line):
                     continue
                 if self._is_title_line(line):
-                    return line[2:].strip()
+                    return self._strip_links(line[2:].strip(), 'all')
                 else:
                     return None
 
     def _get_summary(self, contents):
         start_line = self._find_first_text_line(contents)
-        if start_line is not None:
+        if start_line is None:
+            return None
+        subsection = self._find_first_subtitle(contents)
+        if subsection is None or start_line < subsection:
             lines = self._find_first_blank_line(contents[start_line:]) or 1
             summary = ' '.join(contents[start_line:start_line+lines]).strip()
             return self._strip_links(summary, 'reference')
@@ -291,9 +310,14 @@ class Page(TreeItem):
         summary = self._get_summary(contents)
         if summary is not None:
             outline = [summary]
-            sections = self._get_sections(contents)
-            for section in sections:
-                outline = outline + self._get_bullets(section)
+        else:
+            outline = []
+        sections = self._get_sections(contents)
+        for section in sections:
+            outline = outline + self._get_bullets(section)
+        if outline == []:
+            return None
+        else:
             return outline
 
     def _get_sections(self, contents):

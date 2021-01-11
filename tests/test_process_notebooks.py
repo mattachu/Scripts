@@ -24,6 +24,7 @@ test_lines = {
     'text': ('Page content, including some `code` '
              'or [different](link1) [types][link2] of [links][].'),
     'title': '# Page title',
+    'subtitle': '## [Subtopic](link)',
     'navigation': '[Home](link1) > [Folder](link2) > [Notebook](link3)',
     'link': '[link]: https://link.com/link'}
 
@@ -31,6 +32,7 @@ test_lines_strip_all_links = {
     'blank': '',
     'text': 'Page content, including some `code` or different types of links.',
     'title': '# Page title',
+    'subtitle': '## Subtopic',
     'navigation': 'Home > Folder > Notebook',
     'link': ''}
 
@@ -39,6 +41,7 @@ test_lines_strip_reference_links = {
     'text': ('Page content, including some `code` '
              'or [different](link1) types of links.'),
     'title': '# Page title',
+    'subtitle': '## [Subtopic](link)',
     'navigation': '[Home](link1) > [Folder](link2) > [Notebook](link3)',
     'link': ''}
 
@@ -47,6 +50,7 @@ test_lines_strip_absolute_links = {
     'text': ('Page content, including some `code` '
              'or different [types][link2] of [links][].'),
     'title': '# Page title',
+    'subtitle': '## Subtopic',
     'navigation': 'Home > Folder > Notebook',
     'link': '[link]: https://link.com/link'}
 
@@ -73,17 +77,25 @@ test_contents = {
                  '',
                  'Subsection content.',
                  '',
-                 '### Second subsection',
+                 '### Empty subsection',
                  '',
-                 'Second subsection summary.',
+                 '### Third subsection',
                  '',
-                 'Second subsection content.',
+                 'Third subsection summary.',
+                 '',
+                 'Third subsection content.',
                  '',
                  '## Another section',
                  '',
                  'Summary for another section.',
                  '',
                  'Some more content.',
+                 '',
+                 '## Section without summary',
+                 '',
+                 '### Subsection',
+                 '',
+                 'Subsection summary.',
                  ''],
     'plain': ['Page content.'],
     'no-title': ['[< Home](../Contents)',
@@ -104,17 +116,25 @@ test_contents = {
                  '',
                  'Subsection content.',
                  '',
-                 '## Second subsection',
+                 '## Empty subsection',
                  '',
-                 'Second subsection summary.',
+                 '## Third subsection',
                  '',
-                 'Second subsection content.',
+                 'Third subsection summary.',
+                 '',
+                 'Third subsection content.',
                  '',
                  '# Another section',
                  '',
                  'Summary for another section.',
                  '',
                  'Some more content.',
+                 '',
+                 '# Section without summary',
+                 '',
+                 '## Subsection',
+                 '',
+                 'Subsection summary.',
                  '']}
 
 contents_title = {
@@ -146,18 +166,26 @@ contents_sections = {
                   '',
                   'Subsection content.',
                   '',
-                  '## Second subsection',
+                  '## Empty subsection',
                   '',
-                  'Second subsection summary.',
+                  '## Third subsection',
                   '',
-                  'Second subsection content.',
+                  'Third subsection summary.',
+                  '',
+                  'Third subsection content.',
                   ''],
                  ['# Another section',
-                 '',
-                 'Summary for another section.',
-                 '',
-                 'Some more content.',
-                 '']],
+                  '',
+                  'Summary for another section.',
+                  '',
+                  'Some more content.',
+                  ''],
+                 ['# Section without summary',
+                  '',
+                  '## Subsection',
+                  '',
+                  'Subsection summary.',
+                  '']],
     'plain': [],
     'no-title': [['# Section',
                   '',
@@ -171,18 +199,26 @@ contents_sections = {
                   '',
                   'Subsection content.',
                   '',
-                  '## Second subsection',
+                  '## Empty subsection',
                   '',
-                  'Second subsection summary.',
+                  '## Third subsection',
                   '',
-                  'Second subsection content.',
+                  'Third subsection summary.',
+                  '',
+                  'Third subsection content.',
                   ''],
                  ['# Another section',
-                 '',
-                 'Summary for another section.',
-                 '',
-                 'Some more content.',
-                 '']]}
+                  '',
+                  'Summary for another section.',
+                  '',
+                  'Some more content.',
+                  ''],
+                 ['# Section without summary',
+                  '',
+                  '## Subsection',
+                  '',
+                  'Subsection summary.',
+                  '']]}
 
 contents_outline = {
     'empty': None,
@@ -190,14 +226,20 @@ contents_outline = {
     'standard': ['Page summary, including some `code` or links.',
                  '* Section: Section summary.',
                  '    - Subsection: Subsection summary.',
-                 '    - Second subsection: Second subsection summary.',
-                 '* Another section: Summary for another section.'],
+                 '    - Empty subsection',
+                 '    - Third subsection: Third subsection summary.',
+                 '* Another section: Summary for another section.',
+                 '* Section without summary',
+                 '    - Subsection: Subsection summary.'],
     'plain': ['Page content.'],
     'no-title': ['Page summary, including some `code` or links.',
                  '* Section: Section summary.',
                  '    - Subsection: Subsection summary.',
-                 '    - Second subsection: Second subsection summary.',
-                 '* Another section: Summary for another section.']}
+                 '    - Empty subsection',
+                 '    - Third subsection: Third subsection summary.',
+                 '* Another section: Summary for another section.',
+                 '* Section without summary',
+                 '    - Subsection: Subsection summary.']}
 
 first_blank_line = {
     'empty': 'None',
@@ -212,6 +254,13 @@ first_text_line = {
     'standard': '4',
     'plain': '0',
     'no-title': '2'}
+
+first_subtitle = {
+    'empty': 'None',
+    'blank': 'None',
+    'standard': '8',
+    'plain': 'None',
+    'no-title': '6'}
 
 def build_test_def(
         object_type='page', method_type='create', test_object=None,
@@ -1068,6 +1117,8 @@ def expectations(test_def):
             expected['result'] = first_blank_line[test_def['test_object']]
         elif method['get'] == 'text':
             expected['result'] = first_text_line[test_def['test_object']]
+        elif method['get'] == 'subtitle':
+            expected['result'] = first_subtitle[test_def['test_object']]
         elif method['get'] == 'title':
             expected['result'] = f"contents_title['{test_def['test_object']}']"
         elif method['get'] == 'summary':
@@ -2167,6 +2218,22 @@ class TestProcessNotebooks:
                                    eval(test_params['expected']))
 
     @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line subtitle'))
+    def test_is_subtitle_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._is_subtitle_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
                              build_all_tests('function', 'valid line link'))
     def test_is_link_line(self, capsys, test_params):
         with eval(test_params['error condition']):
@@ -2226,6 +2293,22 @@ class TestProcessNotebooks:
                                 title=test_title,
                                 parent=test_parent)
             result = test_page._find_first_text_line(test_params['object'])
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'find subtitle'))
+    def test_find_first_subtitle(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._find_first_subtitle(test_params['object'])
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
