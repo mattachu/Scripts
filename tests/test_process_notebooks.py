@@ -325,6 +325,8 @@ def build_test_params(test_type, test_def, expected):
         params['object'] = get_generator(test_def['test_object'])
     elif test_def['method_type'].startswith('find'):
         params['object'] = test_contents[test_def['test_object']]
+    elif test_def['method_type'].startswith('match'):
+        params['object'] = test_def['test_object']
     return params
 
 def build_test_string(test_type, test_def, expected):
@@ -408,7 +410,9 @@ def get_tests(object_type, method_type):
                 test_list = test_list + get_io_tests(object_def)
                 if line_object == expected_object:
                     test_list = test_list + get_invalid_input_tests(object_def)
-    elif method_type.startswith('get'):
+    elif method_type.startswith('get') or method_type.startswith('match'):
+        if method_type.startswith('match'):
+            test_def = modify_test_def(test_def, test_object=tmp_path)
         creation_def = modify_test_def(test_def, method_type='create')
         path_def = modify_test_def(test_def, path=tmp_path)
         for combination in get_test_combinations(creation_def):
@@ -471,7 +475,7 @@ def get_method_tests(test_def):
     test_list = []
     expected = expectations(test_def)
     method = get_method_parameters(test_def['method_type'])
-    if method['get'] in ['title', 'summary', 'outline']:
+    if method['get'] in ['title', 'summary', 'outline', 'content']:
         test_list.append(get_test('result', test_def, expected))
     elif method['get'] in ['pages', 'notebooks', 'logbooks']:
         test_list.append(get_test('return type', test_def, expected))
@@ -621,7 +625,9 @@ def get_parameter_list(method_type):
         return ['path', 'parent']
     elif method_type in ['load', 'overwrite']:
         return ['path']
-    elif method_type.startswith('valid') or method_type.startswith('strip'):
+    elif (method_type.startswith('valid')
+          or method_type.startswith('strip')
+          or method_type.startswith('match')):
         parameter_to_check = method_type.split()[1]
         return [parameter_to_check]
     elif method_type.startswith('get'):
@@ -1139,6 +1145,12 @@ def expectations(test_def):
             expected['result'] = f"test_lines_strip_absolute_links['{line_type}']"
         elif test_type == 'all':
             expected['result'] = f"test_lines_strip_all_links['{line_type}']"
+    elif test_def['method_type'].startswith('match'):
+        if not 'result' in expected:
+            if test_def['test_object'] == test_def['path']:
+                expected['result'] = 'True'
+            else:
+                expected['result'] = 'False'
     return expected
 
 
@@ -2483,6 +2495,44 @@ class TestProcessNotebooks:
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'match content with page'))
+    def test_contents_match(self, capsys, test_params, tmp_page, cloned_repo):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._contents_match(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'match content with page'))
+    def test_contents_match_modified(self, capsys, test_params,
+                                     tmp_page, cloned_repo):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            test_page.contents = [self.test_message]
+            result = test_page._contents_match(eval(test_params['object']))
+            if eval(test_params['expected']) is True:
+                expected = False
+            else:
+                expected = eval(test_params['expected'])
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   expected)
 
 
     # Creating notebook objects

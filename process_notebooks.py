@@ -197,6 +197,12 @@ class Page(TreeItem):
         with open(file_path, 'r') as f:
             self.contents = f.readlines()
 
+    def _contents_match(self, file_path):
+        """Compare the current content of the page with file contents."""
+        with open(file_path, 'r') as f:
+            file_contents = f.readlines()
+        return self.contents == file_contents
+
     def _is_valid_parent(self, parent):
         if type(self) == Page:
             return (isinstance(parent, Notebook)
