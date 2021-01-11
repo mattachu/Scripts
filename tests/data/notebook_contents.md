@@ -24,6 +24,6 @@ Logbook for this notebook scope.
 
 Research into the project.
 
-## [Software link](Software-links)
+## [Software links](Software-links)
 
 Some information about software related to this notebook scope.

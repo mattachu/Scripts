@@ -372,9 +372,6 @@ class HomePage(Page):
         kwargs['title'] = HOME_DESCRIPTOR
         super().__init__(*args, **kwargs)
 
-    def get_outline(self):
-        raise TypeError('Home pages do not produce outlines.')
-
     def _is_valid_path(self, page_file):
         return _is_valid_home_page_file(page_file)
 
@@ -394,9 +391,6 @@ class ContentsPage(Page):
         kwargs['filename'] = CONTENTS_FILENAME
         kwargs['title'] = CONTENTS_DESCRIPTOR
         super().__init__(*args, **kwargs)
-
-    def get_outline(self):
-        raise TypeError('Contents pages do not produce outlines.')
 
     def _get_title_from_contents(self):
         """Return `None` because contents pages have a fixed title."""
@@ -530,9 +524,6 @@ class Notebook(TreeItem):
     def get_summary(self):
         if self._has_readme_page():
             return self.get_readme_page().get_summary()
-
-    def get_outline(self):
-        raise TypeError('Notebooks do not produce outlines.')
 
     def _has_contents_page(self):
         return any([isinstance(item, ContentsPage) for item in self.contents])

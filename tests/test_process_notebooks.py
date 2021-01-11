@@ -949,16 +949,17 @@ def expectations(test_def):
         expected['link'] = 'self.contents_filename'
         if test_def['object_type'] == 'logbook contents':
             summary = 'self.test_logbook_contents_page_summary'
+            outline = 'self.test_logbook_contents_page_outline'
         else:
             summary = 'self.test_contents_page_summary'
-        outline = 'TypeError'
+            outline = 'self.test_contents_page_outline'
     elif test_def['object_type'] == 'home':
         expected['return type'] = 'pn.HomePage'
         expected['title'] = 'self.homepage_descriptor'
         expected['filename'] = 'self.homepage_filename'
         expected['link'] = 'self.homepage_filename'
         summary = 'self.test_home_page_summary'
-        outline = 'TypeError'
+        outline = 'self.test_home_page_outline'
     elif test_def['object_type'] == 'readme':
         expected['return type'] = 'pn.ReadmePage'
         expected['title'] = 'self.readme_descriptor'
@@ -978,12 +979,12 @@ def expectations(test_def):
         expected['return type'] = 'pn.LogbookPage'
         title_from_contents = 'self.test_logbook_month_title'
         summary = 'None'
-        outline = 'TypeError'
+        outline = 'None'
     elif test_def['object_type'] in ['notebook', 'nested']:
         expected['return type'] = 'pn.Notebook'
         title_from_contents = 'self.test_notebook_title'
         summary = 'self.test_readme_page_summary'
-        outline = 'TypeError'
+        outline = 'NotImplementedError'
         if test_def['parent'] is None:
             expected['link'] = 'self.homepage_descriptor'
         else:
@@ -992,7 +993,7 @@ def expectations(test_def):
         expected['return type'] = 'pn.Logbook'
         title_from_contents = 'self.logbook_folder_name'
         summary = 'self.test_logbook_readme_page_summary'
-        outline = 'TypeError'
+        outline = 'NotImplementedError'
         if test_def['parent'] is None:
             expected['link'] = 'self.homepage_descriptor'
         else:
@@ -1254,8 +1255,18 @@ class TestProcessNotebooks:
                                           '* Section: Summary for contents in a separate logbook.',
                                           '* Another section: Summary for contents in a different logbook.',
                                           '* Other work and communications: Subsection summary.']
-        self.test_readme_page_outline = self.test_readme_page_summary
-        self.test_logbook_readme_page_outline = self.test_logbook_readme_page_summary
+        self.test_contents_page_outline = [self.test_contents_page_summary,
+                                           '* Folders',
+                                           '    - Admin: Various administrative notes and records.',
+                                           '    - Project: Notebook for a particular project.',
+                                           '    - Logbook: Logbook for this notebook scope.',
+                                           '* Pages',
+                                           '    - Preparatory research: Research into the project.',
+                                           '    - Software links: Some information about software related to this notebook scope.']
+        self.test_home_page_outline = [self.test_home_page_summary]
+        self.test_readme_page_outline = [self.test_readme_page_summary]
+        self.test_logbook_contents_page_outline = [self.test_logbook_contents_page_summary]
+        self.test_logbook_readme_page_outline = [self.test_logbook_readme_page_summary]
         self.page_suffix = '.md'
         self.homepage_descriptor = 'Home'
         self.homepage_filename = 'Home'
