@@ -470,7 +470,7 @@ class LogbookPage(Page):
 
     def get_previous(self):
         if self.parent is not None:
-            past = [item for item in self.parent.get_pages('days')
+            past = [item for item in self._get_siblings()
                     if item < self]
             if len(past) > 0:
                 past.sort()
@@ -478,7 +478,7 @@ class LogbookPage(Page):
 
     def get_next(self):
         if self.parent is not None:
-            future = [item for item in self.parent.get_pages('days')
+            future = [item for item in self._get_siblings()
                       if item > self]
             if len(future) > 0:
                 future.sort()
@@ -514,6 +514,8 @@ class LogbookPage(Page):
             if self._is_valid_title(new_title):
                 return new_title
 
+    def _get_siblings(self):
+        return self.parent.get_pages('days')
 
 class LogbookMonth(LogbookPage):
     """Special page in a notebook that summarises the month's entries."""
@@ -523,27 +525,14 @@ class LogbookMonth(LogbookPage):
         if self.parent is not None:
             return self.parent
 
-    def get_previous(self):
-        if self.parent is not None:
-            past = [item for item in self.parent.get_pages('months')
-                    if item < self]
-            if len(past) > 0:
-                past.sort()
-                return past[-1]
-
-    def get_next(self):
-        if self.parent is not None:
-            future = [item for item in self.parent.get_pages('months')
-                      if item > self]
-            if len(future) > 0:
-                future.sort()
-                return future[0]
-
     def _is_valid_path(self, page_file):
         return _is_valid_logbook_month_file(page_file)
 
     def _is_valid_filename(self, filename):
         return _is_valid_logbook_month_filename(filename)
+
+    def _get_siblings(self):
+        return self.parent.get_pages('months')
 
 
 class Notebook(TreeItem):
