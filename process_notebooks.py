@@ -36,6 +36,7 @@ class TreeItem():
             if not self._is_valid_parent(parent):
                 raise ValueError(f'Received invalid parent: {parent}')
             self.parent = parent
+            self.parent.contents.append(self)
         if filename is not None:
             if not self._is_valid_filename(filename):
                 raise ValueError(f'Received invalid filename: {filename}')
@@ -377,6 +378,10 @@ class HomePage(Page):
         kwargs['filename'] = HOMEPAGE_FILENAME
         kwargs['title'] = HOME_DESCRIPTOR
         super().__init__(*args, **kwargs)
+
+    def _is_valid_parent(self, parent):
+        """Home pages must be contained at the root level."""
+        return isinstance(parent, Notebook) and parent.get_root() == parent
 
     def _is_valid_path(self, page_file):
         return _is_valid_home_page_file(page_file)
