@@ -441,6 +441,17 @@ class LogbookPage(Page):
                 return new_title
 
 
+class LogbookMonth(LogbookPage):
+    """Special page in a notebook that summarises the month's entries."""
+    _descriptor = 'logbook month page'
+
+    def _is_valid_path(self, page_file):
+        return _is_valid_logbook_month_file(page_file)
+
+    def _is_valid_filename(self, filename):
+        return _is_valid_logbook_month_filename(filename)
+
+
 class Notebook(TreeItem):
     """Standard notebook object containing pages."""
     _descriptor = 'notebook'
@@ -575,7 +586,10 @@ class Logbook(Notebook):
 
     def add_page(self, page_path=None):
         """Add a page to a logbook."""
-        self.contents.append(LogbookPage(page_path, parent=self))
+        if self._is_valid_month_file(page_path):
+            self.contents.append(LogbookMonth(page_path, parent=self))
+        else:
+            self.contents.append(LogbookPage(page_path, parent=self))
 
     def add_notebook(self, notebook_path=None):
         """Don't allow nested notebooks inside a logbook."""
@@ -604,11 +618,17 @@ class Logbook(Notebook):
         return _is_valid_logbook_folder(folder_path)
 
     def _is_valid_page_file(self, page_path):
-        return _is_valid_logbook_page_file(page_path)
+        return (_is_valid_logbook_page_file(page_path)
+                or _is_valid_logbook_month_file(page_path))
+
+    def _is_valid_month_file(self, page_path):
+        return _is_valid_logbook_month_file(page_path)
 
 
 # Utility functions
 def _is_valid_page_file(page_file):
+    if page_file is None:
+        return None
     if not page_file.is_file():
         raise OSError(f'Cannot find file: {page_file}')
     return page_file.suffix == PAGE_SUFFIX
@@ -637,6 +657,16 @@ def _is_valid_logbook_filename(filename):
     if filename == UNKNOWN_DESCRIPTOR:
         return True
     elif re.search(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$', filename) is not None:
+        return True
+    return False
+
+def _is_valid_logbook_month_file(page_file):
+    if _is_valid_page_file(page_file):
+        return _is_valid_logbook_month_filename(page_file.stem)
+    return False
+
+def _is_valid_logbook_month_filename(filename):
+    if filename == UNKNOWN_DESCRIPTOR:
         return True
     elif re.search(r'^[0-9]{4}-[0-9]{2}$', filename) is not None:
         return True

@@ -13,6 +13,7 @@ import process_notebooks as pn
 test_objects = [
     'page',
     'logbook page',
+    'logbook month',
     'contents',
     'home',
     'readme',
@@ -774,6 +775,8 @@ def get_generator(object_type):
         return 'pn.Page()'
     elif object_type == 'logbook page':
         return 'pn.LogbookPage()'
+    elif object_type == 'logbook month':
+        return 'pn.LogbookMonth()'
     elif object_type == 'contents':
         return 'pn.ContentsPage()'
     elif object_type == 'home':
@@ -982,7 +985,7 @@ def expectations(test_def):
         summary = 'self.test_logbook_readme_page_summary'
         outline = 'self.test_logbook_readme_page_outline'
     elif test_def['object_type'] == 'logbook month':
-        expected['return type'] = 'pn.LogbookPage'
+        expected['return type'] = 'pn.LogbookMonth'
         title_from_contents = 'self.test_logbook_month_title'
         summary = 'None'
         outline = 'None'
@@ -1084,8 +1087,6 @@ def expectations(test_def):
                   and given_object_type == 'logbook contents')
               or (    expected_object_type == 'readme'
                   and given_object_type == 'logbook readme')
-              or (    expected_object_type == 'logbook page'
-                  and given_object_type == 'logbook month')
               or (    expected_object_type == 'notebook'
                   and given_object_type == 'nested')):
             expected['result'] = 'True'
@@ -1712,10 +1713,10 @@ class TestProcessNotebooks:
             test_parent = eval(test_params['parent'])
             test_title = eval(test_params['title'])
             test_filename = eval(test_params['filename'])
-            test_page = pn.LogbookPage(path=eval(test_params['path']),
-                                       filename=test_filename,
-                                       title=test_title,
-                                       parent=test_parent)
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
             self.assert_parametric(test_page,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
@@ -1827,7 +1828,7 @@ class TestProcessNotebooks:
             tmp_logbook_month_page):
         with eval(test_params['error condition']):
             existing_page = eval(test_params['existing'])
-            test_page = pn.LogbookPage(path=existing_page)
+            test_page = pn.LogbookMonth(path=existing_page)
             test_page.load_contents(eval(test_params['path']))
             self.assert_parametric(test_page,
                                    test_params['test_type'],
@@ -3010,7 +3011,7 @@ class TestProcessNotebooks:
     def test_is_valid_page_file(
             self, capsys, tmp_file_factory, cloned_repo, test_params,
             tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
-            tmp_readme_page, tmp_notebook, tmp_logbook):
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
         with eval(test_params['error condition']):
             result = pn._is_valid_page_file(eval(test_params['path']))
             self.assert_parametric(result,
@@ -3022,9 +3023,21 @@ class TestProcessNotebooks:
     def test_is_valid_logbook_page_file(
             self, capsys, tmp_file_factory, cloned_repo, test_params,
             tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
-            tmp_readme_page, tmp_notebook, tmp_logbook):
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
         with eval(test_params['error condition']):
             result = pn._is_valid_logbook_page_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'valid path logbook month'))
+    def test_is_valid_logbook_month_file(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._is_valid_logbook_month_file(eval(test_params['path']))
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
@@ -3034,7 +3047,7 @@ class TestProcessNotebooks:
     def test_is_valid_contents_page_file(
             self, capsys, tmp_file_factory, cloned_repo, test_params,
             tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
-            tmp_readme_page, tmp_notebook, tmp_logbook):
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
         with eval(test_params['error condition']):
             result = pn._is_valid_contents_page_file(eval(test_params['path']))
             self.assert_parametric(result,
@@ -3046,7 +3059,7 @@ class TestProcessNotebooks:
     def test_is_valid_home_page_file(
             self, capsys, tmp_file_factory, cloned_repo, test_params,
             tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
-            tmp_readme_page, tmp_notebook, tmp_logbook):
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
         with eval(test_params['error condition']):
             result = pn._is_valid_home_page_file(eval(test_params['path']))
             self.assert_parametric(result,
@@ -3058,7 +3071,7 @@ class TestProcessNotebooks:
     def test_is_valid_readme_page_file(
             self, capsys, tmp_file_factory, cloned_repo, test_params,
             tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
-            tmp_readme_page, tmp_notebook, tmp_logbook):
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
         with eval(test_params['error condition']):
             result = pn._is_valid_readme_page_file(eval(test_params['path']))
             self.assert_parametric(result,
@@ -3070,7 +3083,7 @@ class TestProcessNotebooks:
     def test_is_valid_notebook_folder(
             self, capsys, tmp_folder_factory, cloned_repo, test_params,
             tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
-            tmp_readme_page, tmp_notebook, tmp_logbook):
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
         with eval(test_params['error condition']):
             result = pn._is_valid_notebook_folder(eval(test_params['path']))
             self.assert_parametric(result,
@@ -3082,7 +3095,7 @@ class TestProcessNotebooks:
     def test_is_valid_logbook_folder(
             self, capsys, tmp_folder_factory, cloned_repo, test_params,
             tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
-            tmp_readme_page, tmp_notebook, tmp_logbook):
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
         with eval(test_params['error condition']):
             result = pn._is_valid_logbook_folder(eval(test_params['path']))
             self.assert_parametric(result,
