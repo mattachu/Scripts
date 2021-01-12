@@ -135,7 +135,20 @@ class TreeItem():
 
     def get_relative_link(self, other):
         """Return a Markdown link to the given item, relative to this item."""
-        return f'[{other.title}]({self.get_relative_path(other)})'
+        if other == self.get_root():
+            title = HOME_DESCRIPTOR
+        else:
+            title = other.title
+        return f'[{title}]({self.get_relative_path(other)})'
+
+    def get_navigation(self):
+        """Return a line containing breadcrumb links to current item."""
+        if self.get_root() == self:
+            return None
+        breadcrumbs = [self.get_relative_link(parent)
+                       for parent in list(reversed(self.get_parents()))]
+        breadcrumbs.append(self.title)
+        return ' > '.join(breadcrumbs)
 
     def get_summary(self):
         raise NotImplementedError
@@ -379,6 +392,10 @@ class HomePage(Page):
         kwargs['title'] = HOME_DESCRIPTOR
         super().__init__(*args, **kwargs)
 
+    def get_navigation(self):
+        """Don't return any navigation as already at home page."""
+        return None
+
     def _is_valid_parent(self, parent):
         """Home pages must be contained at the root level."""
         return isinstance(parent, Notebook) and parent.get_root() == parent
@@ -403,6 +420,11 @@ class ContentsPage(Page):
         kwargs['title'] = CONTENTS_DESCRIPTOR
         super().__init__(*args, **kwargs)
 
+    def get_navigation(self):
+        """Return navigation link for the notebook rather than its contents page."""
+        if self.parent is not None:
+            return self.parent.get_navigation()
+
     def _get_title_from_contents(self):
         """Return `None` because contents pages have a fixed title."""
         return None
@@ -421,6 +443,10 @@ class ReadmePage(Page):
                              f"{kwargs['filename']}")
         kwargs['filename'] = README_FILENAME
         super().__init__(*args, **kwargs)
+
+    def get_navigation(self):
+        """Don't return any navigation as readme pages should remain clean."""
+        return None
 
     def _is_valid_path(self, page_file):
         return _is_valid_readme_page_file(page_file)
@@ -457,6 +483,21 @@ class LogbookPage(Page):
             if len(future) > 0:
                 future.sort()
                 return future[0]
+
+    def get_navigation(self):
+        """Return links to surrounding pages."""
+        previous = self.get_previous()
+        next_page = self.get_next()
+        up = self.get_up()
+        links = []
+        if previous is not None:
+            links.append(self.get_relative_link(previous).replace('[', '[< '))
+        if up is not None:
+            links.append(self.get_relative_link(up))
+        if next_page is not None:
+            links.append(self.get_relative_link(next_page).replace(']', ' >]'))
+        if len(links) > 0:
+            return ' | '.join(links)
 
     def _is_valid_parent(self, parent):
         return isinstance(parent, Logbook)

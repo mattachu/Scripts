@@ -476,7 +476,7 @@ def get_method_tests(test_def):
     test_list = []
     expected = expectations(test_def)
     method = get_method_parameters(test_def['method_type'])
-    if method['get'] in ['title', 'summary', 'outline', 'content',
+    if method['get'] in ['title', 'summary', 'outline', 'content', 'navigation',
                          'next', 'previous', 'up']:
         test_list.append(get_test('result', test_def, expected))
     elif method['get'] in ['pages', 'notebooks', 'logbooks']:
@@ -947,11 +947,13 @@ def expectations(test_def):
         title_from_contents = 'self.test_page_title'
         summary = 'self.test_page_summary'
         outline = 'self.test_page_outline'
+        navigation = 'self.test_page_navigation'
     elif test_def['object_type'] == 'logbook page':
         expected['return type'] = 'pn.LogbookPage'
         title_from_path = 'self.test_logbook_page_title'
         summary = 'self.test_logbook_page_summary'
         outline = 'self.test_logbook_page_outline'
+        navigation = 'self.test_logbook_page_navigation'
     elif test_def['object_type'] in ['contents', 'logbook contents']:
         expected['return type'] = 'pn.ContentsPage'
         expected['title'] = 'self.contents_descriptor'
@@ -963,6 +965,7 @@ def expectations(test_def):
         else:
             summary = 'self.test_contents_page_summary'
             outline = 'self.test_contents_page_outline'
+        navigation = 'None'
     elif test_def['object_type'] == 'home':
         expected['return type'] = 'pn.HomePage'
         expected['title'] = 'self.homepage_descriptor'
@@ -970,6 +973,7 @@ def expectations(test_def):
         expected['link'] = 'self.homepage_filename'
         summary = 'self.test_home_page_summary'
         outline = 'self.test_home_page_outline'
+        navigation = 'None'
     elif test_def['object_type'] == 'readme':
         expected['return type'] = 'pn.ReadmePage'
         expected['title'] = 'self.readme_descriptor'
@@ -978,6 +982,7 @@ def expectations(test_def):
         expected['link'] = 'self.readme_filename'
         summary = 'self.test_readme_page_summary'
         outline = 'self.test_readme_page_outline'
+        navigation = 'None'
     elif test_def['object_type'] == 'logbook readme':
         expected['return type'] = 'pn.ReadmePage'
         expected['title'] = 'self.readme_descriptor'
@@ -985,16 +990,19 @@ def expectations(test_def):
         expected['link'] = 'self.readme_filename'
         summary = 'self.test_logbook_readme_page_summary'
         outline = 'self.test_logbook_readme_page_outline'
+        navigation = 'None'
     elif test_def['object_type'] == 'logbook month':
         expected['return type'] = 'pn.LogbookMonth'
         title_from_contents = 'self.test_logbook_month_title'
         summary = 'None'
         outline = 'None'
+        navigation = 'self.test_logbook_month_page_navigation'
     elif test_def['object_type'] in ['notebook', 'nested']:
         expected['return type'] = 'pn.Notebook'
         title_from_contents = 'self.test_notebook_title'
         summary = 'self.test_readme_page_summary'
         outline = 'NotImplementedError'
+        navigation = 'self.test_notebook_navigation'
         if test_def['parent'] is None:
             expected['link'] = 'self.homepage_descriptor'
         else:
@@ -1004,6 +1012,7 @@ def expectations(test_def):
         title_from_contents = 'self.logbook_folder_name'
         summary = 'self.test_logbook_readme_page_summary'
         outline = 'NotImplementedError'
+        navigation = 'self.test_logbook_navigation'
         if test_def['parent'] is None:
             expected['link'] = 'self.homepage_descriptor'
         else:
@@ -1113,6 +1122,35 @@ def expectations(test_def):
                     if (test_def['path'] is not None
                             or 'Error' in expected_result):
                         expected['result'] = expected_result
+                    else:
+                        expected['result'] = 'None'
+                elif method['get'] == 'navigation':
+                    if navigation != 'None' and test_def['parent'] is not None:
+                        if test_def['path'] is None and test_def['title'] is None:
+                            if test_def['filename'] is not None:
+                                navigation = f"{test_def['filename']}.replace('_', ' ')"
+                            else:
+                                if test_def['object_type'] in ['logbook page',
+                                                               'logbook month']:
+                                    navigation = 'None'
+                                else:
+                                    navigation = 'self.unknown_descriptor'
+                        if (test_def['object_type'] == 'logbook month'
+                                and test_def['path'] is None
+                                and test_def['title'] is None):
+                            expected['result'] = 'self.navigation_home_pages'
+                        elif test_def['object_type'] in ['logbook page',
+                                                         'logbook month']:
+                            expected['result'] = navigation
+                        elif test_def['object_type'] in ['notebook', 'logbook',
+                                                         'nested']:
+                            expected['result'] = ("self.navigation_home_notebooks + "
+                                                + "self.navigation_separator + "
+                                                + navigation)
+                        else:
+                            expected['result'] = ("self.navigation_home_pages + "
+                                                + "self.navigation_separator + "
+                                                + navigation)
                     else:
                         expected['result'] = 'None'
                 elif method['get'] in ['pages', 'notebooks', 'logbooks']:
@@ -1301,6 +1339,14 @@ class TestProcessNotebooks:
         self.readme_descriptor = 'Readme'
         self.logbook_folder_name = 'Logbook'
         self.unknown_descriptor = 'Unknown'
+        self.test_page_navigation = self.test_page_title
+        self.test_logbook_page_navigation = '[< 2019-01-01](2019-01-01) | [2020-01](2020-01) | [2021-01-01 >](2021-01-01)'
+        self.test_logbook_month_page_navigation = '[< 2019-01](2019-01) | [Home](Home) | [2021-01 >](2021-01)'
+        self.test_notebook_navigation = self.test_notebook_title
+        self.test_logbook_navigation = self.temp_logbook
+        self.navigation_home_pages = f'[{self.homepage_descriptor}]({self.homepage_filename})'
+        self.navigation_home_notebooks = f'[{self.homepage_descriptor}](../{self.homepage_filename})'
+        self.navigation_separator = ' > '
 
 
     # Fixtures
@@ -2346,6 +2392,175 @@ class TestProcessNotebooks:
                                    test_params['test_type'],
                                    eval(test_params['expected']))
 
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'get navigation'))
+    def test_get_navigation_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params, tmp_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'get navigation'))
+    def test_get_navigation_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            if (test_parent is not None
+                    and test_page.filename == self.temp_logbook_page):
+                this_date = self.temp_logbook_page
+                month_date = this_date[:7]
+                early_date = str(int(this_date[:4]) - 1) + '-01-01'
+                later_date = str(int(this_date[:4]) + 1) + '-01-01'
+                month_page = pn.LogbookMonth(filename=month_date,
+                                             title=month_date,
+                                             parent=test_parent)
+                early_page = pn.LogbookPage(filename=early_date,
+                                            title=early_date,
+                                            parent=test_parent)
+                later_page = pn.LogbookPage(filename=later_date,
+                                            title=later_date,
+                                            parent=test_parent)
+            result = test_page.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents', 'get navigation'))
+    def test_get_navigation_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_page.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'get navigation'))
+    def test_get_navigation_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_page.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'get navigation'))
+    def test_get_navigation_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            if (test_parent is not None
+                    and test_page.filename == self.temp_logbook_month):
+                this_date = self.temp_logbook_month
+                early_date = str(int(this_date[:4]) - 1) + '-01'
+                later_date = str(int(this_date[:4]) + 1) + '-01'
+                early_page = pn.LogbookMonth(filename=early_date,
+                                             title=early_date,
+                                             parent=test_parent)
+                later_page = pn.LogbookMonth(filename=later_date,
+                                             title=later_date,
+                                             parent=test_parent)
+            result = test_page.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('home', 'get navigation'))
+    def test_get_navigation_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.HomePage(path=eval(test_params['path']),
+                                    filename=test_filename,
+                                    title=test_title,
+                                    parent=test_parent)
+            result = test_page.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('readme', 'get navigation'))
+    def test_get_navigation_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            result = test_page.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook readme', 'get navigation'))
+    def test_get_navigation_logbook_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            result = test_page.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
 
     # Handling page contents
     @pytest.mark.parametrize('test_params',
@@ -3155,6 +3370,60 @@ class TestProcessNotebooks:
                                         title=test_title,
                                         parent=test_parent)
             result = test_notebook.get_outline()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('notebook', 'get navigation'))
+    def test_get_navigation_notebook(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook', 'get navigation'))
+    def test_get_navigation_logbook(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Logbook(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            result = test_notebook.get_navigation()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'get navigation'))
+    def test_get_navigation_nested(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_notebook.get_navigation()
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
