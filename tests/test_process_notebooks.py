@@ -476,7 +476,8 @@ def get_method_tests(test_def):
     test_list = []
     expected = expectations(test_def)
     method = get_method_parameters(test_def['method_type'])
-    if method['get'] in ['title', 'summary', 'outline', 'content']:
+    if method['get'] in ['title', 'summary', 'outline', 'content',
+                         'next', 'previous', 'up']:
         test_list.append(get_test('result', test_def, expected))
     elif method['get'] in ['pages', 'notebooks', 'logbooks']:
         test_list.append(get_test('return type', test_def, expected))
@@ -1119,6 +1120,17 @@ def expectations(test_def):
                     if (method['get'] in ['notebooks', 'logbooks']
                             and test_def['object_type'] != 'nested'):
                         expected['contents'] = '[]'
+                elif method['get'] in ['next', 'previous', 'up']:
+                    if (method['get'] == 'up'
+                            and test_def['object_type'] == 'logbook month'):
+                        expected['result'] = 'test_parent'
+                    elif (test_def['parent'] is not None
+                            and (test_def['path'] is not None
+                                or test_def['filename'] is not None
+                                or test_def['title'] is not None)):
+                        expected['result'] = 'extra_page'
+                    else:
+                        expected['result'] = 'None'
     elif test_def['method_type'].startswith('find'):
         method = get_method_parameters(test_def['method_type'])
         if method['get'] == 'blank':
@@ -2187,6 +2199,149 @@ class TestProcessNotebooks:
                                     title=test_title,
                                     parent=test_parent)
             result = test_page.get_outline()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'get previous'))
+    def test_get_previous_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            if (test_parent is not None
+                    and test_page.filename == self.temp_logbook_page):
+                this_date = self.temp_logbook_page
+                earlier_date = str(int(this_date[:4]) - 1) + '-01-01'
+                extra_page = pn.LogbookPage(filename=earlier_date,
+                                            title=earlier_date,
+                                            parent=test_parent)
+            result = test_page.get_previous()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'get next'))
+    def test_get_next_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            if (test_parent is not None
+                    and test_page.filename == self.temp_logbook_page):
+                this_date = self.temp_logbook_page
+                later_date = str(int(this_date[:4]) + 1) + '-01-01'
+                extra_page = pn.LogbookPage(filename=later_date,
+                                            title=later_date,
+                                            parent=test_parent)
+            result = test_page.get_next()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'get up'))
+    def test_get_up_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            if (test_parent is not None
+                    and test_page.filename == self.temp_logbook_page):
+                this_date = self.temp_logbook_page
+                month_date = this_date[:7]
+                extra_page = pn.LogbookMonth(filename=month_date,
+                                             title=month_date,
+                                             parent=test_parent)
+            result = test_page.get_up()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'get previous'))
+    def test_get_previous_logbook_month(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            if (test_parent is not None
+                    and test_page.filename == self.temp_logbook_month):
+                this_date = self.temp_logbook_month
+                earlier_date = str(int(this_date[:4]) - 1) + '-01'
+                extra_page = pn.LogbookMonth(filename=earlier_date,
+                                             title=earlier_date,
+                                             parent=test_parent)
+            result = test_page.get_previous()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'get next'))
+    def test_get_next_logbook_month(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            if (test_parent is not None
+                    and test_page.filename == self.temp_logbook_month):
+                this_date = self.temp_logbook_month
+                later_date = str(int(this_date[:4]) + 1) + '-01'
+                extra_page = pn.LogbookMonth(filename=later_date,
+                                             title=later_date,
+                                             parent=test_parent)
+            result = test_page.get_next()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'get up'))
+    def test_get_up_logbook_month(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_page.get_up()
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))

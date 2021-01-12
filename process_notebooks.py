@@ -425,6 +425,34 @@ class LogbookPage(Page):
     """Logbook page in a notebook, with date attributes."""
     _descriptor = 'logbook page'
 
+    def __lt__(self, other):
+        return (self.filename < other.filename)
+
+    def __gt__(self, other):
+        return(self.filename > other.filename)
+
+    def get_up(self):
+        month = self.filename[0:7]
+        if self.parent is not None:
+            return next((item for item in self.parent.get_pages('months')
+                         if item.filename == month), None)
+
+    def get_previous(self):
+        if self.parent is not None:
+            past = [item for item in self.parent.get_pages('days')
+                    if item < self]
+            if len(past) > 0:
+                past.sort()
+                return past[-1]
+
+    def get_next(self):
+        if self.parent is not None:
+            future = [item for item in self.parent.get_pages('days')
+                      if item > self]
+            if len(future) > 0:
+                future.sort()
+                return future[0]
+
     def _is_valid_parent(self, parent):
         return isinstance(parent, Logbook)
 
@@ -444,6 +472,26 @@ class LogbookPage(Page):
 class LogbookMonth(LogbookPage):
     """Special page in a notebook that summarises the month's entries."""
     _descriptor = 'logbook month page'
+
+    def get_up(self):
+        if self.parent is not None:
+            return self.parent
+
+    def get_previous(self):
+        if self.parent is not None:
+            past = [item for item in self.parent.get_pages('months')
+                    if item < self]
+            if len(past) > 0:
+                past.sort()
+                return past[-1]
+
+    def get_next(self):
+        if self.parent is not None:
+            future = [item for item in self.parent.get_pages('months')
+                      if item > self]
+            if len(future) > 0:
+                future.sort()
+                return future[0]
 
     def _is_valid_path(self, page_file):
         return _is_valid_logbook_month_file(page_file)
@@ -607,9 +655,19 @@ class Logbook(Notebook):
         """Don't allow nested logbooks inside a logbook."""
         return []
 
-    def get_pages(self):
+    def get_pages(self, types='all'):
         """Return a list of contents that are logbook pages."""
-        return [item for item in self.contents if isinstance(item, LogbookPage)]
+        if types == 'all':
+            return [item for item in self.contents
+                    if isinstance(item, LogbookPage)]
+        elif types == 'days':
+            return [item for item in self.contents
+                    if type(item) == LogbookPage]
+        elif types == 'months':
+            return [item for item in self.contents
+                    if isinstance(item, LogbookMonth)]
+        else:
+            raise ValueError(f'Invalid logbook page type: {types}')
 
     def _get_title_from_contents(self):
         return super()._get_title_from_contents() or LOGBOOK_FOLDER_NAME
