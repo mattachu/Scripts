@@ -568,30 +568,30 @@ class Notebook(TreeItem):
 
     def add_page(self, page_path=None):
         """Add a page to a notebook."""
-        self.contents.append(Page(page_path, parent=self))
+        return Page(page_path, parent=self)
 
     def add_home_page(self, page_path=None):
         """Add a home page to a notebook."""
         if self.get_root() == self:
-            self.contents.append(HomePage(path=page_path, parent=self))
+            return HomePage(path=page_path, parent=self)
         else:
             raise ValueError('Can only add home page at the root level.')
 
     def add_contents_page(self, page_path=None):
         """Add a contents page to a notebook."""
-        self.contents.append(ContentsPage(path=page_path, parent=self))
+        return ContentsPage(path=page_path, parent=self)
 
     def add_readme_page(self, page_path=None):
         """Add a readme page to a notebook."""
-        self.contents.append(ReadmePage(path=page_path, parent=self))
+        return ReadmePage(path=page_path, parent=self)
 
     def add_notebook(self, notebook_path=None):
         """Add a nested notebook inside a notebook."""
-        self.contents.append(Notebook(path=notebook_path, parent=self))
+        return Notebook(path=notebook_path, parent=self)
 
     def add_logbook(self, logbook_path=None):
         """Add a nested logbook inside a notebook."""
-        self.contents.append(Logbook(path=logbook_path, parent=self))
+        return Logbook(path=logbook_path, parent=self)
 
     def get_pages(self):
         """Return a list of contents that are (standard) pages."""
@@ -670,9 +670,9 @@ class Logbook(Notebook):
     def add_page(self, page_path=None):
         """Add a page to a logbook."""
         if self._is_valid_month_file(page_path):
-            self.contents.append(LogbookMonth(page_path, parent=self))
+            return LogbookMonth(page_path, parent=self)
         else:
-            self.contents.append(LogbookPage(page_path, parent=self))
+            return LogbookPage(page_path, parent=self)
 
     def add_notebook(self, notebook_path=None):
         """Don't allow nested notebooks inside a logbook."""
