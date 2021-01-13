@@ -1340,7 +1340,7 @@ class TestProcessNotebooks:
         self.logbook_folder_name = 'Logbook'
         self.unknown_descriptor = 'Unknown'
         self.test_page_navigation = self.test_page_title
-        self.test_logbook_page_navigation = '[< 2019-01-01](2019-01-01) | [2020-01](2020-01) | [2021-01-01 >](2021-01-01)'
+        self.test_logbook_page_navigation = '[< 2019-01-01](2019-01-01) | [January 2020](2020-01) | [2021-01-01 >](2021-01-01)'
         self.test_logbook_month_page_navigation = '[< 2019-01](2019-01) | [Home](Home) | [2021-01 >](2021-01)'
         self.test_notebook_navigation = self.test_notebook_title
         self.test_logbook_navigation = self.temp_logbook
@@ -2425,11 +2425,11 @@ class TestProcessNotebooks:
             if (test_parent is not None
                     and test_page.filename == self.temp_logbook_page):
                 this_date = self.temp_logbook_page
-                month_date = this_date[:7]
+                month_date = self.temp_logbook_month
                 early_date = str(int(this_date[:4]) - 1) + '-01-01'
                 later_date = str(int(this_date[:4]) + 1) + '-01-01'
                 month_page = pn.LogbookMonth(filename=month_date,
-                                             title=month_date,
+                                             title=self.test_logbook_month_title,
                                              parent=test_parent)
                 early_page = pn.LogbookPage(filename=early_date,
                                             title=early_date,
@@ -2491,17 +2491,18 @@ class TestProcessNotebooks:
                                         filename=test_filename,
                                         title=test_title,
                                         parent=test_parent)
-            if (test_parent is not None
-                    and test_page.filename == self.temp_logbook_month):
-                this_date = self.temp_logbook_month
-                early_date = str(int(this_date[:4]) - 1) + '-01'
-                later_date = str(int(this_date[:4]) + 1) + '-01'
-                early_page = pn.LogbookMonth(filename=early_date,
-                                             title=early_date,
-                                             parent=test_parent)
-                later_page = pn.LogbookMonth(filename=later_date,
-                                             title=later_date,
-                                             parent=test_parent)
+            if test_parent is not None:
+                home_page = pn.HomePage(parent=test_parent)
+                if test_page.filename == self.temp_logbook_month:
+                    this_date = self.temp_logbook_month
+                    early_date = str(int(this_date[:4]) - 1) + '-01'
+                    later_date = str(int(this_date[:4]) + 1) + '-01'
+                    early_page = pn.LogbookMonth(filename=early_date,
+                                                title=early_date,
+                                                parent=test_parent)
+                    later_page = pn.LogbookMonth(filename=later_date,
+                                                title=later_date,
+                                                parent=test_parent)
             result = test_page.get_navigation()
             self.assert_parametric(result,
                                    test_params['test_type'],

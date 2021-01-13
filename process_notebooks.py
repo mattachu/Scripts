@@ -486,16 +486,25 @@ class LogbookPage(Page):
 
     def get_navigation(self):
         """Return links to surrounding pages."""
-        previous = self.get_previous()
-        next_page = self.get_next()
+        left = self.get_previous()
+        right = self.get_next()
         up = self.get_up()
         links = []
-        if previous is not None:
-            links.append(self.get_relative_link(previous).replace('[', '[< '))
+        if left is not None:
+            links.append(f'[< {left.filename}]({self.get_relative_path(left)})')
         if up is not None:
-            links.append(self.get_relative_link(up))
-        if next_page is not None:
-            links.append(self.get_relative_link(next_page).replace(']', ' >]'))
+            if isinstance(up, Logbook):
+                if up.get_home_page() is not None:
+                    title = up.get_home_page().title
+                elif up.get_contents_page() is not None:
+                    title = up.get_contents_page().title
+                else:
+                    title = up.title
+            else:
+                title = up.title
+            links.append(f'[{title}]({self.get_relative_path(up)})')
+        if right is not None:
+            links.append(f'[{right.filename} >]({self.get_relative_path(right)})')
         if len(links) > 0:
             return ' | '.join(links)
 
@@ -516,6 +525,7 @@ class LogbookPage(Page):
 
     def _get_siblings(self):
         return self.parent.get_pages('days')
+
 
 class LogbookMonth(LogbookPage):
     """Special page in a notebook that summarises the month's entries."""
