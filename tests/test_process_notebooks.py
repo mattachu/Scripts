@@ -1510,8 +1510,7 @@ class TestProcessNotebooks:
         """Create a complete clone of the Notebooks repo in a temp folder."""
         source_repo = git.Repo(self.notebook_path)
         destination_path = tmp_path_factory.mktemp('Notebooks', numbered=False)
-        cloned_repo = source_repo.clone(destination_path)
-        cloned_repo.head.reference = cloned_repo.heads.master
+        cloned_repo = source_repo.clone(destination_path, branch='master')
         cloned_repo.head.reset(index=True, working_tree=True)
         yield cloned_repo
         shutil.rmtree(destination_path)
