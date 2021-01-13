@@ -136,21 +136,57 @@ test_contents = {
                  '## Subsection',
                  '',
                  'Subsection summary.',
-                 '']}
+                 ''],
+    'no-summary': ['[< Home](../Contents)',
+                   '',
+                   '# Section',
+                   '',
+                   'Section summary.',
+                   '',
+                   'Section content.'
+                   '',
+                   '## Subsection',
+                   '',
+                   'Subsection summary.',
+                   '',
+                   'Subsection content.',
+                   '',
+                   '## Empty subsection',
+                   '',
+                   '## Third subsection',
+                   '',
+                   'Third subsection summary.',
+                   '',
+                   'Third subsection content.',
+                   '',
+                   '# Another section',
+                   '',
+                   'Summary for another section.',
+                   '',
+                   'Some more content.',
+                   '',
+                   '# Section without summary',
+                   '',
+                   '## Subsection',
+                   '',
+                   'Subsection summary.',
+                   '']}
 
 contents_title = {
     'empty': None,
     'blank': None,
     'standard': 'Page title',
     'plain': None,
-    'no-title': None}
+    'no-title': None,
+    'no-summary': None}
 
 contents_summary = {
     'empty': None,
     'blank': None,
     'standard': 'Page summary, including some `code` or links.',
     'plain': 'Page content.',
-    'no-title': 'Page summary, including some `code` or links.'}
+    'no-title': 'Page summary, including some `code` or links.',
+    'no-summary': None}
 
 contents_sections = {
     'empty': [],
@@ -219,7 +255,39 @@ contents_sections = {
                   '## Subsection',
                   '',
                   'Subsection summary.',
-                  '']]}
+                  '']],
+    'no-summary': [['# Section',
+                    '',
+                    'Section summary.',
+                    '',
+                    'Section content.'
+                    '',
+                    '## Subsection',
+                    '',
+                    'Subsection summary.',
+                    '',
+                    'Subsection content.',
+                    '',
+                    '## Empty subsection',
+                    '',
+                    '## Third subsection',
+                    '',
+                    'Third subsection summary.',
+                    '',
+                    'Third subsection content.',
+                    ''],
+                   ['# Another section',
+                    '',
+                    'Summary for another section.',
+                    '',
+                    'Some more content.',
+                    ''],
+                   ['# Section without summary',
+                    '',
+                    '## Subsection',
+                    '',
+                    'Subsection summary.',
+                    '']]}
 
 contents_outline = {
     'empty': None,
@@ -240,28 +308,38 @@ contents_outline = {
                  '    - Third subsection: Third subsection summary.',
                  '* Another section: Summary for another section.',
                  '* Section without summary',
-                 '    - Subsection: Subsection summary.']}
+                 '    - Subsection: Subsection summary.'],
+    'no-summary': ['* Section: Section summary.',
+                   '    - Subsection: Subsection summary.',
+                   '    - Empty subsection',
+                   '    - Third subsection: Third subsection summary.',
+                   '* Another section: Summary for another section.',
+                   '* Section without summary',
+                   '    - Subsection: Subsection summary.']}
 
 first_blank_line = {
     'empty': 'None',
     'blank': '0',
     'standard': '1',
     'plain': 'None',
-    'no-title': '1'}
+    'no-title': '1',
+    'no-summary': '1'}
 
 first_text_line = {
     'empty': 'None',
     'blank': 'None',
     'standard': '4',
     'plain': '0',
-    'no-title': '2'}
+    'no-title': '2',
+    'no-summary': '4'}
 
 first_subtitle = {
     'empty': 'None',
     'blank': 'None',
     'standard': '8',
     'plain': 'None',
-    'no-title': '6'}
+    'no-title': '6',
+    'no-summary': '2'}
 
 def build_test_def(
         object_type='page', method_type='create', test_object=None,

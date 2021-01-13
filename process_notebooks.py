@@ -308,13 +308,16 @@ class Page(TreeItem):
 
     def _get_title(self, contents):
         if contents is not None:
-            for line in contents:
-                if self._is_blank_line(line) or self._is_navigation_line(line):
-                    continue
-                if self._is_title_line(line):
-                    return self._strip_links(line[2:].strip(), 'all')
-                else:
-                    return None
+            if sum([self._is_title_line(line) for line in contents]) == 1:
+                for line in contents:
+                    if self._is_navigation_line(line):
+                        continue
+                    elif self._is_blank_line(line):
+                        continue
+                    elif self._is_title_line(line):
+                        return self._strip_links(line[2:].strip(), 'all')
+                    else:
+                        return None
 
     def _get_summary(self, contents):
         start_line = self._find_first_text_line(contents)
