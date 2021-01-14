@@ -346,7 +346,12 @@ class Page(TreeItem):
         if subsection is None or start_line < subsection:
             lines = self._find_first_blank_line(contents[start_line:]) or 1
             summary = ' '.join(contents[start_line:start_line+lines]).strip()
-            return self._strip_links(summary, 'reference')
+            summary = self._strip_links(summary, 'reference')
+            if summary.find(r': * ') > 0:
+                summary = summary[:summary.find(r': * ')] + '.'
+            if summary[-1] == ':':
+                summary = summary[:-1] + '.'
+            return summary
 
     def _get_sections(self, contents):
         if self._get_title(contents) is not None:
@@ -377,6 +382,7 @@ class Page(TreeItem):
         if title is not None:
             text = f'{bullet} {title}'
             if summary is not None:
+                summary = summary.replace('\n', '')
                 text = f'{text}: {summary}'
             bullets = [text]
             for subsection in self._get_sections(section):
