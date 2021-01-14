@@ -201,10 +201,22 @@ class Page(TreeItem):
     _descriptor = 'page'
 
     def get_summary(self):
-        return self._get_summary(self.contents)
+        if self._has_summary():
+            return self._get_summary(self.contents)
 
     def get_outline(self):
-        return self._get_outline(self.contents)
+        summary = self.get_summary()
+        if summary is not None:
+            outline = [summary]
+        else:
+            outline = []
+        sections = self._get_sections(self.contents)
+        for section in sections:
+            outline = outline + self._get_bullets(section)
+        if outline == []:
+            return None
+        else:
+            return outline
 
     def _load_contents_from_path(self, file_path):
         """Load the content of the page from file."""
@@ -281,6 +293,10 @@ class Page(TreeItem):
         return next((idx for idx, line in enumerate(content)
                     if self._is_text_line(line)), None)
 
+    def _find_first_title_line(self, content):
+        return next((idx for idx, line in enumerate(content)
+                    if self._is_title_line(line)), None)
+
     def _find_first_subtitle(self, content):
         if self._get_title(content) is not None:
             starting_level = 1
@@ -306,6 +322,9 @@ class Page(TreeItem):
     def _strip_absolute_links(self, line):
         return re.sub(r'\[([^\]]*)\]\([^\)]*\)', r'\1', line)
 
+    def _has_summary(self):
+        return self._get_summary(self.contents) is not None
+
     def _get_title(self, contents):
         if contents is not None:
             if sum([self._is_title_line(line) for line in contents]) == 1:
@@ -328,20 +347,6 @@ class Page(TreeItem):
             lines = self._find_first_blank_line(contents[start_line:]) or 1
             summary = ' '.join(contents[start_line:start_line+lines]).strip()
             return self._strip_links(summary, 'reference')
-
-    def _get_outline(self, contents):
-        summary = self._get_summary(contents)
-        if summary is not None:
-            outline = [summary]
-        else:
-            outline = []
-        sections = self._get_sections(contents)
-        for section in sections:
-            outline = outline + self._get_bullets(section)
-        if outline == []:
-            return None
-        else:
-            return outline
 
     def _get_sections(self, contents):
         if self._get_title(contents) is not None:
@@ -520,11 +525,35 @@ class LogbookPage(Page):
     def _is_valid_filename(self, filename):
         return _is_valid_logbook_filename(filename)
 
+    def _has_summary(self):
+        """Logbook pages cannot have summaries after a title line."""
+        if type(self) == LogbookPage:
+            title_line = self._find_first_title_line(self.contents)
+            start_line = self._find_first_text_line(self.contents)
+            if (title_line is not None
+                    and start_line is not None
+                    and title_line < start_line):
+                return False
+        return super()._has_summary()
+
+    def _get_sections(self, contents):
+        """Logbook pages without summaries need to split from the first title."""
+        if type(self) == LogbookPage and contents == self.contents:
+            if not self._has_summary():
+                contents = ['Dummy summary', ''] + self.contents
+        return super()._get_sections(contents)
+
     def _get_title_from_filename(self):
         if self.filename is not None:
             new_title = self.filename.strip()
             if self._is_valid_title(new_title):
                 return new_title
+
+    def _get_title_from_contents(self):
+        """Logbook page titles are set from the date, not the contents."""
+        if type(self) == LogbookPage:
+            return None
+        return super()._get_title_from_contents()
 
     def _get_siblings(self):
         return self.parent.get_pages('days')
