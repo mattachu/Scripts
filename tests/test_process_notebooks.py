@@ -1922,7 +1922,15 @@ class TestProcessNotebooks:
                 else:
                     self.assert_notebook_contents_match(test_object, expected)
             else:
-                assert test_object == expected
+                if isinstance(expected, list):
+                    assert test_object == expected
+                elif isinstance(expected, pathlib.Path):
+                    if expected.name == self.temp_logbook:
+                        self.assert_logbook_contents_match(test_object, expected)
+                    else:
+                        self.assert_notebook_contents_match(test_object, expected)
+                else:
+                    raise ValueError(f'Invalid expected object: {expected}')
         else:
             raise ValueError(f'Invalid test object for matching: {test_object}')
 
