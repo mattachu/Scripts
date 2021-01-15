@@ -477,10 +477,9 @@ class LogbookPage(Page):
         return(self.filename > other.filename)
 
     def get_up(self):
-        month = self.filename[0:7]
         if self.parent is not None:
             return next((item for item in self.parent.get_pages('months')
-                         if item.filename == month), None)
+                         if item.get_month() == self.get_month()), None)
 
     def get_previous(self):
         if self.parent is not None:
@@ -497,6 +496,13 @@ class LogbookPage(Page):
             if len(future) > 0:
                 future.sort()
                 return future[0]
+
+    def get_month(self):
+        if len(self.filename) >= 7:
+            if (self.filename[:4].isnumeric()
+                    and self.filename[4:5] == '-'
+                    and self.filename[5:7].isnumeric()):
+                return self.filename[:7]
 
     def get_navigation(self):
         """Return links to surrounding pages."""
@@ -572,6 +578,14 @@ class LogbookMonth(LogbookPage):
     def get_up(self):
         if self.parent is not None:
             return self.parent
+
+    def get_pages(self):
+        if self.parent is not None:
+            page_list = [item for item in self.parent.get_pages('days')
+                         if item.get_month() == self.get_month()]
+            page_list.sort()
+            return page_list
+        return []
 
     def _is_valid_path(self, page_file):
         return _is_valid_logbook_month_file(page_file)
