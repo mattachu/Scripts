@@ -224,14 +224,11 @@ class Page(TreeItem):
 
     def _load_contents_from_path(self, file_path):
         """Load the content of the page from file."""
-        with open(file_path, 'r') as f:
-            self.contents = f.readlines()
+        self.contents = _load_file(file_path)
 
     def _contents_match(self, file_path):
         """Compare the current content of the page with file contents."""
-        with open(file_path, 'r') as f:
-            file_contents = f.readlines()
-        return self.contents == file_contents
+        return self.contents == _load_file(file_path)
 
     def _is_valid_parent(self, parent):
         if type(self) == Page:
@@ -847,6 +844,11 @@ def _is_valid_logbook_folder(folder_path):
         return folder_path.name == LOGBOOK_FOLDER_NAME
     return False
 
+def _load_file(filename):
+    if not filename.is_file():
+        raise ValueError(f'Invalid file to load as text: {filename}')
+    with open(filename, 'r') as f:
+        return [line.strip() for line in f.readlines()]
 
 # Processing procedures
 def process_all(arguments):

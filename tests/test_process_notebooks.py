@@ -590,7 +590,7 @@ def build_test_string(test_type, test_def, expected):
     method = get_method_parameters(test_def['method_type'])
     if method['do'] == 'overwrite':
         test_id = f"{test_def['method_type']}, {test_type}"
-    elif (method['do'] in ['valid', 'find', 'strip', 'has']
+    elif (method['do'] in ['valid', 'find', 'strip', 'has', 'read']
             and test_def['test_object'] is not None):
         test_id = f"{test_def['test_object']}, {test_type}"
     else:
@@ -643,7 +643,7 @@ def get_tests(object_type, method_type):
         test_list = test_list + get_invalid_input_tests(test_def)
         if method['do'] == 'load':
             test_list = test_list + get_tests(object_type, 'overwrite')
-    if method['do'] in ['valid', 'strip']:
+    if method['do'] in ['valid', 'strip', 'read']:
         if 'path' in parameter_list:
             for test_object in test_objects:
                 if object_type == 'function':
@@ -726,7 +726,10 @@ def get_property_tests(test_def):
 def get_validation_tests(test_def):
     """Return a list of tests that validate an object passed to a method."""
     test_list = []
-    test_list.append(get_test('result', test_def, expectations(test_def)))
+    if test_def['method_type'].startswith('read'):
+        test_list.append(get_test('contents', test_def, expectations(test_def)))
+    else:
+        test_list.append(get_test('result', test_def, expectations(test_def)))
     if ' line' in test_def['method_type']:
         new_test_line = test_def['test_object'] + ' + newline'
         new_test_def = modify_test_def(test_def, test_object=new_test_line)
@@ -783,6 +786,9 @@ def get_invalid_input_tests(test_def):
                                            filename="'unmatched_filename'")
             test_list.append(('filename clash', new_test_def, None))
         for test_path, error_type in invalid_paths:
+            if (test_def['method_type'].startswith('read')
+                    and error_type == 'OSError'):
+                error_type = 'ValueError'
             new_test_def = modify_test_def(path_def,
                                            path=test_path,
                                            error_type=error_type)
@@ -823,7 +829,8 @@ def get_invalid_input_tests(test_def):
 
 def get_invalid_file_tests(test_def):
     """Return a list of tests with invalid temporary file or folder objects."""
-    if test_def['method_type'].startswith('valid'):
+    method = get_method_parameters(test_def['method_type'])
+    if method['do'] == 'valid':
         object_type = test_def['test_object']
         error_type = None
         expected = 'False'
@@ -835,6 +842,8 @@ def get_invalid_file_tests(test_def):
         test_items = invalid_notebook
         generator = 'tmp_folder_factory'
         test_type = 'invalid folder'
+    elif method['do'] == 'read':
+        test_items = []
     elif object_type == 'logbook':
         test_items = invalid_logbook
         generator = 'tmp_folder_factory'
@@ -890,7 +899,7 @@ def get_parameter_list(method_type):
         return ['path', 'parent']
     elif method['do'] in ['load', 'overwrite']:
         return ['path']
-    elif method['do'] in ['valid', 'strip', 'match']:
+    elif method['do'] in ['valid', 'strip', 'match', 'read']:
         return [method['get']]
     elif method['do'] == 'get':
         return []
@@ -1509,6 +1518,14 @@ def expectations(test_def):
                     expected['result'] = ("contents_summary['"
                                         + test_def['test_object']
                                         + "'] is not None")
+    elif method['do'] == 'read':
+        if test_def['test_object'] is None:
+            expected['contents'] = 'None'
+        elif test_def['test_object'] in ['notebook', 'logbook']:
+            expected['result'] = 'ValueError'
+            expected['contents'] = 'ValueError'
+        else:
+            expected['contents'] = get_temp_path(test_def['test_object'])
     return expected
 
 
@@ -1867,11 +1884,11 @@ class TestProcessNotebooks:
         assert not cloned_repo.is_dirty()
         assert len(cloned_repo.untracked_files) == 0
 
-    def assert_page_contents_match(self, test_page, generator_page):
+    def assert_page_contents_match(self, test_contents, generator_page):
         """Assert that page contents match the generator page file."""
         with open(generator_page, 'r')  as f:
-            test_contents = f.readlines()
-        assert test_page.contents == test_contents
+            file_contents = [line.strip() for line in f.readlines()]
+        assert test_contents == file_contents
 
     def assert_notebook_contents_match(self, notebook_contents, tmp_notebook):
         """Assert that notebook contents match the generator folder."""
@@ -1883,13 +1900,13 @@ class TestProcessNotebooks:
             if not isinstance(item, pn.Page):
                 continue
             if isinstance(item, pn.HomePage):
-                self.assert_page_contents_match(item, self.test_home_page)
+                self.assert_page_contents_match(item.contents, self.test_home_page)
             elif isinstance(item, pn.ContentsPage):
-                self.assert_page_contents_match(item, self.test_contents_page)
+                self.assert_page_contents_match(item.contents, self.test_contents_page)
             elif isinstance(item, pn.ReadmePage):
-                self.assert_page_contents_match(item, self.test_readme_page)
+                self.assert_page_contents_match(item.contents, self.test_readme_page)
             else:
-                self.assert_page_contents_match(item, self.test_page)
+                self.assert_page_contents_match(item.contents, self.test_page)
 
     def assert_logbook_contents_match(self, logbook_contents, tmp_logbook):
         """Assert that logbook contents match the generator folder."""
@@ -1902,18 +1919,19 @@ class TestProcessNotebooks:
                 continue
             if isinstance(item, pn.ContentsPage):
                 self.assert_page_contents_match(
-                        item, self.test_logbook_contents_page)
+                        item.contents, self.test_logbook_contents_page)
             elif isinstance(item, pn.ReadmePage):
                 self.assert_page_contents_match(
-                        item, self.test_logbook_readme_page)
+                        item.contents, self.test_logbook_readme_page)
             else:
                 assert isinstance(item, pn.LogbookPage)
-                self.assert_page_contents_match(item, self.test_logbook_page)
+                self.assert_page_contents_match(
+                        item.contents, self.test_logbook_page)
 
     def assert_contents_match(self, test_object, expected):
         """Select correct assertion based on object type."""
         if isinstance(test_object, pn.Page):
-            self.assert_page_contents_match(test_object, expected)
+            self.assert_page_contents_match(test_object.contents, expected)
         elif isinstance(test_object, pn.Logbook):
             self.assert_logbook_contents_match(test_object.contents, expected)
         elif isinstance(test_object, pn.Notebook):
@@ -1934,6 +1952,8 @@ class TestProcessNotebooks:
                 elif isinstance(expected, pathlib.Path):
                     if expected.name == self.temp_logbook:
                         self.assert_logbook_contents_match(test_object, expected)
+                    elif expected.is_file():
+                        self.assert_page_contents_match(test_object, expected)
                     else:
                         self.assert_notebook_contents_match(test_object, expected)
                 else:
@@ -1957,14 +1977,19 @@ class TestProcessNotebooks:
                 assert isinstance(test_object.path, pathlib.Path)
                 assert test_object.path == expected
         elif test_type == 'contents':
-            if isinstance(test_object, list):
+            if test_object is None:
+                contents = None
+            elif isinstance(test_object, list):
                 contents = test_object
             else:
                 contents = test_object.contents
-            assert isinstance(contents, list)
-            if expected == []:
+            if expected is None:
+                assert contents is None
+            elif expected == []:
+                assert isinstance(contents, list)
                 assert contents == []
             else:
+                assert isinstance(contents, list)
                 self.assert_contents_match(test_object, expected)
         elif test_type == 'parent':
             if expected is None:
@@ -4347,6 +4372,78 @@ class TestProcessNotebooks:
             tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
         with eval(test_params['error condition']):
             result = pn._is_valid_logbook_folder(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'read path page'))
+    def test_load_file_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._load_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'read path logbook page'))
+    def test_load_file_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._load_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'read path home'))
+    def test_load_file_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._load_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'read path contents'))
+    def test_load_file_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._load_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'read path readme'))
+    def test_load_file_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._load_file(eval(test_params['path']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+        build_all_tests('function', 'read path logbook month'))
+    def test_load_file_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page, tmp_logbook_page, tmp_contents_page, tmp_home_page,
+            tmp_readme_page, tmp_logbook_month_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            result = pn._load_file(eval(test_params['path']))
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
