@@ -21,6 +21,9 @@ LOGBOOK_FOLDER_NAME = 'Logbook'
 UNKNOWN_DESCRIPTOR = 'Unknown'
 ATTACHMENTS_FOLDER_NAME = 'Attachments'
 
+# Constants
+BLANK_LINE = ''
+
 
 class TreeItem():
     """Base class for all objects that can be held in a tree."""
@@ -207,7 +210,7 @@ class Page(TreeItem):
     def get_outline(self):
         summary = self.get_summary()
         if summary is not None:
-            outline = [summary]
+            outline = [summary, BLANK_LINE]
         else:
             outline = []
         sections = self._get_sections(self.contents)
@@ -215,8 +218,9 @@ class Page(TreeItem):
             outline = outline + self._get_bullets(section)
         if outline == []:
             return None
-        else:
-            return outline
+        while outline[-1] == '':
+            outline = outline[:-1]
+        return outline
 
     def _load_contents_from_path(self, file_path):
         """Load the content of the page from file."""

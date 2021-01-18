@@ -428,6 +428,7 @@ contents_outline = {
     'empty': None,
     'blank': None,
     'standard': ['Page summary, including some `code` or links.',
+                 '',
                  '* Section: Section summary.',
                  '    - Subsection: Subsection summary that is longer than other summaries and so runs onto more than one line. It may also include more than one sentence.',
                  '    - Empty subsection',
@@ -437,6 +438,7 @@ contents_outline = {
                  '    - Subsection: Subsection summary.'],
     'plain': ['Page content.'],
     'no-title': ['Page summary, including some `code` or links.',
+                 '',
                  '* Section: Section summary.',
                  '    - Subsection: Subsection summary that is longer than other summaries and so runs onto more than one line. It may also include more than one sentence.',
                  '    - Empty subsection',
@@ -465,6 +467,7 @@ logbook_outline = {
                  '        + Subsection: Subsection summary.'],
     'plain': ['Page content.'],
     'no-title': ['Page summary, including some `code` or links.',
+                 '',
                  '* Section: Section summary.',
                  '    - Subsection: Subsection summary that is longer than other summaries and so runs onto more than one line. It may also include more than one sentence.',
                  '    - Empty subsection',
@@ -1617,12 +1620,15 @@ class TestProcessNotebooks:
         self.test_logbook_contents_page_summary = None
         self.test_logbook_readme_page_summary = 'Logbook for this notebook scope.'
         self.test_page_outline = [self.test_page_summary,
+                                  '',
                                   '* Subsection title: Subsection summary.']
         self.test_logbook_page_outline = [self.test_logbook_page_summary,
+                                          '',
                                           '* Section: Summary for contents in a separate logbook.',
                                           '* Another section: Summary for contents in a different logbook.',
                                           '* Other work and communications: Subsection summary.']
         self.test_contents_page_outline = [self.test_contents_page_summary,
+                                           '',
                                            '* Folders',
                                            '    - Admin: Various administrative notes and records.',
                                            '    - Project: Notebook for a particular project.',
@@ -1651,6 +1657,7 @@ class TestProcessNotebooks:
         self.navigation_home_pages = f'[{self.homepage_descriptor}]({self.homepage_filename})'
         self.navigation_home_notebooks = f'[{self.homepage_descriptor}](../{self.homepage_filename})'
         self.navigation_separator = ' > '
+        self.blank_line = ''
 
 
     # Fixtures
@@ -2008,7 +2015,8 @@ class TestProcessNotebooks:
         ('pn.README_DESCRIPTOR', 'self.readme_descriptor'),
         ('pn.README_FILENAME', 'self.readme_filename'),
         ('pn.LOGBOOK_FOLDER_NAME', 'self.logbook_folder_name'),
-        ('pn.UNKNOWN_DESCRIPTOR', 'self.unknown_descriptor')])
+        ('pn.UNKNOWN_DESCRIPTOR', 'self.unknown_descriptor'),
+        ('pn.BLANK_LINE', 'self.blank_line')])
     def test_constant_value(self, constant, value):
         assert eval(constant) == eval(value)
 
