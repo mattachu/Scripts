@@ -330,6 +330,9 @@ class Page(TreeItem):
         else:
             return line.startswith('##')
 
+    def _is_bullet_line(self, line):
+        return line.startswith('* ')
+
     def _is_link_line(self, line):
         reference = r'\[[^]]*\]\: [^\s]*'
         descriptive = r'.*\: \[[^]]*\](\([^\)]*\)|\[[^\]]*\])'
@@ -349,6 +352,8 @@ class Page(TreeItem):
         elif self._is_link_line(line):
             return False
         elif self._is_navigation_line(line):
+            return False
+        elif self._is_bullet_line(line):
             return False
         else:
             return True
@@ -880,7 +885,7 @@ def _title(text, title_level=1):
         raise ValueError(f'Level for title is not an integer: {title_level}')
     elif title_level < 1:
         raise ValueError(f'Level for title is less than one: {title_level}')
-    while text.startswith('#') or text.startswith(' '):
+    while text.startswith('#') or text.startswith('* ') or text.startswith(' '):
         text = text[1:]
     return '#' * title_level + ' ' + text
 

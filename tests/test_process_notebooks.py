@@ -26,6 +26,7 @@ test_lines = {
              'or [different](link1) [types][link2] of [links][].'),
     'title': '# Page title',
     'subtitle': '## [Subtopic](link)',
+    'bullet': '* Bullet line content including a [link][].',
     'navigation': '[Home](link1) > [Folder](link2) > [Notebook](link3)',
     'link': '[link]: https://link.com/link'}
 
@@ -34,6 +35,7 @@ test_lines_strip_all_links = {
     'text': 'Page content, including some `code` or different types of links.',
     'title': '# Page title',
     'subtitle': '## Subtopic',
+    'bullet': '* Bullet line content including a link.',
     'navigation': 'Home > Folder > Notebook',
     'link': ''}
 
@@ -43,6 +45,7 @@ test_lines_strip_reference_links = {
              'or [different](link1) types of links.'),
     'title': '# Page title',
     'subtitle': '## [Subtopic](link)',
+    'bullet': '* Bullet line content including a link.',
     'navigation': '[Home](link1) > [Folder](link2) > [Notebook](link3)',
     'link': ''}
 
@@ -52,6 +55,7 @@ test_lines_strip_absolute_links = {
              'or different [types][link2] of [links][].'),
     'title': '# Page title',
     'subtitle': '## Subtopic',
+    'bullet': '* Bullet line content including a [link][].',
     'navigation': 'Home > Folder > Notebook',
     'link': '[link]: https://link.com/link'}
 
@@ -61,6 +65,7 @@ test_lines_title = {
              'or [different](link1) [types][link2] of [links][].'),
     'title': '# Page title',
     'subtitle': '# [Subtopic](link)',
+    'bullet': '# Bullet line content including a [link][].',
     'navigation': '# [Home](link1) > [Folder](link2) > [Notebook](link3)',
     'link': '# [link]: https://link.com/link'}
 
@@ -105,6 +110,9 @@ test_contents = {
                  '',
                  '## Section without summary',
                  '',
+                 '* Section content bullet.',
+                 '* Section content bullet.',
+                 '',
                  '### Subsection',
                  '',
                  'Subsection summary.',
@@ -146,6 +154,9 @@ test_contents = {
                  '',
                  '# Section without summary',
                  '',
+                 '* Section content bullet.',
+                 '* Section content bullet.',
+                 '',
                  '## Subsection',
                  '',
                  'Subsection summary.',
@@ -181,6 +192,9 @@ test_contents = {
                    '> Quoted content.',
                    '',
                    '# Section without summary',
+                   '',
+                   '* Section content bullet.',
+                   '* Section content bullet.',
                    '',
                    '## Subsection',
                    '',
@@ -246,6 +260,9 @@ contents_sections = {
                   ''],
                  ['# Section without summary',
                   '',
+                  '* Section content bullet.',
+                  '* Section content bullet.',
+                  '',
                   '## Subsection',
                   '',
                   'Subsection summary.',
@@ -281,6 +298,9 @@ contents_sections = {
                   ''],
                  ['# Section without summary',
                   '',
+                  '* Section content bullet.',
+                  '* Section content bullet.',
+                  '',
                   '## Subsection',
                   '',
                   'Subsection summary.',
@@ -314,6 +334,9 @@ contents_sections = {
                     '> Quoted content.',
                     ''],
                    ['# Section without summary',
+                    '',
+                    '* Section content bullet.',
+                    '* Section content bullet.',
                     '',
                     '## Subsection',
                     '',
@@ -359,6 +382,9 @@ logbook_sections = {
                   '',
                   '## Section without summary',
                   '',
+                  '* Section content bullet.',
+                  '* Section content bullet.',
+                  '',
                   '### Subsection',
                   '',
                   'Subsection summary.',
@@ -394,6 +420,9 @@ logbook_sections = {
                   ''],
                  ['# Section without summary',
                   '',
+                  '* Section content bullet.',
+                  '* Section content bullet.',
+                  '',
                   '## Subsection',
                   '',
                   'Subsection summary.',
@@ -427,6 +456,9 @@ logbook_sections = {
                     '> Quoted content.',
                     ''],
                    ['# Section without summary',
+                    '',
+                    '* Section content bullet.',
+                    '* Section content bullet.',
                     '',
                     '## Subsection',
                     '',
@@ -3073,6 +3105,22 @@ class TestProcessNotebooks:
                                 title=test_title,
                                 parent=test_parent)
             result = test_page._is_subtitle_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line bullet'))
+    def test_is_bullet_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._is_bullet_line(eval(test_params['object']))
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
