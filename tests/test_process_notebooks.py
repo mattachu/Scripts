@@ -55,6 +55,15 @@ test_lines_strip_absolute_links = {
     'navigation': 'Home > Folder > Notebook',
     'link': '[link]: https://link.com/link'}
 
+test_lines_title = {
+    'blank': 'ValueError',
+    'text': ('# Page content, including some `code` '
+             'or [different](link1) [types][link2] of [links][].'),
+    'title': '# Page title',
+    'subtitle': '# [Subtopic](link)',
+    'navigation': '# [Home](link1) > [Folder](link2) > [Notebook](link3)',
+    'link': '# [link]: https://link.com/link'}
+
 test_contents = {
     'empty': [],
     'blank': [''],
@@ -574,7 +583,7 @@ def build_test_params(test_type, test_def, expected):
         params['existing'] = 'None'
     elif method['do'] ==  'overwrite':
         params['existing'] = get_existing_generator(test_def['object_type'])
-    elif method['do'] in ['valid','strip']:
+    elif method['do'] in ['valid', 'strip', 'make']:
         params['object'] = get_generator(test_def['test_object'])
     elif method['do'] in ['find', 'has']:
         if test_def['test_object'] is not None:
@@ -590,7 +599,7 @@ def build_test_string(test_type, test_def, expected):
     method = get_method_parameters(test_def['method_type'])
     if method['do'] == 'overwrite':
         test_id = f"{test_def['method_type']}, {test_type}"
-    elif (method['do'] in ['valid', 'find', 'strip', 'has', 'read']
+    elif (method['do'] in ['valid', 'find', 'strip', 'has', 'make', 'read']
             and test_def['test_object'] is not None):
         test_id = f"{test_def['test_object']}, {test_type}"
     else:
@@ -635,15 +644,16 @@ def get_tests(object_type, method_type):
     method = get_method_parameters(method_type)
     tmp_path = get_temp_path(object_type)
     test_list = []
-    if method['do'] in ['create', 'add', 'load', 'overwrite']:
+    if method['do'] in ['create', 'add', 'load', 'overwrite', 'rebuild']:
         test_list = test_list + get_object_tests(test_def)
         if 'path' in parameter_list:
             path_def = modify_test_def(test_def, path=tmp_path)
             test_list = test_list + get_object_tests(path_def)
-        test_list = test_list + get_invalid_input_tests(test_def)
+        if method['do'] != 'rebuild':
+            test_list = test_list + get_invalid_input_tests(test_def)
         if method['do'] == 'load':
             test_list = test_list + get_tests(object_type, 'overwrite')
-    if method['do'] in ['valid', 'strip', 'read']:
+    if method['do'] in ['valid', 'strip', 'make', 'read']:
         if 'path' in parameter_list:
             for test_object in test_objects:
                 if object_type == 'function':
@@ -659,7 +669,7 @@ def get_tests(object_type, method_type):
             for line_object in test_lines:
                 if method['do'] == 'valid':
                     expected_object = get_test_object(method_type)
-                elif method['do'] == 'strip':
+                else:
                     expected_object = 'text'
                 object_def = modify_test_def(test_def, test_object=line_object)
                 test_list = test_list + get_validation_tests(object_def)
@@ -712,15 +722,19 @@ def get_object_tests(test_def):
 
 def get_property_tests(test_def):
     """Return a list of tests of page/notebook object properties."""
-    test_list = []
     expected = expectations(test_def)
-    test_list.append(get_test('return type', test_def, expected))
-    test_list.append(get_test('path', test_def, expected))
-    test_list.append(get_test('contents', test_def, expected))
-    test_list.append(get_test('title', test_def, expected))
-    test_list.append(get_test('filename', test_def, expected))
-    test_list.append(get_test('link', test_def, expected))
-    test_list.append(get_test('parent', test_def, expected))
+    method = get_method_parameters(test_def['method_type'])
+    if method['do'] == 'rebuild':
+        test_list = [get_test('contents', test_def, expected)]
+    else:
+        test_list = []
+        test_list.append(get_test('return type', test_def, expected))
+        test_list.append(get_test('path', test_def, expected))
+        test_list.append(get_test('contents', test_def, expected))
+        test_list.append(get_test('title', test_def, expected))
+        test_list.append(get_test('filename', test_def, expected))
+        test_list.append(get_test('link', test_def, expected))
+        test_list.append(get_test('parent', test_def, expected))
     return test_list
 
 def get_validation_tests(test_def):
@@ -769,6 +783,7 @@ def get_invalid_input_tests(test_def):
     if error_expected(test_def):
         return []
     parameter_list = get_parameter_list(test_def['method_type'])
+    method = get_method_parameters(test_def['method_type'])
     if 'path' in parameter_list:
         if test_def['object_type'] == 'function':
             tmp_path = get_temp_path(get_test_object(test_def['method_type']))
@@ -786,8 +801,7 @@ def get_invalid_input_tests(test_def):
                                            filename="'unmatched_filename'")
             test_list.append(('filename clash', new_test_def, None))
         for test_path, error_type in invalid_paths:
-            if (test_def['method_type'].startswith('read')
-                    and error_type == 'OSError'):
+            if method['do'] == 'read' and error_type == 'OSError':
                 error_type = 'ValueError'
             new_test_def = modify_test_def(path_def,
                                            path=test_path,
@@ -816,8 +830,10 @@ def get_invalid_input_tests(test_def):
             test_list.append(('invalid parent', new_test_def, None))
     if 'line' in parameter_list:
         for test_line in invalid_strings + ['None']:
-            if test_def['method_type'].startswith('strip'):
+            if method['do'] == 'strip':
                 error_type = 'TypeError'
+            elif method['do'] == 'make':
+                error_type = 'ValueError'
             else:
                 error_type = get_line_error_type(
                     get_test_object(test_def['method_type']))
@@ -893,13 +909,13 @@ def get_test_combinations(test_def):
 def get_parameter_list(method_type):
     """Return list of the parameters to be tested for different methods."""
     method = get_method_parameters(method_type)
-    if method['do'] == 'create':
+    if method['do'] in ['create', 'rebuild']:
         return ['path', 'title', 'filename', 'parent']
     elif method['do'] == 'add':
         return ['path', 'parent']
     elif method['do'] in ['load', 'overwrite']:
         return ['path']
-    elif method['do'] in ['valid', 'strip', 'match', 'read']:
+    elif method['do'] in ['valid', 'strip', 'make', 'match', 'read']:
         return [method['get']]
     elif method['do'] == 'get':
         return []
@@ -1526,6 +1542,20 @@ def expectations(test_def):
             expected['contents'] = 'ValueError'
         else:
             expected['contents'] = get_temp_path(test_def['test_object'])
+    elif method['do'] == 'make':
+        if 'Error' in test_lines_title[test_def['test_object']]:
+            expected['result'] = test_lines_title[test_def['test_object']]
+        else:
+            expected['result'] = f"test_lines_title['{test_def['test_object']}']"
+    elif method['do'] == 'rebuild':
+        if 'Error' not in expected['contents']:
+            if (test_def['parent'] is not None
+                    and is_valid_nesting(test_def)
+                    and (test_def['path'] is not None
+                        or test_def['filename'] is not None)):
+                expected['contents'] = get_temp_path(test_def['object_type'])
+            else:
+                expected['contents'] = '[]'
     return expected
 
 
@@ -1624,6 +1654,7 @@ class TestProcessNotebooks:
         self.temp_logbook_pages = ['2020-01-01.md',
                                    '2020-01-02.md',
                                    '2020-01-03.md']
+        self.extra_logbook_month = '2019-12'
         self.test_message = 'Hello world'
         self.test_page_title = 'Page title'
         self.test_logbook_page_title = self.temp_logbook_page
@@ -4445,5 +4476,67 @@ class TestProcessNotebooks:
         with eval(test_params['error condition']):
             result = pn._load_file(eval(test_params['path']))
             self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'make line title'))
+    def test_make_title(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            result = pn._title(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'make line title'))
+    @pytest.mark.parametrize('level', [1, 2, 3])
+    def test_make_title_multilevel(self, capsys, test_params, level):
+        with eval(test_params['error condition']):
+            result = pn._title(eval(test_params['object']), title_level=level)
+            # Add a title level on each iteration after the first
+            if (test_params['test_type'] == 'result'
+                    and test_params['expected'] is not None
+                    and level > 1):
+                test_params['expected'] = "'#' + " + test_params['expected']
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+
+    # Building summaries
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'rebuild'))
+    def test_rebuild_logbook_month(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page, tmp_logbook):
+        with eval(test_params['error condition']):
+            # Create page
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            # Clear initial contents
+            test_page.contents = []
+            # Create other pages to generate summary
+            if (test_parent is not None
+                    and test_page.filename == self.temp_logbook_month):
+                for page in self.temp_logbook_pages:
+                    this_path = tmp_logbook.joinpath(page)
+                    date = page.replace('.md', '')
+                    pn.LogbookPage(path=this_path,
+                                   filename=date,
+                                   title=date,
+                                   parent=test_parent)
+                pn.LogbookMonth(filename=self.extra_logbook_month,
+                                parent=test_parent)
+                pn.ContentsPage(parent=test_parent)
+            # Rebuild summary from pages
+            test_page.rebuild()
+            # Test result
+            self.assert_parametric(test_page,
                                    test_params['test_type'],
                                    eval(test_params['expected']))

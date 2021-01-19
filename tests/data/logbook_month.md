@@ -1,26 +1,29 @@
-[< 2019-12](2019-12) | [Contents](Contents)
+[< 2019-12](2019-12) | [Contents](Home)
 
 # January 2020
 
 ## [2020-01-01](2020-01-01)
 
-Summary for contents in a logbook page file.
+Page *summary*, including some `code` or links.
 
-* More detailed descriptions.
-* Possible `code.subcode` content.
+* Section: Summary for contents in a separate logbook.
+* Another section: Summary for contents in a different logbook.
+* Other work and communications: Subsection summary.
 
 
 ## [2020-01-02](2020-01-02)
 
-Summary for contents in a logbook page file.
+Page *summary*, including some `code` or links.
 
-* More detailed descriptions.
-* Possible `code.subcode` content.
+* Section: Summary for contents in a separate logbook.
+* Another section: Summary for contents in a different logbook.
+* Other work and communications: Subsection summary.
 
 
 ## [2020-01-03](2020-01-03)
 
-Summary for contents in a logbook page file.
+Page *summary*, including some `code` or links.
 
-* More detailed descriptions.
-* Possible `code.subcode` content.
+* Section: Summary for contents in a separate logbook.
+* Another section: Summary for contents in a different logbook.
+* Other work and communications: Subsection summary.

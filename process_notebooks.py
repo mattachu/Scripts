@@ -576,6 +576,27 @@ class LogbookMonth(LogbookPage):
     """Special page in a notebook that summarises the month's entries."""
     _descriptor = 'logbook month page'
 
+    def rebuild(self):
+        """Rebuild contents by summarising relevant pages."""
+        self.contents = []
+        pages = self.get_pages()
+        if len(pages) == 0:
+            return None
+        self.contents.append(self.get_navigation())
+        self.contents.append(BLANK_LINE)
+        self.contents.append(_title(self.title))
+        self.contents.append(BLANK_LINE)
+        for page in pages:
+            self.contents.append(_title(self.get_relative_link(page),
+                                        title_level=2))
+            self.contents.append(BLANK_LINE)
+            self.contents = self.contents + page.get_outline()
+            self.contents.append(BLANK_LINE)
+            self.contents.append(BLANK_LINE)
+        while self.contents[-1] == BLANK_LINE:
+            self.contents = self.contents[:-1]
+        return self.contents
+
     def get_up(self):
         if self.parent is not None:
             return self.parent
@@ -849,6 +870,19 @@ def _load_file(filename):
         raise ValueError(f'Invalid file to load as text: {filename}')
     with open(filename, 'r') as f:
         return [line.strip() for line in f.readlines()]
+
+def _title(text, title_level=1):
+    if not isinstance(text, str):
+        raise ValueError(f'Text for title is not a string: {text}')
+    elif text == '':
+        raise ValueError('Text for title is empty.')
+    if not isinstance(title_level, int):
+        raise ValueError(f'Level for title is not an integer: {title_level}')
+    elif title_level < 1:
+        raise ValueError(f'Level for title is less than one: {title_level}')
+    while text.startswith('#') or text.startswith(' '):
+        text = text[1:]
+    return '#' * title_level + ' ' + text
 
 # Processing procedures
 def process_all(arguments):
