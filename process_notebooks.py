@@ -222,14 +222,6 @@ class Page(TreeItem):
             outline = outline[:-1]
         return outline
 
-    def _load_contents_from_path(self, file_path):
-        """Load the content of the page from file."""
-        self.contents = _load_file(file_path)
-
-    def _contents_match(self, file_path):
-        """Compare the current content of the page with file contents."""
-        return self.contents == _load_file(file_path)
-
     def _is_valid_parent(self, parent):
         if type(self) == Page:
             return (isinstance(parent, Notebook)
@@ -240,8 +232,83 @@ class Page(TreeItem):
     def _is_valid_path(self, file_path):
         return _is_valid_page_file(file_path)
 
+    def _load_contents_from_path(self, file_path):
+        """Load the content of the page from file."""
+        self.contents = _load_file(file_path)
+
     def _get_title_from_contents(self):
         return self._get_title(self.contents)
+
+    def _get_title(self, contents):
+        if contents is not None:
+            if sum([self._is_title_line(line) for line in contents]) == 1:
+                for line in contents:
+                    if self._is_navigation_line(line):
+                        continue
+                    elif self._is_blank_line(line):
+                        continue
+                    elif self._is_title_line(line):
+                        return self._strip_links(line[2:].strip(), 'all')
+                    else:
+                        return None
+
+    def _get_summary(self, contents):
+        start_line = self._find_first_text_line(contents)
+        if start_line is None:
+            return None
+        subsection = self._find_first_subtitle(contents)
+        if subsection is None or start_line < subsection:
+            lines = self._find_first_blank_line(contents[start_line:]) or 1
+            summary = ' '.join(contents[start_line:start_line+lines]).strip()
+            summary = self._strip_links(summary, 'reference')
+            if summary.find(r': * ') > 0:
+                summary = summary[:summary.find(r': * ')] + '.'
+            if summary[-1] == ':':
+                summary = summary[:-1] + '.'
+            return summary
+
+    def _get_sections(self, contents):
+        if self._get_title(contents) is not None:
+            section_heading = '## '
+        else:
+            section_heading = '# '
+        section_ids = [idx for idx, line in enumerate(contents)
+                    if line.startswith(section_heading)]
+        sections = [contents[i:j]
+                    for i, j in zip(section_ids, section_ids[1:]+[None])]
+        if section_heading == '## ':
+            return [[line.replace('## ', '# ') for line in section]
+                    for section in sections]
+        else:
+            return sections
+
+    def _get_bullets(self, section, bullet='*'):
+        if bullet == '*':
+            next_bullet = '    -'
+        elif bullet == '    -':
+            next_bullet = '        +'
+        elif bullet == '        +':
+            next_bullet = None
+        else:
+            raise ValueError(f'Invalid bullet type: {bullet}')
+        title = self._get_title(section)
+        summary = self._get_summary(section)
+        if title is not None:
+            text = f'{bullet} {title}'
+            if summary is not None:
+                summary = summary.replace('\n', '')
+                text = f'{text}: {summary}'
+            bullets = [text]
+            for subsection in self._get_sections(section):
+                bullets = bullets + self._get_bullets(subsection, next_bullet)
+            return bullets
+
+    def _has_summary(self):
+        return self._get_summary(self.contents) is not None
+
+    def _contents_match(self, file_path):
+        """Compare the current content of the page with file contents."""
+        return self.contents == _load_file(file_path)
 
     def _is_blank_line(self, line):
         return line.strip() == ''
@@ -323,73 +390,6 @@ class Page(TreeItem):
     def _strip_absolute_links(self, line):
         return re.sub(r'\[([^\]]*)\]\([^\)]*\)', r'\1', line)
 
-    def _has_summary(self):
-        return self._get_summary(self.contents) is not None
-
-    def _get_title(self, contents):
-        if contents is not None:
-            if sum([self._is_title_line(line) for line in contents]) == 1:
-                for line in contents:
-                    if self._is_navigation_line(line):
-                        continue
-                    elif self._is_blank_line(line):
-                        continue
-                    elif self._is_title_line(line):
-                        return self._strip_links(line[2:].strip(), 'all')
-                    else:
-                        return None
-
-    def _get_summary(self, contents):
-        start_line = self._find_first_text_line(contents)
-        if start_line is None:
-            return None
-        subsection = self._find_first_subtitle(contents)
-        if subsection is None or start_line < subsection:
-            lines = self._find_first_blank_line(contents[start_line:]) or 1
-            summary = ' '.join(contents[start_line:start_line+lines]).strip()
-            summary = self._strip_links(summary, 'reference')
-            if summary.find(r': * ') > 0:
-                summary = summary[:summary.find(r': * ')] + '.'
-            if summary[-1] == ':':
-                summary = summary[:-1] + '.'
-            return summary
-
-    def _get_sections(self, contents):
-        if self._get_title(contents) is not None:
-            section_heading = '## '
-        else:
-            section_heading = '# '
-        section_ids = [idx for idx, line in enumerate(contents)
-                    if line.startswith(section_heading)]
-        sections = [contents[i:j]
-                    for i, j in zip(section_ids, section_ids[1:]+[None])]
-        if section_heading == '## ':
-            return [[line.replace('## ', '# ') for line in section]
-                    for section in sections]
-        else:
-            return sections
-
-    def _get_bullets(self, section, bullet='*'):
-        if bullet == '*':
-            next_bullet = '    -'
-        elif bullet == '    -':
-            next_bullet = '        +'
-        elif bullet == '        +':
-            next_bullet = None
-        else:
-            raise ValueError(f'Invalid bullet type: {bullet}')
-        title = self._get_title(section)
-        summary = self._get_summary(section)
-        if title is not None:
-            text = f'{bullet} {title}'
-            if summary is not None:
-                summary = summary.replace('\n', '')
-                text = f'{text}: {summary}'
-            bullets = [text]
-            for subsection in self._get_sections(section):
-                bullets = bullets + self._get_bullets(subsection, next_bullet)
-            return bullets
-
 
 class HomePage(Page):
     """A special page showing the overall contents at the root level."""
@@ -440,12 +440,12 @@ class ContentsPage(Page):
         if self.parent is not None:
             return self.parent.get_navigation()
 
+    def _is_valid_path(self, page_file):
+        return _is_valid_contents_page_file(page_file)
+
     def _get_title_from_contents(self):
         """Return `None` because contents pages have a fixed title."""
         return None
-
-    def _is_valid_path(self, page_file):
-        return _is_valid_contents_page_file(page_file)
 
 
 class ReadmePage(Page):
@@ -476,27 +476,6 @@ class LogbookPage(Page):
 
     def __gt__(self, other):
         return(self.filename > other.filename)
-
-    def get_up(self):
-        if self.parent is not None:
-            return next((item for item in self.parent.get_pages('months')
-                         if item.get_month() == self.get_month()), None)
-
-    def get_previous(self):
-        if self.parent is not None:
-            past = [item for item in self._get_siblings()
-                    if item < self]
-            if len(past) > 0:
-                past.sort()
-                return past[-1]
-
-    def get_next(self):
-        if self.parent is not None:
-            future = [item for item in self._get_siblings()
-                      if item > self]
-            if len(future) > 0:
-                future.sort()
-                return future[0]
 
     def get_month(self):
         if len(self.filename) >= 7:
@@ -529,6 +508,27 @@ class LogbookPage(Page):
         if len(links) > 0:
             return ' | '.join(links)
 
+    def get_up(self):
+        if self.parent is not None:
+            return next((item for item in self.parent.get_pages('months')
+                         if item.get_month() == self.get_month()), None)
+
+    def get_previous(self):
+        if self.parent is not None:
+            past = [item for item in self._get_siblings()
+                    if item < self]
+            if len(past) > 0:
+                past.sort()
+                return past[-1]
+
+    def get_next(self):
+        if self.parent is not None:
+            future = [item for item in self._get_siblings()
+                      if item > self]
+            if len(future) > 0:
+                future.sort()
+                return future[0]
+
     def _is_valid_parent(self, parent):
         return isinstance(parent, Logbook)
 
@@ -537,24 +537,6 @@ class LogbookPage(Page):
 
     def _is_valid_filename(self, filename):
         return _is_valid_logbook_filename(filename)
-
-    def _has_summary(self):
-        """Logbook pages cannot have summaries after a title line."""
-        if type(self) == LogbookPage:
-            title_line = self._find_first_title_line(self.contents)
-            start_line = self._find_first_text_line(self.contents)
-            if (title_line is not None
-                    and start_line is not None
-                    and title_line < start_line):
-                return False
-        return super()._has_summary()
-
-    def _get_sections(self, contents):
-        """Logbook pages without summaries need to split from the first title."""
-        if type(self) == LogbookPage and contents == self.contents:
-            if not self._has_summary():
-                contents = ['Dummy summary', ''] + self.contents
-        return super()._get_sections(contents)
 
     def _get_title_from_filename(self):
         if self.filename is not None:
@@ -568,8 +550,26 @@ class LogbookPage(Page):
             return None
         return super()._get_title_from_contents()
 
+    def _get_sections(self, contents):
+        """Logbook pages without summaries need to split from the first title."""
+        if type(self) == LogbookPage and contents == self.contents:
+            if not self._has_summary():
+                contents = ['Dummy summary', ''] + self.contents
+        return super()._get_sections(contents)
+
     def _get_siblings(self):
         return self.parent.get_pages('days')
+
+    def _has_summary(self):
+        """Logbook pages cannot have summaries after a title line."""
+        if type(self) == LogbookPage:
+            title_line = self._find_first_title_line(self.contents)
+            start_line = self._find_first_text_line(self.contents)
+            if (title_line is not None
+                    and start_line is not None
+                    and title_line < start_line):
+                return False
+        return super()._has_summary()
 
 
 class LogbookMonth(LogbookPage):
@@ -628,27 +628,6 @@ class Notebook(TreeItem):
             self.link = HOMEPAGE_FILENAME
         else:
             self.link = CONTENTS_FILENAME
-
-    def _load_contents_from_path(self, folder_path):
-        for item in folder_path.iterdir():
-            if item.is_file():
-                if self._is_valid_home_page_file(item):
-                    self.add_home_page(item)
-                elif self._is_valid_contents_page_file(item):
-                    self.add_contents_page(item)
-                elif self._is_valid_readme_page_file(item):
-                    self.add_readme_page(item)
-                elif self._is_valid_page_file(item):
-                    self.add_page(item)
-                else:
-                    continue
-            elif item.is_dir():
-                if self._is_valid_logbook_folder(item):
-                    self.add_logbook(item)
-                elif self._is_valid_notebook_folder(item):
-                    self.add_notebook(item)
-                else:
-                    continue
 
     def add_page(self, page_path=None):
         """Add a page to a notebook."""
@@ -709,19 +688,6 @@ class Notebook(TreeItem):
         if self._has_readme_page():
             return self.get_readme_page().get_summary()
 
-    def _has_contents_page(self):
-        return any([isinstance(item, ContentsPage) for item in self.contents])
-
-    def _has_readme_page(self):
-        return any([isinstance(item, ReadmePage) for item in self.contents])
-
-    def _get_title_from_contents(self):
-        if self._has_readme_page():
-            readme_title = self.get_readme_page().title
-            if self._is_valid_title(readme_title):
-                if readme_title not in [UNKNOWN_DESCRIPTOR, README_FILENAME]:
-                    return readme_title
-
     def _is_valid_path(self, file_path):
         return _is_valid_notebook_folder(file_path)
 
@@ -745,6 +711,40 @@ class Notebook(TreeItem):
 
     def _is_valid_parent(self, parent):
         return isinstance(parent, Notebook) and not isinstance(parent, Logbook)
+
+    def _load_contents_from_path(self, folder_path):
+        for item in folder_path.iterdir():
+            if item.is_file():
+                if self._is_valid_home_page_file(item):
+                    self.add_home_page(item)
+                elif self._is_valid_contents_page_file(item):
+                    self.add_contents_page(item)
+                elif self._is_valid_readme_page_file(item):
+                    self.add_readme_page(item)
+                elif self._is_valid_page_file(item):
+                    self.add_page(item)
+                else:
+                    continue
+            elif item.is_dir():
+                if self._is_valid_logbook_folder(item):
+                    self.add_logbook(item)
+                elif self._is_valid_notebook_folder(item):
+                    self.add_notebook(item)
+                else:
+                    continue
+
+    def _get_title_from_contents(self):
+        if self._has_readme_page():
+            readme_title = self.get_readme_page().title
+            if self._is_valid_title(readme_title):
+                if readme_title not in [UNKNOWN_DESCRIPTOR, README_FILENAME]:
+                    return readme_title
+
+    def _has_contents_page(self):
+        return any([isinstance(item, ContentsPage) for item in self.contents])
+
+    def _has_readme_page(self):
+        return any([isinstance(item, ReadmePage) for item in self.contents])
 
 
 class Logbook(Notebook):
@@ -788,9 +788,6 @@ class Logbook(Notebook):
         else:
             raise ValueError(f'Invalid logbook page type: {types}')
 
-    def _get_title_from_contents(self):
-        return super()._get_title_from_contents() or LOGBOOK_FOLDER_NAME
-
     def _is_valid_path(self, folder_path):
         return _is_valid_logbook_folder(folder_path)
 
@@ -800,6 +797,9 @@ class Logbook(Notebook):
 
     def _is_valid_month_file(self, page_path):
         return _is_valid_logbook_month_file(page_path)
+
+    def _get_title_from_contents(self):
+        return super()._get_title_from_contents() or LOGBOOK_FOLDER_NAME
 
 
 # Utility functions
@@ -884,9 +884,10 @@ def _title(text, title_level=1):
         text = text[1:]
     return '#' * title_level + ' ' + text
 
+
 # Processing procedures
 def process_all(arguments):
-    """Work through all subfolders and process all notebooks and logbooks."""
+    """Create notebook object and process all contents."""
     pass
 
 
