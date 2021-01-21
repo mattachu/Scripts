@@ -1393,6 +1393,15 @@ def expectations(test_def):
     if test_def['parent'] is not None:
         if is_valid_nesting(test_def):
             expected['parent'] = 'test_parent'
+            # Handle nesting that is valid but non-standard
+            if (test_def['object_type'] in ['logbook page', 'logbook month']
+                    and test_def['parent'] == 'notebook'):
+                expected['return type'] = 'pn.Page'
+                if test_def['path'] is not None:
+                    expected['title'] = expected['title'] + ".replace('-', ' ')"
+            elif (test_def['object_type'] == 'logbook month'
+                    and test_def['path'] is None):
+                expected['return type'] = 'pn.LogbookPage'
         else:
             expected['return type'] = 'ValueError'
             expected['path'] = 'ValueError'
@@ -3888,10 +3897,22 @@ class TestProcessNotebooks:
     # Loading data to notebook objects
     @pytest.mark.parametrize('test_params', build_all_tests('page', 'add'))
     def test_add_page(
-            self, capsys, tmp_file_factory, cloned_repo, test_params,
-            tmp_page, tmp_logbook_page):
+            self, capsys, tmp_file_factory, cloned_repo, test_params, tmp_page):
         with eval(test_params['error condition']):
             test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_page(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'add'))
+    def test_add_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Logbook()
             test_parent.add_page(eval(test_params['path']))
             test_page = test_parent.contents[-1]
             self.assert_parametric(test_page,
@@ -3905,6 +3926,32 @@ class TestProcessNotebooks:
         with eval(test_params['error condition']):
             test_parent = eval(test_params['parent']) or pn.Notebook()
             test_parent.add_contents_page(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'add'))
+    def test_add_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Logbook()
+            test_parent.add_contents_page(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'add'))
+    def test_add_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Logbook()
+            test_parent.add_page(eval(test_params['path']))
             test_page = test_parent.contents[-1]
             self.assert_parametric(test_page,
                                    test_params['test_type'],
@@ -3928,6 +3975,19 @@ class TestProcessNotebooks:
             tmp_readme_page):
         with eval(test_params['error condition']):
             test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_readme_page(eval(test_params['path']))
+            test_page = test_parent.contents[-1]
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook readme', 'add'))
+    def test_add_logbook_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Logbook()
             test_parent.add_readme_page(eval(test_params['path']))
             test_page = test_parent.contents[-1]
             self.assert_parametric(test_page,
