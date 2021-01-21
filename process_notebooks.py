@@ -640,17 +640,22 @@ class Notebook(TreeItem):
 
     def add_home_page(self, page_path=None):
         """Add a home page to a notebook."""
-        if self.get_root() == self:
-            return HomePage(path=page_path, parent=self)
-        else:
+        if self.get_root() != self:
             raise ValueError('Can only add home page at the root level.')
+        if self.get_home_page() is not None:
+            raise ValueError('Cannot add more than one home page.')
+        return HomePage(path=page_path, parent=self)
 
     def add_contents_page(self, page_path=None):
         """Add a contents page to a notebook."""
+        if self.get_contents_page() is not None:
+            raise ValueError('Cannot add more than one contents page.')
         return ContentsPage(path=page_path, parent=self)
 
     def add_readme_page(self, page_path=None):
         """Add a readme page to a notebook."""
+        if self.get_readme_page() is not None:
+            raise ValueError('Cannot add more than one readme page.')
         return ReadmePage(path=page_path, parent=self)
 
     def add_notebook(self, notebook_path=None):

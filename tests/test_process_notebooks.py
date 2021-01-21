@@ -708,7 +708,7 @@ def get_tests(object_type, method_type):
                 test_list = test_list + get_io_tests(object_def)
                 if line_object == expected_object:
                     test_list = test_list + get_invalid_input_tests(object_def)
-    if method['do'] in ['get', 'match', 'has']:
+    if method['do'] in ['get', 'match', 'has', 'multiple']:
         if method['do'] == 'match':
             test_def = modify_test_def(test_def, test_object=tmp_path)
         creation_def = modify_test_def(test_def, method_type='create')
@@ -722,6 +722,9 @@ def get_tests(object_type, method_type):
                     object_path_def = modify_test_def(new_path_def, test_object=content)
                     test_list = test_list + get_method_tests(object_def)
                     test_list = test_list + get_method_tests(object_path_def)
+            elif method['do'] == 'multiple':
+                test_list = test_list + get_validation_tests(new_test_def)
+                test_list = test_list + get_validation_tests(new_path_def)
             else:
                 test_list = test_list + get_method_tests(new_test_def)
                 test_list = test_list + get_method_tests(new_path_def)
@@ -943,7 +946,7 @@ def get_parameter_list(method_type):
     method = get_method_parameters(method_type)
     if method['do'] in ['create', 'rebuild']:
         return ['path', 'title', 'filename', 'parent']
-    elif method['do'] == 'add':
+    elif method['do'] in ['add', 'multiple']:
         return ['path', 'parent']
     elif method['do'] in ['load', 'overwrite']:
         return ['path']
@@ -1225,7 +1228,8 @@ def is_valid_nesting(test_def):
     elif (test_def['object_type'] == 'page'
         and test_def['parent'] == 'logbook'):
         # Logbooks can't contain standard pages
-        if (test_def['path'] is None and test_def['method_type'] == 'add'):
+        if (test_def['path'] is None
+                and test_def['method_type'] in ['add', 'multiple']):
             # This combination creates a default page, so is ok
             return True
         else:
@@ -1234,7 +1238,7 @@ def is_valid_nesting(test_def):
     elif (test_def['object_type'] in ['logbook page', 'logbook month']
         and test_def['parent'] == 'notebook'):
         # Standard notebook can't contain logbook pages
-        if test_def['method_type'] == 'add':
+        if test_def['method_type'] in ['add', 'multiple']:
             # This combination creates a default page, so is ok
             return True
         else:
@@ -1414,7 +1418,14 @@ def expectations(test_def):
     else:
         expected['parent'] = 'None'
     # Expected method results
-    if method['do'] == 'valid':
+    if method['do'] == 'multiple':
+        if 'Error' not in expected['return type']:
+            if test_def['object_type'] in ['page', 'logbook page',
+                                           'logbook month']:
+                expected['result'] = 'test_page'
+            else:
+                expected['result'] = 'ValueError'
+    elif method['do'] == 'valid':
         if test_def['object_type'] == 'function':
             expected_object_type = get_test_object(test_def['method_type'])
             given_object_type = test_def['test_object']
@@ -4015,6 +4026,141 @@ class TestProcessNotebooks:
             test_parent.add_logbook(eval(test_params['path']))
             test_page = test_parent.contents[-1]
             self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'multiple'))
+    def test_add_multiple_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params, tmp_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_page(eval(test_params['path']))
+            result = test_parent.add_page(eval(test_params['path']))
+            if len(test_parent.contents) > 0:
+                test_page = test_parent.contents[-1]
+            else:
+                test_page = None
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'multiple'))
+    def test_add_multiple_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Logbook()
+            test_parent.add_page(eval(test_params['path']))
+            result = test_parent.add_page(eval(test_params['path']))
+            if len(test_parent.contents) > 0:
+                test_page = test_parent.contents[-1]
+            else:
+                test_page = None
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents', 'multiple'))
+    def test_add_multiple_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_contents_page(eval(test_params['path']))
+            result = test_parent.add_contents_page(eval(test_params['path']))
+            if len(test_parent.contents) > 0:
+                test_page = test_parent.contents[-1]
+            else:
+                test_page = None
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'multiple'))
+    def test_add_multiple_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Logbook()
+            test_parent.add_contents_page(eval(test_params['path']))
+            result = test_parent.add_contents_page(eval(test_params['path']))
+            if len(test_parent.contents) > 0:
+                test_page = test_parent.contents[-1]
+            else:
+                test_page = None
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'multiple'))
+    def test_add_multiple_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Logbook()
+            test_parent.add_page(eval(test_params['path']))
+            result = test_parent.add_page(eval(test_params['path']))
+            if len(test_parent.contents) > 0:
+                test_page = test_parent.contents[-1]
+            else:
+                test_page = None
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('home', 'multiple'))
+    def test_add_multiple_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_home_page(eval(test_params['path']))
+            result = test_parent.add_home_page(eval(test_params['path']))
+            if len(test_parent.contents) > 0:
+                test_page = test_parent.contents[-1]
+            else:
+                test_page = None
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('readme', 'multiple'))
+    def test_add_multiple_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Notebook()
+            test_parent.add_readme_page(eval(test_params['path']))
+            result = test_parent.add_readme_page(eval(test_params['path']))
+            if len(test_parent.contents) > 0:
+                test_page = test_parent.contents[-1]
+            else:
+                test_page = None
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook readme', 'multiple'))
+    def test_add_multiple_logbook_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent']) or pn.Logbook()
+            test_parent.add_readme_page(eval(test_params['path']))
+            result = test_parent.add_readme_page(eval(test_params['path']))
+            if len(test_parent.contents) > 0:
+                test_page = test_parent.contents[-1]
+            else:
+                test_page = None
+            self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
 
