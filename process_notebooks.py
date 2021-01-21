@@ -80,6 +80,7 @@ class TreeItem():
             self.contents = []
         else:
             if self._is_valid_path(path):
+                self.contents = []
                 self._load_contents_from_path(path)
                 parsed_title = self._get_title_from_contents()
                 if self._is_valid_title(parsed_title):
