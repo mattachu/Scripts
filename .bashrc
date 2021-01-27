@@ -314,6 +314,9 @@ fi
 if [ -r "${SCRIPTS_FOLDER}/notebooks.sh" ]; then
     source "${SCRIPTS_FOLDER}/notebooks.sh"
 fi
+if [ -d "$CODE_FOLDER" ]; then
+    export PYTHONPATH="$PYTHONPATH:$CODE_FOLDER"
+fi
 
 # Show greeting if it exists and is readable
 if [ -r "${HOME}/.greeting" ] ; then
