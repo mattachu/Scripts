@@ -140,6 +140,7 @@ run_batch.py --template=ImpactT.in --sweep=(I,E):(0.0,1.0),(0.2,1.0),(0.4,1.5) \
 """
 
 import sys
+import os
 import pathlib
 import git
 import subprocess
@@ -325,7 +326,13 @@ def get_valid_templates(run_folder, templates):
 # Post-processing methods
 def post_process(settings, command):
     """Run the given post-processing command in the run folder"""
-    return subprocess.run(command.split(), cwd=settings['current_folder'])
+    folder = settings['current_folder']
+    environ = os.environ.copy()
+    this_env = str(pathlib.Path.home().joinpath('.pyenv/versions/scripts/bin'))
+    environ['PATH'] = environ['PATH'].replace(f'{this_env}:', '')
+    environ['PYENV_DIR'] = ''
+    environ['PYENV_VERSION'] = ''
+    return subprocess.run(command.split(), cwd=folder, env=environ)
 
 # Archive methods
 def create_archive_folder(archive_folder):
