@@ -157,6 +157,9 @@ if which pyenv-virtualenv-init > /dev/null; then
     eval "$(pyenv virtualenv-init -)"
     export PYENV_VIRTUALENV_DISABLE_PROMPT=1
 fi
+if [ -d "$CODE_FOLDER" ]; then
+    export PYTHONPATH="$PYTHONPATH:$CODE_FOLDER"
+fi
 
 # Show greeting
 if [ -r "$HOME/.greeting" ] ; then
