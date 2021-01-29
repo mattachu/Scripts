@@ -12,6 +12,13 @@ import logger
 # Main test class
 class TestLogger:
 
+    # Custom fixtures
+    @pytest.fixture(autouse=True)
+    def reset_timers(self):
+        initial_timers = logger._timers.copy()
+        yield None
+        logger._timers = initial_timers.copy()
+
     # Parameter sets for testing logging
     log_modes = ['w', 'a']
     log_names = ['test.log', 'log.txt', 'log_file', 'long log file name.log']
@@ -100,7 +107,7 @@ class TestLogger:
         # Write contents
         test_object.write(message)
         # Save state before flush
-        stdout_before = capsys.readouterr().out
+        _ = capsys.readouterr().out
         with open(filename, 'r') as f:
             file_before = f.readlines()
         # Test flush
@@ -170,7 +177,8 @@ class TestLogger:
 
 
     # Parameters and utility functions for testing timing methods
-    test_timers = ['default', 'test1', 'test 2']
+    default_timer = 'default'
+    test_timers = [default_timer, 'test1', 'test 2']
     test_runs = [0.01, 0.02, 0.05, 0.1, 0.2]
     test_times = [(1,         '1.000000 second'),
                   (2,         '2.000000 seconds'),
@@ -322,24 +330,68 @@ class TestLogger:
         assert result == expected
 
     # Tests for timing methods
-    @pytest.mark.parametrize('name', ['default'])
+    @pytest.mark.parametrize('name', [default_timer])
     def test_timer_defaults(self, name):
         assert name in logger._timers
 
-    @pytest.mark.parametrize('name', ['default'])
+    @pytest.mark.parametrize('name', [default_timer])
     def test_timer_get_defaults(self, name):
         timer = logger.get_timer(name)
         assert timer is not None
 
-    @pytest.mark.parametrize('name', ['default'])
+    @pytest.mark.parametrize('name', [default_timer])
     def test_timer_get_defaults_return_type(self, name):
         timer = logger.get_timer(name)
         assert isinstance(timer, logger.Timer)
 
     @pytest.mark.parametrize('name', test_timers)
     def test_timer_creation(self, name):
-        logger.get_timer(name)
+        if name != self.default_timer:
+            logger.add_timer(name)
         assert name in logger._timers
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_add_created(self, name):
+        timer = logger.Timer()
+        if name == self.default_timer:
+            with pytest.raises(IndexError):
+                logger.add_timer(name, timer)
+        else:
+            logger.add_timer(name, timer)
+        assert name in logger._timers
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_get_created(self, name):
+        if name != self.default_timer:
+            logger.add_timer(name)
+        timer = logger.get_timer(name)
+        assert timer is not None
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_get_created_return_type(self, name):
+        if name != self.default_timer:
+            logger.add_timer(name)
+        timer = logger.get_timer(name)
+        assert isinstance(timer, logger.Timer)
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_get_added(self, name):
+        if name != self.default_timer:
+            timer = logger.Timer()
+            logger.add_timer(name, timer)
+        else:
+            timer = logger._timers[name]
+        result = logger.get_timer(name)
+        assert result == timer
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_get_non_existent(self, name):
+        if name == self.default_timer:
+            condition = does_not_raise()
+        else:
+            condition = pytest.raises(IndexError)
+        with condition:
+            logger.get_timer(name)
 
     @pytest.mark.parametrize('name', test_timers)
     def test_timer_creation_on_start(self, name):
@@ -347,23 +399,19 @@ class TestLogger:
         assert name in logger._timers
 
     @pytest.mark.parametrize('name', test_timers)
-    def test_timer_get_created(self, name):
-        logger.start_timer(name)
-        timer = logger.get_timer(name)
-        assert timer is not None
-
-    @pytest.mark.parametrize('name', test_timers)
-    def test_timer_get_created_return_type(self, name):
-        logger.start_timer(name)
-        timer = logger.get_timer(name)
-        assert isinstance(timer, logger.Timer)
-
-    @pytest.mark.parametrize('name', test_timers)
     def test_timer_removal(self, name):
-        logger.get_timer(name)
-        assert name in logger._timers
-        logger.remove_timer(name)
-        assert name not in logger._timers
+        if name == self.default_timer:
+            # Should not be able to remove default timer
+            assert name in logger._timers
+            with pytest.raises(ValueError):
+                logger.remove_timer(name)
+            assert name in logger._timers
+        else:
+            # Add and then remove extra timer
+            logger.add_timer(name)
+            assert name in logger._timers
+            logger.remove_timer(name)
+            assert name not in logger._timers
 
     @pytest.mark.parametrize('name', test_timers)
     def test_timer_start_time(self, name):

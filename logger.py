@@ -58,24 +58,38 @@ class Timer(object):
         return time_string(self.elapsed_seconds())
 
 # %% Create private list of existing timers
+default_timer = 'default'
 _timers = {}
-_timers.update({'default': Timer()})
+_timers.update({default_timer: Timer()})
 
 # %% Define timing functions
+def add_timer(name, this_timer=None):
+    if not isinstance(name, str):
+        raise ValueError(f"Invalid timer name: '{name}'")
+    if name in _timers:
+        raise IndexError(f"Time named '{name}' already exists.")
+    if this_timer is None:
+        this_timer = Timer()
+    if not isinstance(this_timer, Timer):
+        raise TypeError(f"Invalid object for timer: {this_timer}.")
+    _timers.update({name: this_timer})
+
 def get_timer(name):
     if not isinstance(name, str):
         raise ValueError(f"Invalid timer name: '{name}'")
     if name not in _timers:
-        _timers.update({name: Timer()})
+        raise IndexError(f"No timer named '{name}'")
     return _timers[name]
 
-def start_timer(name='default'):
+def start_timer(name=default_timer):
     if not isinstance(name, str):
         raise ValueError(f"Invalid timer name: '{name}'")
+    if name not in _timers:
+        add_timer(name)
     this_timer = get_timer(name)
     this_timer.start()
 
-def stop_timer(name='default'):
+def stop_timer(name=default_timer):
     if not isinstance(name, str):
         raise ValueError(f"Invalid timer name: '{name}'")
     if name not in _timers:
@@ -83,7 +97,7 @@ def stop_timer(name='default'):
     this_timer = get_timer(name)
     this_timer.stop()
 
-def report_timer(name='default'):
+def report_timer(name=default_timer):
     if not isinstance(name, str):
         raise ValueError(f"Invalid timer name: '{name}'")
     if name not in _timers:
@@ -95,6 +109,8 @@ def report_timer(name='default'):
 def remove_timer(name):
     if not isinstance(name, str):
         raise ValueError(f"Invalid timer name: '{name}'")
+    if name == default_timer:
+        raise ValueError(f"Cannot remove default timer.")
     if name not in _timers:
         raise IndexError(f"No timer named '{name}'")
     del _timers[name]
