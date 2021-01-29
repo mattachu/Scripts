@@ -29,15 +29,75 @@ def capture_output(logfile, mode):
         sys.stdout.close()
         sys.stdout = saved_stdout
 
+# %% Define Timer object that keeps a track of start and stop times
+class Timer(object):
+    def __init__(self):
+        self.start_time = None
+        self.stop_time = None
+    def start(self):
+        self.start_time = time.perf_counter()
+        self.stop_time = None
+    def stop(self):
+        if not self.is_running():
+            raise IndexError(f'Timer not running.')
+        self.stop_time = time.perf_counter()
+    def is_running(self):
+        return self.start_time is not None and self.stop_time is None
+    def is_stopped(self):
+        return self.start_time is not None and self.stop_time is not None
+    def elapsed_seconds(self):
+        if self.is_stopped():
+            return self.stop_time - self.start_time
+        elif self.is_running():
+            return time.perf_counter() - self.start_time
+        elif self.start_time is None:
+            raise ValueError(f'Timer has not started.')
+        else:
+            raise ValueError(f'Timer could not report elapsed time.')
+    def elapsed(self):
+        return time_string(self.elapsed_seconds())
+
+# %% Create private list of existing timers
+_timers = {}
+_timers.update({'default': Timer()})
+
 # %% Define timing functions
-start_times = {'default': 0.0}
+def get_timer(this_timer):
+    if not isinstance(this_timer, str):
+        raise ValueError(f"Invalid timer name: '{this_timer}'")
+    if this_timer not in _timers:
+        _timers.update({this_timer: Timer()})
+    return _timers[this_timer]
 
 def start_timer(this_timer='default'):
-    start_times[this_timer] = time.perf_counter()
+    if not isinstance(this_timer, str):
+        raise ValueError(f"Invalid timer name: '{this_timer}'")
+    this_timer = get_timer(this_timer)
+    this_timer.start()
+
+def stop_timer(this_timer='default'):
+    if not isinstance(this_timer, str):
+        raise ValueError(f"Invalid timer name: '{this_timer}'")
+    if this_timer not in _timers:
+        raise IndexError(f"No timer named '{this_timer}'")
+    this_timer = get_timer(this_timer)
+    this_timer.stop()
 
 def report_timer(this_timer='default'):
-    time_taken = time.perf_counter() - start_times[this_timer]
-    print(f'Completed in {time_string(time_taken)}')
+    if not isinstance(this_timer, str):
+        raise ValueError(f"Invalid timer name: '{this_timer}'")
+    if this_timer not in _timers:
+        raise IndexError(f"No timer named '{this_timer}'")
+    this_timer = get_timer(this_timer)
+    time_string = this_timer.elapsed()
+    print(f'Completed in {time_string}')
+
+def remove_timer(this_timer):
+    if not isinstance(this_timer, str):
+        raise ValueError(f"Invalid timer name: '{this_timer}'")
+    if this_timer not in _timers:
+        raise IndexError(f"No timer named '{this_timer}'")
+    del _timers[this_timer]
 
 def time_string(time_taken):
     days = int(time_taken // (24 * 3600))

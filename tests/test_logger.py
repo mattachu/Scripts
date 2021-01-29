@@ -208,23 +208,23 @@ class TestLogger:
     # Tests for timing methods
     @pytest.mark.parametrize('timer', ['default'])
     def test_timer_default(self, timer):
-        assert 'default' in logger.start_times
+        assert 'default' in logger._timers
 
     @pytest.mark.parametrize('timer', test_timers)
     def test_timer_creation(self, timer):
         logger.start_timer(timer)
-        assert timer in logger.start_times
+        assert timer in logger._timers
 
     @pytest.mark.parametrize('timer', test_timers)
     def test_timer_start_time(self, timer):
         logger.start_timer(timer)
-        assert logger.start_times[timer] <= time.perf_counter()
+        assert logger._timers[timer].start_time <= time.perf_counter()
 
     @pytest.mark.parametrize('timer', test_timers)
     def test_timer_run_time(self, timer):
         logger.start_timer(timer)
         time.sleep(0.01)
-        assert time.perf_counter() - logger.start_times[timer] >= 0.01
+        assert time.perf_counter() - logger._timers[timer].start_time >= 0.01
 
     @pytest.mark.parametrize('timer', test_timers)
     def test_timer_report_return_type(self, timer, capsys):
