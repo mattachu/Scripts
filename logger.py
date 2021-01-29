@@ -62,42 +62,42 @@ _timers = {}
 _timers.update({'default': Timer()})
 
 # %% Define timing functions
-def get_timer(this_timer):
-    if not isinstance(this_timer, str):
-        raise ValueError(f"Invalid timer name: '{this_timer}'")
-    if this_timer not in _timers:
-        _timers.update({this_timer: Timer()})
-    return _timers[this_timer]
+def get_timer(name):
+    if not isinstance(name, str):
+        raise ValueError(f"Invalid timer name: '{name}'")
+    if name not in _timers:
+        _timers.update({name: Timer()})
+    return _timers[name]
 
-def start_timer(this_timer='default'):
-    if not isinstance(this_timer, str):
-        raise ValueError(f"Invalid timer name: '{this_timer}'")
-    this_timer = get_timer(this_timer)
+def start_timer(name='default'):
+    if not isinstance(name, str):
+        raise ValueError(f"Invalid timer name: '{name}'")
+    this_timer = get_timer(name)
     this_timer.start()
 
-def stop_timer(this_timer='default'):
-    if not isinstance(this_timer, str):
-        raise ValueError(f"Invalid timer name: '{this_timer}'")
-    if this_timer not in _timers:
-        raise IndexError(f"No timer named '{this_timer}'")
-    this_timer = get_timer(this_timer)
+def stop_timer(name='default'):
+    if not isinstance(name, str):
+        raise ValueError(f"Invalid timer name: '{name}'")
+    if name not in _timers:
+        raise IndexError(f"No timer named '{name}'")
+    this_timer = get_timer(name)
     this_timer.stop()
 
-def report_timer(this_timer='default'):
-    if not isinstance(this_timer, str):
-        raise ValueError(f"Invalid timer name: '{this_timer}'")
-    if this_timer not in _timers:
-        raise IndexError(f"No timer named '{this_timer}'")
-    this_timer = get_timer(this_timer)
+def report_timer(name='default'):
+    if not isinstance(name, str):
+        raise ValueError(f"Invalid timer name: '{name}'")
+    if name not in _timers:
+        raise IndexError(f"No timer named '{name}'")
+    this_timer = get_timer(name)
     time_string = this_timer.elapsed()
     print(f'Completed in {time_string}')
 
-def remove_timer(this_timer):
-    if not isinstance(this_timer, str):
-        raise ValueError(f"Invalid timer name: '{this_timer}'")
-    if this_timer not in _timers:
-        raise IndexError(f"No timer named '{this_timer}'")
-    del _timers[this_timer]
+def remove_timer(name):
+    if not isinstance(name, str):
+        raise ValueError(f"Invalid timer name: '{name}'")
+    if name not in _timers:
+        raise IndexError(f"No timer named '{name}'")
+    del _timers[name]
 
 def time_string(time_taken):
     days = int(time_taken // (24 * 3600))
