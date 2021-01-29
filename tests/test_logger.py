@@ -473,20 +473,25 @@ class TestLogger:
         assert timer.stop_time - timer.start_time < 0.05
 
     @pytest.mark.parametrize('name', test_timers)
-    def test_timer_report_return_type(self, name, capsys):
+    def test_timer_report_return_type(self, name):
         logger.start_timer(name)
-        logger.report_timer(name)
-        test_output = capsys.readouterr().out
-        assert isinstance(test_output, str)
-        assert len(test_output) > 0
+        result = logger.report_timer(name)
+        assert isinstance(result, str)
+        assert len(result) > 0
 
     @pytest.mark.parametrize('name', test_timers)
-    def test_timer_report_value(self, name, capsys):
+    def test_timer_report_value(self, name):
         logger.start_timer(name)
         time.sleep(0.01)
-        logger.report_timer(name)
+        result = logger.report_timer(name)
+        assert self.convert_timestring_to_seconds(result) >= 0.01
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_report_no_stdout(self, name, capsys):
+        logger.start_timer(name)
+        _ = logger.report_timer(name)
         test_output = capsys.readouterr().out
-        assert self.convert_timestring_to_seconds(test_output) >= 0.01
+        assert test_output == ''
 
     @pytest.mark.parametrize('seconds, expected', test_times)
     def test_timer_time_string(self, seconds, expected):

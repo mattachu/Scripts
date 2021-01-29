@@ -104,7 +104,7 @@ def report_timer(name=default_timer):
         raise IndexError(f"No timer named '{name}'")
     this_timer = get_timer(name)
     time_string = this_timer.elapsed()
-    print(f'Completed in {time_string}')
+    return f'Completed in {time_string}'
 
 def remove_timer(name):
     if not isinstance(name, str):
