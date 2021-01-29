@@ -171,6 +171,7 @@ class TestLogger:
 
     # Parameters and utility functions for testing timing methods
     test_timers = ['default', 'test1', 'test 2']
+    test_runs = [0.01, 0.02, 0.05, 0.1, 0.2]
     test_times = [(1,         '1.000000 second'),
                   (2,         '2.000000 seconds'),
                   (2.2,       '2.200000 seconds'),
@@ -205,15 +206,164 @@ class TestLogger:
             seconds += int(match.group(1))*60*60*24
         return seconds
 
+    # Tests for Timer object
+    def test_timer_class_return_type(self):
+        timer = logger.Timer()
+        assert isinstance(timer, logger.Timer)
+
+    def test_timer_class_initialisation(self):
+        timer = logger.Timer()
+        assert timer.start_time is None
+        assert timer.stop_time is None
+
+    def test_timer_class_standalone(self):
+        timer = logger.Timer()
+        assert timer not in logger._timers.values()
+
+    def test_timer_class_start_time(self):
+        timer = logger.Timer()
+        timer.start()
+        assert timer.start_time <= time.perf_counter()
+
+    def test_timer_class_is_running(self):
+        timer = logger.Timer()
+        timer.start()
+        result = timer.is_running()
+        assert result == True
+
+    def test_timer_class_is_not_running_not_started(self):
+        timer = logger.Timer()
+        result = timer.is_running()
+        assert result == False
+
+    def test_timer_class_is_not_running_stopped(self):
+        timer = logger.Timer()
+        timer.start()
+        time.sleep(0.1)
+        timer.stop()
+        result = timer.is_running()
+        assert result == False
+
+    def test_timer_class_is_stopped(self):
+        timer = logger.Timer()
+        timer.start()
+        time.sleep(0.1)
+        timer.stop()
+        result = timer.is_stopped()
+        assert result == True
+
+    def test_timer_class_is_not_stopped_not_started(self):
+        timer = logger.Timer()
+        result = timer.is_stopped()
+        assert result == False
+
+    def test_timer_class_is_not_stopped_still_running(self):
+        timer = logger.Timer()
+        timer.start()
+        result = timer.is_stopped()
+        assert result == False
+
+    def test_timer_class_stop_time(self):
+        timer = logger.Timer()
+        timer.start()
+        time.sleep(0.01)
+        timer.stop()
+        assert timer.stop_time <= time.perf_counter()
+
+    def test_timer_class_run_time_running(self):
+        timer = logger.Timer()
+        timer.start()
+        time.sleep(0.01)
+        assert time.perf_counter() - timer.start_time >= 0.01
+
+    def test_timer_class_run_time_stopped(self):
+        timer = logger.Timer()
+        timer.start()
+        time.sleep(0.01)
+        timer.stop()
+        time.sleep(0.05)
+        assert timer.stop_time - timer.start_time >= 0.01
+        assert timer.stop_time - timer.start_time < 0.05
+
+    @pytest.mark.parametrize('run_time', test_runs)
+    def test_timer_class_elapsed_seconds_running(self, run_time):
+        timer = logger.Timer()
+        timer.start()
+        time.sleep(run_time)
+        result = timer.elapsed_seconds()
+        assert round(result, 2) == round(run_time, 2)
+
+    @pytest.mark.parametrize('run_time', test_runs)
+    def test_timer_class_elapsed_seconds_stopped(self, run_time):
+        timer = logger.Timer()
+        timer.start()
+        time.sleep(run_time)
+        timer.stop()
+        time.sleep(0.05)
+        result = timer.elapsed_seconds()
+        assert round(result, 2) == round(run_time, 2)
+
+    @pytest.mark.parametrize('start', [0.0, 0.1, 1.0, 100000.0])
+    @pytest.mark.parametrize('seconds, expected', test_times)
+    def test_timer_class_elapsed_seconds_forced(self, start, seconds, expected):
+        timer = logger.Timer()
+        timer.start_time = start
+        timer.stop_time = timer.start_time + seconds
+        result = timer.elapsed_seconds()
+        assert round(result, 6) == round(seconds, 6)
+
+    @pytest.mark.parametrize('start', [0.0, 0.1, 1.0, 100000.0])
+    @pytest.mark.parametrize('seconds, expected', test_times)
+    def test_timer_class_elapsed_forced(self, start, seconds, expected):
+        timer = logger.Timer()
+        timer.start_time = start
+        timer.stop_time = timer.start_time + seconds
+        result = timer.elapsed()
+        assert result == expected
+
     # Tests for timing methods
     @pytest.mark.parametrize('name', ['default'])
     def test_timer_defaults(self, name):
         assert name in logger._timers
 
+    @pytest.mark.parametrize('name', ['default'])
+    def test_timer_get_defaults(self, name):
+        timer = logger.get_timer(name)
+        assert timer is not None
+
+    @pytest.mark.parametrize('name', ['default'])
+    def test_timer_get_defaults_return_type(self, name):
+        timer = logger.get_timer(name)
+        assert isinstance(timer, logger.Timer)
+
     @pytest.mark.parametrize('name', test_timers)
     def test_timer_creation(self, name):
+        logger.get_timer(name)
+        assert name in logger._timers
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_creation_on_start(self, name):
         logger.start_timer(name)
         assert name in logger._timers
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_get_created(self, name):
+        logger.start_timer(name)
+        timer = logger.get_timer(name)
+        assert timer is not None
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_get_created_return_type(self, name):
+        logger.start_timer(name)
+        timer = logger.get_timer(name)
+        assert isinstance(timer, logger.Timer)
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_removal(self, name):
+        logger.get_timer(name)
+        assert name in logger._timers
+        logger.remove_timer(name)
+        assert name not in logger._timers
 
     @pytest.mark.parametrize('name', test_timers)
     def test_timer_start_time(self, name):
@@ -221,10 +371,58 @@ class TestLogger:
         assert logger._timers[name].start_time <= time.perf_counter()
 
     @pytest.mark.parametrize('name', test_timers)
-    def test_timer_run_time(self, name):
+    def test_timer_get_start_time(self, name):
+        logger.start_timer(name)
+        timer = logger.get_timer(name)
+        assert timer.start_time <= time.perf_counter()
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_stop_time(self, name):
+        logger.start_timer(name)
+        time.sleep(0.01)
+        logger.stop_timer(name)
+        assert logger._timers[name].stop_time <= time.perf_counter()
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_get_stop_time(self, name):
+        logger.start_timer(name)
+        time.sleep(0.01)
+        logger.stop_timer(name)
+        timer = logger.get_timer(name)
+        assert timer.stop_time <= time.perf_counter()
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_run_time_running(self, name):
         logger.start_timer(name)
         time.sleep(0.01)
         assert time.perf_counter() - logger._timers[name].start_time >= 0.01
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_get_run_time_running(self, name):
+        logger.start_timer(name)
+        time.sleep(0.01)
+        timer = logger.get_timer(name)
+        assert time.perf_counter() - timer.start_time >= 0.01
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_run_time_stopped(self, name):
+        logger.start_timer(name)
+        time.sleep(0.01)
+        logger.stop_timer(name)
+        timer = logger._timers[name]
+        time.sleep(0.05)
+        assert timer.stop_time - timer.start_time >= 0.01
+        assert timer.stop_time - timer.start_time < 0.05
+
+    @pytest.mark.parametrize('name', test_timers)
+    def test_timer_get_run_time_stopped(self, name):
+        logger.start_timer(name)
+        time.sleep(0.01)
+        logger.stop_timer(name)
+        timer = logger.get_timer(name)
+        time.sleep(0.05)
+        assert timer.stop_time - timer.start_time >= 0.01
+        assert timer.stop_time - timer.start_time < 0.05
 
     @pytest.mark.parametrize('name', test_timers)
     def test_timer_report_return_type(self, name, capsys):
