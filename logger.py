@@ -22,15 +22,31 @@ class Tee(object):
 
 # %% Define context manager that redirects the output
 @contextlib.contextmanager
-def capture_output(logfile, mode):
-    new_stdout = Tee(logfile, mode)
+def capture_output(logfile, mode, capture='both'):
+    if capture not in ['out', 'err', 'both']:
+        raise ValueError(f"Invalid capture setting: {capture}\n"
+                          "Valid settings are 'out', 'err', or 'both'.")
+    if capture == 'both' and mode == 'w':
+        with open(logfile, 'w'):
+            pass
+        mode = 'a'
     saved_stdout = sys.stdout
-    sys.stdout = new_stdout
+    saved_stderr = sys.stderr
+    if capture in ['out', 'both']:
+        new_stdout = Tee(logfile, mode, stdout=sys.stdout)
+        sys.stdout = new_stdout
+    if capture in ['err', 'both']:
+        new_stderr = Tee(logfile, mode, stdout=sys.stderr)
+        sys.stderr = new_stderr
     try:
         yield None
     finally:
-        sys.stdout.close()
+        if capture in ['out', 'both']:
+            new_stdout.close()
+        if capture in ['err', 'both']:
+            new_stderr.close()
         sys.stdout = saved_stdout
+        sys.stderr = saved_stderr
 
 # %% Define Timer object that keeps a track of start and stop times
 class Timer(object):

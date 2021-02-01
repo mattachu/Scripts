@@ -178,47 +178,96 @@ class TestLogger:
 
 
     # Tests for capture_output() method
+    log_capture = ['default', 'out', 'err', 'both']
+
+    @pytest.mark.parametrize('capture', log_capture)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_capture_output_filename(self, name, mode, tmp_path):
+    def test_capture_output_filename(self, name, mode, capture, tmp_path):
         filename = tmp_path.joinpath(name)
         assert not filename.is_file()
-        with logger.capture_output(filename, mode):
-            pass
+        if capture == 'default':
+            with logger.capture_output(filename, mode):
+                pass
+        else:
+            with logger.capture_output(filename, mode, capture=capture):
+                pass
         assert filename.is_file()
 
+    @pytest.mark.parametrize('capture', log_capture)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_capture_output_stdout(self, name, mode, tmp_path):
+    def test_capture_output_stdout(self, name, mode, capture, tmp_path):
         before = sys.stdout
         filename = tmp_path.joinpath(name)
         assert not filename.is_file()
-        with logger.capture_output(filename, mode):
-            pass
+        if capture == 'default':
+            with logger.capture_output(filename, mode):
+                pass
+        else:
+            with logger.capture_output(filename, mode, capture=capture):
+                pass
         assert sys.stdout == before
 
+    @pytest.mark.parametrize('capture', log_capture)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_capture_output_stderr(self, name, mode, tmp_path):
+    def test_capture_output_stderr(self, name, mode, capture, tmp_path):
         before = sys.stderr
         filename = tmp_path.joinpath(name)
         assert not filename.is_file()
-        with logger.capture_output(filename, mode):
-            pass
+        if capture == 'default':
+            with logger.capture_output(filename, mode):
+                pass
+        else:
+            with logger.capture_output(filename, mode, capture=capture):
+                pass
         assert sys.stderr == before
 
     @pytest.mark.parametrize('message', log_messages)
+    @pytest.mark.parametrize('capture', log_capture)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_capture_output_print(self, name, mode, message, tmp_path, capsys):
+    def test_capture_output_print(
+            self, name, mode, capture, message, tmp_path, capsys):
         """Printed output should be captured to stdout and to file."""
         filename = tmp_path.joinpath(name)
-        with logger.capture_output(filename, mode):
-            print(message)
+        if capture == 'default':
+            with logger.capture_output(filename, mode):
+                print(message)
+        else:
+            with logger.capture_output(filename, mode, capture=capture):
+                print(message)
         assert capsys.readouterr().out == message + '\n' # print adds a newline
         with open(filename, 'r') as f:
             test_message = [line.strip() for line in f.readlines()]
-        expected = message.split('\n')
+        if capture in ['default', 'out', 'both']:
+            expected = message.split('\n')
+        else:
+            expected = []
+        assert test_message == expected
+
+    @pytest.mark.parametrize('message', log_messages)
+    @pytest.mark.parametrize('capture', log_capture)
+    @pytest.mark.parametrize('mode', log_modes)
+    @pytest.mark.parametrize('name', log_names)
+    def test_capture_output_error(
+            self, name, mode, capture, message, tmp_path, capsys):
+        """Error output should be captured if selected for capture."""
+        filename = tmp_path.joinpath(name)
+        if capture == 'default':
+            with logger.capture_output(filename, mode):
+                print(message, file=sys.stderr)
+        else:
+            with logger.capture_output(filename, mode, capture=capture):
+                print(message, file=sys.stderr)
+        assert capsys.readouterr().err == message + '\n'
+        with open(filename, 'r') as f:
+            test_message = [line.strip() for line in f.readlines()]
+        if capture in ['default', 'err', 'both']:
+            expected = message.split('\n')
+        else:
+            expected = []
         assert test_message == expected
 
 
