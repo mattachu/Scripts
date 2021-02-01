@@ -136,6 +136,32 @@ class TestLogger:
 
     @pytest.mark.parametrize('message', log_messages)
     @pytest.mark.parametrize('output', log_outputs)
+    @pytest.mark.parametrize('name', log_names)
+    def test_tee_overwrite(self, name, output, message, tmp_path, capsys):
+        """Write once then overwrite the file."""
+        filename = tmp_path.joinpath(name)
+        if output == 'default':
+            test_object = logger.Tee(filename, 'w')
+        else:
+            test_object = logger.Tee(filename, 'w', stdout=eval(output))
+        test_object.write(message)
+        test_object.close()
+        if output == 'default':
+            test_object = logger.Tee(filename, 'w')
+        else:
+            test_object = logger.Tee(filename, 'w', stdout=eval(output))
+        test_object.write(message)
+        test_object.close()
+        assert self.get_output(capsys, output) == message + message
+        with open(filename, 'r') as f:
+            test_message = [line.strip() for line in f.readlines()]
+        expected = message.split('\n')
+        if expected[-1] == '':
+            expected = expected[:-1]
+        assert test_message == expected
+
+    @pytest.mark.parametrize('message', log_messages)
+    @pytest.mark.parametrize('output', log_outputs)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
     def test_tee_flush(self, name, mode, output, message, tmp_path, capsys):
@@ -265,6 +291,80 @@ class TestLogger:
         with open(filename, 'r') as f:
             test_message = [line.strip() for line in f.readlines()]
         if capture in ['default', 'err', 'both']:
+            expected = message.split('\n')
+        else:
+            expected = []
+        assert test_message == expected
+
+    @pytest.mark.parametrize('message', log_messages)
+    @pytest.mark.parametrize('capture', log_capture)
+    @pytest.mark.parametrize('name', log_names)
+    def test_capture_output_append(
+            self, name, capture, message, tmp_path, capsys):
+        """Printed output should be captured to stdout and to file."""
+        filename = tmp_path.joinpath(name)
+        if capture == 'default':
+            with logger.capture_output(filename, 'w'):
+                print(message)
+        else:
+            with logger.capture_output(filename, 'w', capture=capture):
+                print(message)
+        assert capsys.readouterr().out == message + '\n' # print adds a newline
+        with open(filename, 'r') as f:
+            test_message = [line.strip() for line in f.readlines()]
+        if capture in ['default', 'out', 'both']:
+            expected = message.split('\n')
+        else:
+            expected = []
+        assert test_message == expected
+        # Now do it again to append the same message another time
+        if capture == 'default':
+            with logger.capture_output(filename, 'a'):
+                print(message)
+        else:
+            with logger.capture_output(filename, 'a', capture=capture):
+                print(message)
+        assert capsys.readouterr().out == message + '\n' # captured output since last check
+        with open(filename, 'r') as f:
+            test_message = [line.strip() for line in f.readlines()]
+        if capture in ['default', 'out', 'both']:
+            expected = (message + '\n' + message).split('\n')
+        else:
+            expected = []
+        assert test_message == expected
+
+    @pytest.mark.parametrize('message', log_messages)
+    @pytest.mark.parametrize('capture', log_capture)
+    @pytest.mark.parametrize('name', log_names)
+    def test_capture_output_overwrite(
+            self, name, capture, message, tmp_path, capsys):
+        """Printed output should be captured to stdout and to file."""
+        filename = tmp_path.joinpath(name)
+        if capture == 'default':
+            with logger.capture_output(filename, 'w'):
+                print(message)
+        else:
+            with logger.capture_output(filename, 'w', capture=capture):
+                print(message)
+        assert capsys.readouterr().out == message + '\n' # print adds a newline
+        with open(filename, 'r') as f:
+            test_message = [line.strip() for line in f.readlines()]
+        if capture in ['default', 'out', 'both']:
+            expected = message.split('\n')
+        else:
+            expected = []
+        assert test_message == expected
+        # Now do it again to write the same message another time
+        if capture == 'default':
+            with logger.capture_output(filename, 'w'):
+                print(message)
+        else:
+            with logger.capture_output(filename, 'w', capture=capture):
+                print(message)
+        assert capsys.readouterr().out == message + '\n' # captured output since last check
+        with open(filename, 'r') as f:
+            test_message = [line.strip() for line in f.readlines()]
+        if capture in ['default', 'out', 'both']:
             expected = message.split('\n')
         else:
             expected = []
