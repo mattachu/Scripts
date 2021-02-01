@@ -22,31 +22,53 @@ class TestLogger:
     # Parameter sets for testing logging
     log_modes = ['w', 'a']
     log_names = ['test.log', 'log.txt', 'log_file', 'long log file name.log']
+    log_outputs = ['default', 'sys.stdout', 'sys.stderr']
     log_messages = ['Hello world!',
                     'Hello world!\n',
                     'Line 1\nLine 2\nLine 3',
                     'Line 1\nLine 2\nLine 3\n']
 
+    # Helper functions
+    def get_output(self, capsys, output):
+        if output in ['default', 'sys.stdout']:
+            return capsys.readouterr().out
+        elif output == 'sys.stderr':
+            return capsys.readouterr().err
+        else:
+            raise ValueError(f'Invalid output type: {output}')
+
     # Tests for Tee object
+    @pytest.mark.parametrize('output', log_outputs)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_tee_return_type(self, name, mode, tmp_path):
+    def test_tee_return_type(self, name, mode, output, tmp_path):
         filename = tmp_path.joinpath(name)
-        test_object = logger.Tee(filename, mode)
+        if output == 'default':
+            test_object = logger.Tee(filename, mode)
+        else:
+            test_object = logger.Tee(filename, mode, stdout=eval(output))
         assert isinstance(test_object, logger.Tee)
 
+    @pytest.mark.parametrize('output', log_outputs)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_tee_filename(self, name, mode, tmp_path):
+    def test_tee_filename(self, name, mode, output, tmp_path):
         filename = tmp_path.joinpath(name)
-        test_object = logger.Tee(filename, mode)
+        if output == 'default':
+            test_object = logger.Tee(filename, mode)
+        else:
+            test_object = logger.Tee(filename, mode, stdout=eval(output))
         assert test_object.file.name == str(filename)
 
+    @pytest.mark.parametrize('output', log_outputs)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_tee_filemode(self, name, mode, tmp_path):
+    def test_tee_filemode(self, name, mode, output, tmp_path):
         filename = tmp_path.joinpath(name)
-        test_object = logger.Tee(filename, mode)
+        if output == 'default':
+            test_object = logger.Tee(filename, mode)
+        else:
+            test_object = logger.Tee(filename, mode, stdout=eval(output))
         assert test_object.file.mode == str(mode)
         if mode in ['w', 'a']:
             assert test_object.file.seekable() == True
@@ -54,22 +76,31 @@ class TestLogger:
             assert test_object.file.readable() == False
             assert test_object.file.closed == False
 
+    @pytest.mark.parametrize('output', log_outputs)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_tee_stdout(self, name, mode, tmp_path):
+    def test_tee_stdout(self, name, mode, output, tmp_path):
         filename = tmp_path.joinpath(name)
-        test_object = logger.Tee(filename, mode)
-        assert test_object.stdout == sys.stdout
+        if output == 'default':
+            test_object = logger.Tee(filename, mode)
+            assert test_object.stdout == sys.stdout
+        else:
+            test_object = logger.Tee(filename, mode, stdout=eval(output))
+            assert test_object.stdout == eval(output)
 
     @pytest.mark.parametrize('message', log_messages)
+    @pytest.mark.parametrize('output', log_outputs)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_tee_write(self, name, mode, message, tmp_path, capsys):
+    def test_tee_write(self, name, mode, output, message, tmp_path, capsys):
         """Tee.write() should write to stdout and to file."""
         filename = tmp_path.joinpath(name)
-        test_object = logger.Tee(filename, mode)
+        if output == 'default':
+            test_object = logger.Tee(filename, mode)
+        else:
+            test_object = logger.Tee(filename, mode, stdout=eval(output))
         test_object.write(message)
-        assert capsys.readouterr().out == message
+        assert self.get_output(capsys, output) == message
         with open(filename, 'r') as f:
             test_message = [line.strip() for line in f.readlines()]
         expected = message.split('\n')
@@ -78,17 +109,24 @@ class TestLogger:
         assert test_message == expected
 
     @pytest.mark.parametrize('message', log_messages)
+    @pytest.mark.parametrize('output', log_outputs)
     @pytest.mark.parametrize('name', log_names)
-    def test_tee_append(self, name, message, tmp_path, capsys):
+    def test_tee_append(self, name, output, message, tmp_path, capsys):
         """Write once then append the same message again."""
         filename = tmp_path.joinpath(name)
-        test_object = logger.Tee(filename, 'w')
+        if output == 'default':
+            test_object = logger.Tee(filename, 'w')
+        else:
+            test_object = logger.Tee(filename, 'w', stdout=eval(output))
         test_object.write(message)
         test_object.close()
-        test_object = logger.Tee(filename, 'a')
+        if output == 'default':
+            test_object = logger.Tee(filename, 'a')
+        else:
+            test_object = logger.Tee(filename, 'a', stdout=eval(output))
         test_object.write(message)
         test_object.close()
-        assert capsys.readouterr().out == message + message
+        assert self.get_output(capsys, output) == message + message
         with open(filename, 'r') as f:
             test_message = [line.strip() for line in f.readlines()]
         expected = (message + message).split('\n')
@@ -97,35 +135,43 @@ class TestLogger:
         assert test_message == expected
 
     @pytest.mark.parametrize('message', log_messages)
+    @pytest.mark.parametrize('output', log_outputs)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_tee_flush(self, name, mode, message, tmp_path, capsys):
+    def test_tee_flush(self, name, mode, output, message, tmp_path, capsys):
         """Tee.write() already includes a flush, so this just checks for errors."""
         # Create object
         filename = tmp_path.joinpath(name)
-        test_object = logger.Tee(filename, mode)
+        if output == 'default':
+            test_object = logger.Tee(filename, mode)
+        else:
+            test_object = logger.Tee(filename, mode, stdout=eval(output))
         # Write contents
         test_object.write(message)
         # Save state before flush
-        _ = capsys.readouterr().out
+        _ = self.get_output(capsys, output)
         with open(filename, 'r') as f:
             file_before = f.readlines()
         # Test flush
         with does_not_raise():
             test_object.flush()
         # Get state after flush
-        stdout_after = capsys.readouterr().out
+        stdout_after = self.get_output(capsys, output)
         with open(filename, 'r') as f:
             file_after = f.readlines()
         # Assert no new output
         assert stdout_after == ''
         assert file_after == file_before
 
+    @pytest.mark.parametrize('output', log_outputs)
     @pytest.mark.parametrize('mode', log_modes)
     @pytest.mark.parametrize('name', log_names)
-    def test_tee_close(self, name, mode, tmp_path):
+    def test_tee_close(self, name, mode, output, tmp_path):
         filename = tmp_path.joinpath(name)
-        test_object = logger.Tee(filename, mode)
+        if output == 'default':
+            test_object = logger.Tee(filename, mode)
+        else:
+            test_object = logger.Tee(filename, mode, stdout=eval(output))
         assert test_object.file.closed == False
         test_object.close()
         assert test_object.file.closed == True

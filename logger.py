@@ -5,9 +5,12 @@ import time
 
 # %% Define Tee object that duplicates output to file and screen
 class Tee(object):
-    def __init__(self, name, mode):
+    def __init__(self, name, mode, stdout=None):
         self.file = open(name, mode)
-        self.stdout = sys.stdout
+        if stdout is None:
+            self.stdout = sys.stdout
+        else:
+            self.stdout = stdout
     def write(self, data):
         self.stdout.write(data)
         self.file.write(data)
