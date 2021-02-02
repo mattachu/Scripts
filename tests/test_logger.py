@@ -203,7 +203,7 @@ class TestLogger:
         assert test_object.file.closed == True
 
 
-    # Tests for capture_output() method
+    # Tests for capture_output() context
     log_capture = ['default', 'out', 'err', 'both']
 
     @pytest.mark.parametrize('capture', log_capture)
@@ -692,3 +692,81 @@ class TestLogger:
     def test_timer_time_string(self, seconds, expected):
         test_output = logger.time_string(seconds)
         assert test_output == expected
+
+    # Tests for timed() context
+    timed_quiet = ['default', True, False]
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    def test_timed_start(self, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed():
+                pass
+        else:
+            with logger.timed(quiet=quiet):
+                pass
+        if quiet in ['default', False]:
+            assert 'Starting timer' in capsys.readouterr().out
+        else:
+            assert capsys.readouterr().out == ''
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    def test_timed_completion(self, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed():
+                pass
+        else:
+            with logger.timed(quiet=quiet):
+                pass
+        if quiet in ['default', False]:
+            assert 'Completed in' in capsys.readouterr().out
+        else:
+            assert capsys.readouterr().out == ''
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    @pytest.mark.parametrize('run_time', test_runs)
+    def test_timed_runtime(self, run_time, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed():
+                time.sleep(run_time)
+        else:
+            with logger.timed(quiet=quiet):
+                time.sleep(run_time)
+        time.sleep(0.05)
+        if quiet in ['default', False]:
+            result = self.convert_timestring_to_seconds(capsys.readouterr().out)
+            assert round(result, 2) == round(run_time, 2)
+        else:
+            assert capsys.readouterr().out == ''
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    def test_timed_return_value(self, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed() as test_object:
+                pass
+        else:
+            with logger.timed(quiet=quiet) as test_object:
+                pass
+        assert isinstance(test_object, logger.Timer)
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    def test_timed_return_stopped(self, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed() as test_object:
+                pass
+        else:
+            with logger.timed(quiet=quiet) as test_object:
+                pass
+        assert test_object.is_stopped()
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    @pytest.mark.parametrize('run_time', test_runs)
+    def test_timed_return_runtime(self, run_time, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed() as test_object:
+                time.sleep(run_time)
+        else:
+            with logger.timed(quiet=quiet) as test_object:
+                time.sleep(run_time)
+        time.sleep(0.05)
+        result = test_object.elapsed_seconds()
+        assert round(result, 2) == round(run_time, 2)
