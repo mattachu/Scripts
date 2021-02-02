@@ -162,7 +162,7 @@ def timed(quiet=False):
         print('Starting timer...')
     this_timer.start()
     try:
-        yield None
+        yield this_timer
     finally:
         this_timer.stop()
         if not quiet:

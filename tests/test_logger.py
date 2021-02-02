@@ -737,3 +737,36 @@ class TestLogger:
             assert round(result, 2) == round(run_time, 2)
         else:
             assert capsys.readouterr().out == ''
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    def test_timed_return_value(self, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed() as test_object:
+                pass
+        else:
+            with logger.timed(quiet=quiet) as test_object:
+                pass
+        assert isinstance(test_object, logger.Timer)
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    def test_timed_return_stopped(self, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed() as test_object:
+                pass
+        else:
+            with logger.timed(quiet=quiet) as test_object:
+                pass
+        assert test_object.is_stopped()
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    @pytest.mark.parametrize('run_time', test_runs)
+    def test_timed_return_runtime(self, run_time, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed() as test_object:
+                time.sleep(run_time)
+        else:
+            with logger.timed(quiet=quiet) as test_object:
+                time.sleep(run_time)
+        time.sleep(0.05)
+        result = test_object.elapsed_seconds()
+        assert round(result, 2) == round(run_time, 2)
