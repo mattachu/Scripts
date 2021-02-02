@@ -156,12 +156,14 @@ def time_string(time_taken):
 
 # %% Define context manager that times the contents
 @contextlib.contextmanager
-def timed():
+def timed(quiet=False):
     this_timer = Timer()
-    print('Starting timer...')
+    if not quiet:
+        print('Starting timer...')
     this_timer.start()
     try:
         yield None
     finally:
         this_timer.stop()
-        print(f'Completed in {this_timer.elapsed()}')
+        if not quiet:
+            print(f'Completed in {this_timer.elapsed()}')

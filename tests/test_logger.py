@@ -694,20 +694,46 @@ class TestLogger:
         assert test_output == expected
 
     # Tests for timed() context
-    def test_timed_start(self, capsys):
-        with logger.timed():
-            pass
-        assert 'Starting timer' in capsys.readouterr().out
+    timed_quiet = ['default', True, False]
 
-    def test_timed_completion(self, capsys):
-        with logger.timed():
-            pass
-        assert 'Completed in' in capsys.readouterr().out
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    def test_timed_start(self, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed():
+                pass
+        else:
+            with logger.timed(quiet=quiet):
+                pass
+        if quiet in ['default', False]:
+            assert 'Starting timer' in capsys.readouterr().out
+        else:
+            assert capsys.readouterr().out == ''
 
+    @pytest.mark.parametrize('quiet', timed_quiet)
+    def test_timed_completion(self, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed():
+                pass
+        else:
+            with logger.timed(quiet=quiet):
+                pass
+        if quiet in ['default', False]:
+            assert 'Completed in' in capsys.readouterr().out
+        else:
+            assert capsys.readouterr().out == ''
+
+    @pytest.mark.parametrize('quiet', timed_quiet)
     @pytest.mark.parametrize('run_time', test_runs)
-    def test_timed_runtime(self, run_time, capsys):
-        with logger.timed():
-            time.sleep(run_time)
+    def test_timed_runtime(self, run_time, quiet, capsys):
+        if quiet == 'default':
+            with logger.timed():
+                time.sleep(run_time)
+        else:
+            with logger.timed(quiet=quiet):
+                time.sleep(run_time)
         time.sleep(0.05)
-        result = self.convert_timestring_to_seconds(capsys.readouterr().out)
-        assert round(result, 2) == round(run_time, 2)
+        if quiet in ['default', False]:
+            result = self.convert_timestring_to_seconds(capsys.readouterr().out)
+            assert round(result, 2) == round(run_time, 2)
+        else:
+            assert capsys.readouterr().out == ''
