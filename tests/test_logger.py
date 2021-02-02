@@ -203,7 +203,7 @@ class TestLogger:
         assert test_object.file.closed == True
 
 
-    # Tests for capture_output() method
+    # Tests for capture_output() context
     log_capture = ['default', 'out', 'err', 'both']
 
     @pytest.mark.parametrize('capture', log_capture)
@@ -692,3 +692,22 @@ class TestLogger:
     def test_timer_time_string(self, seconds, expected):
         test_output = logger.time_string(seconds)
         assert test_output == expected
+
+    # Tests for timed() context
+    def test_timed_start(self, capsys):
+        with logger.timed():
+            pass
+        assert 'Starting timer' in capsys.readouterr().out
+
+    def test_timed_completion(self, capsys):
+        with logger.timed():
+            pass
+        assert 'Completed in' in capsys.readouterr().out
+
+    @pytest.mark.parametrize('run_time', test_runs)
+    def test_timed_runtime(self, run_time, capsys):
+        with logger.timed():
+            time.sleep(run_time)
+        time.sleep(0.05)
+        result = self.convert_timestring_to_seconds(capsys.readouterr().out)
+        assert round(result, 2) == round(run_time, 2)

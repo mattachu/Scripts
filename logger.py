@@ -153,3 +153,15 @@ def time_string(time_taken):
     if days > 0:
         time_string = f"{days} day{'s' if days > 1 else ''}, {time_string}"
     return time_string
+
+# %% Define context manager that times the contents
+@contextlib.contextmanager
+def timed():
+    this_timer = Timer()
+    print('Starting timer...')
+    this_timer.start()
+    try:
+        yield None
+    finally:
+        this_timer.stop()
+        print(f'Completed in {this_timer.elapsed()}')
