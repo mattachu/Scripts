@@ -945,7 +945,7 @@ class TestRunBatch:
     def test_get_move_list_default(self):
         move_list = run_batch.get_move_list(None, False)
         assert isinstance(move_list, list)
-        assert 'reproduce-*.log' in move_list
+        assert '*.log' in move_list
 
     def test_get_move_list_impact(self):
         move_list = run_batch.get_move_list('impact', False)
@@ -953,7 +953,7 @@ class TestRunBatch:
         assert 'fort.*' not in move_list
         assert '*.dst' in move_list
         assert '*.plt' in move_list
-        assert 'reproduce-*.log' in move_list
+        assert '*.log' in move_list
 
     def test_get_move_list_impact_full(self):
         move_list = run_batch.get_move_list('impact', True)
@@ -961,7 +961,7 @@ class TestRunBatch:
         assert 'fort.*' in move_list
         assert '*.dst' in move_list
         assert '*.plt' in move_list
-        assert 'reproduce-*.log' in move_list
+        assert '*.log' in move_list
 
     def test_get_move_list_bdsim(self):
         move_list = run_batch.get_move_list('bdsim', False)
@@ -969,7 +969,7 @@ class TestRunBatch:
         assert '*.root' not in move_list
         assert '*.png' in move_list
         assert '*.eps' in move_list
-        assert 'reproduce-*.log' in move_list
+        assert '*.log' in move_list
 
     def test_get_move_list_bdsim_full(self):
         move_list = run_batch.get_move_list('bdsim', True)
@@ -977,7 +977,7 @@ class TestRunBatch:
         assert '*.root' in move_list
         assert '*.png' in move_list
         assert '*.eps' in move_list
-        assert 'reproduce-*.log' in move_list
+        assert '*.log' in move_list
 
     def test_get_move_list_opal(self):
         move_list = run_batch.get_move_list('opal', False)
@@ -987,7 +987,7 @@ class TestRunBatch:
         assert '*.stat' not in move_list
         assert '*.dat' not in move_list
         assert 'data' not in move_list
-        assert 'reproduce-*.log' in move_list
+        assert '*.log' in move_list
 
     def test_get_move_list_opal_full(self):
         move_list = run_batch.get_move_list('opal', True)
@@ -997,7 +997,7 @@ class TestRunBatch:
         assert '*.stat' in move_list
         assert '*.dat' in move_list
         assert 'data' in move_list
-        assert 'reproduce-*.log' in move_list
+        assert '*.log' in move_list
 
     def test_get_move_list_invalid_input(self):
         with pytest.raises(TypeError):
@@ -1021,7 +1021,7 @@ class TestRunBatch:
     def test_get_delete_list_default(self):
         delete_list = run_batch.get_delete_list(None)
         assert isinstance(delete_list, list)
-        assert 'reproduce-*.log' in delete_list
+        assert '*.log' in delete_list
 
     def test_get_delete_list_impact(self):
         delete_list = run_batch.get_delete_list('impact')
@@ -1029,7 +1029,7 @@ class TestRunBatch:
         assert 'fort.*' in delete_list
         assert '*.dst' in delete_list
         assert '*.plt' in delete_list
-        assert 'reproduce-*.log' in delete_list
+        assert '*.log' in delete_list
 
     def test_get_delete_list_bdsim(self):
         delete_list = run_batch.get_delete_list('bdsim')
@@ -1037,7 +1037,7 @@ class TestRunBatch:
         assert '*.root' in delete_list
         assert '*.png' in delete_list
         assert '*.eps' in delete_list
-        assert 'reproduce-*.log' in delete_list
+        assert '*.log' in delete_list
 
     def test_get_delete_list_opal(self):
         delete_list = run_batch.get_delete_list('opal')
@@ -1047,7 +1047,7 @@ class TestRunBatch:
         assert '*.stat' in delete_list
         assert '*.dat' in delete_list
         assert 'data' in delete_list
-        assert 'reproduce-*.log' in delete_list
+        assert '*.log' in delete_list
 
     def test_get_delete_list_invalid_input(self):
         with pytest.raises(TypeError):
@@ -1152,6 +1152,25 @@ class TestRunBatch:
             with open(destination.joinpath(filename), 'r') as f:
                 assert f.readline() == self.test_message
 
+    def test_copy_to_archive_exclude_logfile(self, tmp_path_factory):
+        source = tmp_path_factory.mktemp('from')
+        destination = tmp_path_factory.mktemp('to')
+        test_files = ['file1.log', 'file2.log', run_batch.LOGFILE]
+        for filename in test_files:
+            with open(source.joinpath(filename), 'w') as f:
+                f.write(self.test_message)
+        run_batch.copy_to_archive(source, destination, ['*.log'])
+        for filename in test_files:
+            assert source.joinpath(filename).is_file()
+            with open(source.joinpath(filename), 'r') as f:
+                assert f.readline() == self.test_message
+            if filename == run_batch.LOGFILE:
+                assert not destination.joinpath(filename).is_file()
+            else:
+                assert destination.joinpath(filename).is_file()
+                with open(destination.joinpath(filename), 'r') as f:
+                    assert f.readline() == self.test_message
+
     def test_copy_to_archive_invalid_input(self, tmp_path_factory):
         source = tmp_path_factory.mktemp('from')
         destination = tmp_path_factory.mktemp('to')
@@ -1254,6 +1273,24 @@ class TestRunBatch:
             assert not source.joinpath(filename).is_file()
             with open(destination.joinpath(filename), 'r') as f:
                 assert f.readline() == self.test_message
+
+    def test_move_to_archive_exclude_logfile(self, tmp_path_factory):
+        source = tmp_path_factory.mktemp('from')
+        destination = tmp_path_factory.mktemp('to')
+        test_files = ['file1.log', 'file2.log', run_batch.LOGFILE]
+        for filename in test_files:
+            with open(source.joinpath(filename), 'w') as f:
+                f.write(self.test_message)
+        run_batch.move_to_archive(source, destination, ['*.log'])
+        for filename in test_files:
+            if filename == run_batch.LOGFILE:
+                assert source.joinpath(filename).is_file()
+                assert not destination.joinpath(filename).is_file()
+            else:
+                assert destination.joinpath(filename).is_file()
+                assert not source.joinpath(filename).is_file()
+                with open(destination.joinpath(filename), 'r') as f:
+                    assert f.readline() == self.test_message
 
     def test_move_to_archive_invalid_input(self, tmp_path_factory):
         source = tmp_path_factory.mktemp('from')
@@ -1514,6 +1551,39 @@ class TestRunBatch:
                 assert f.readline() == self.test_message
 
     @pytest.mark.slow
+    def test_archive_output_exclude_logfile(
+            self, cloned_repo, tmp_archive, tmp_file_factory, tmp_path):
+        copy_files = ['file1.tmp', 'file2.tmp', 'file3.tmp']
+        move_files = ['file4.log', 'file5.log', 'file6.data', run_batch.LOGFILE]
+        for filename in (copy_files + move_files):
+            tmp_file_factory(filename)
+        test_folder = self.get_run_folder(cloned_repo)
+        test_run = self.single_run.copy()
+        test_run.update({'--archive': True,
+                         'archive': tmp_path,
+                         'archive_copy': ['*.tmp'],
+                         'archive_move': ['*.log', 'file6.*']})
+        run_batch.archive_output(
+            self.get_settings(cloned_repo, tmp_archive), test_run)
+        for filename in copy_files:
+            assert test_folder.joinpath(filename).is_file()
+            if filename == run_batch.LOGFILE:
+                assert not tmp_path.joinpath(filename).is_file()
+            else:
+                assert tmp_path.joinpath(filename).is_file()
+                with open(tmp_path.joinpath(filename), 'r') as f:
+                    assert f.readline() == self.test_message
+        for filename in move_files:
+            if filename == run_batch.LOGFILE:
+                assert test_folder.joinpath(filename).is_file()
+                assert not tmp_path.joinpath(filename).is_file()
+            else:
+                assert not test_folder.joinpath(filename).is_file()
+                assert tmp_path.joinpath(filename).is_file()
+                with open(tmp_path.joinpath(filename), 'r') as f:
+                    assert f.readline() == self.test_message
+
+    @pytest.mark.slow
     def test_archive_output_move_rendered_templates(
             self, cloned_repo, tmp_archive, tmp_file_factory, tmp_path):
         test_folder = self.get_run_folder(cloned_repo)
@@ -1605,6 +1675,21 @@ class TestRunBatch:
             self.get_settings(cloned_repo, tmp_archive), test_run)
         for filename in temp_files:
             assert not self.get_run_folder(cloned_repo).joinpath(filename).is_file()
+
+    def test_delete_output_exclude_logfile(
+            self, cloned_repo, tmp_archive, tmp_file_factory):
+        temp_files = ['file1.log', 'file2.log', run_batch.LOGFILE]
+        for filename in temp_files:
+            tmp_file_factory(filename)
+        test_run = self.single_run.copy()
+        test_run['--class'] = None
+        run_batch.delete_output(
+            self.get_settings(cloned_repo, tmp_archive), test_run)
+        for filename in temp_files:
+            if filename == run_batch.LOGFILE:
+                assert self.get_run_folder(cloned_repo).joinpath(filename).is_file()
+            else:
+                assert not self.get_run_folder(cloned_repo).joinpath(filename).is_file()
 
 
     # Sweep methods
