@@ -355,7 +355,7 @@ def get_copy_list(simulation_class):
 
 def get_move_list(simulation_class, is_full_archive):
     """Get list of file patterns to move for a particular simulation type"""
-    move_list = ['*.png', '*.eps', '*.ps', '*.jpg']
+    move_list = ['*.png', '*.eps', '*.ps', '*.jpg', '*.log']
     if simulation_class == 'impact':
         move_list.extend(['*.dst', '*.plt'])
         if is_full_archive:
@@ -366,12 +366,11 @@ def get_move_list(simulation_class, is_full_archive):
     elif simulation_class == 'opal':
         if is_full_archive:
             move_list.extend(['*.h5', '*.lbal', '*.stat', '*.dat', 'data'])
-    move_list.append('reproduce-*.log')
     return move_list
 
 def get_delete_list(simulation_class):
     """Get list of file patterns to delete - same as full archive list."""
-    return get_move_list(simulation_class, True)
+    return get_move_list(simulation_class, is_full_archive=True)
 
 def copy_to_archive(run_folder, archive_folder, copy_patterns):
     """Copy files to the given archive folder based on glob patterns"""
@@ -384,8 +383,9 @@ def copy_to_archive(run_folder, archive_folder, copy_patterns):
     file_list = set()
     for pattern in copy_patterns:
         file_list.update(set(run_folder.glob(pattern)))
-    for file in file_list:
-        shutil.copy2(str(file), str(archive_folder))
+    for this_file in file_list:
+        if this_file.name != LOGFILE:
+            shutil.copy2(str(this_file), str(archive_folder))
 
 def move_to_archive(run_folder, archive_folder, move_patterns):
     """Move files to the given archive folder based on glob patterns"""
@@ -398,8 +398,9 @@ def move_to_archive(run_folder, archive_folder, move_patterns):
     file_list = set()
     for pattern in move_patterns:
         file_list.update(set(run_folder.glob(pattern)))
-    for file in file_list:
-        shutil.move(str(file), str(archive_folder))
+    for this_file in file_list:
+        if this_file.name != LOGFILE:
+            shutil.move(str(this_file), str(archive_folder))
 
 def move_rendered_templates(run_folder, archive_folder):
     """Save rendered template files to archive folder"""
@@ -408,9 +409,9 @@ def move_rendered_templates(run_folder, archive_folder):
     if not archive_folder.is_dir():
         raise OSError(f'Cannot access archive folder: {archive_folder}')
     file_list = run_folder.glob('*.rendered')
-    for file in file_list:
-        new_filename = str(file.name).replace('.rendered','')
-        shutil.move(str(file), str(archive_folder.joinpath(new_filename)))
+    for this_file in file_list:
+        new_filename = str(this_file.name).replace('.rendered','')
+        shutil.move(str(this_file), str(archive_folder.joinpath(new_filename)))
 
 def archive_log(settings, archive_folder):
     """Get a log of the last run and save it to the archive folder"""
@@ -439,8 +440,9 @@ def delete_output(settings, this_run):
     delete_list = get_delete_list(this_run['--class'])
     for pattern in delete_list:
         files = settings['current_folder'].glob(pattern)
-        for file in files:
-            file.unlink()
+        for this_file in files:
+            if this_file.name != LOGFILE:
+                this_file.unlink()
 
 # Sweep methods
 def get_sweep_parameters(sweep_definition):
