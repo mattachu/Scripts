@@ -224,7 +224,7 @@ class Page(TreeItem):
         return outline
 
     def _is_valid_parent(self, parent):
-        if type(self) == Page:
+        if type(self) in [Page, ContentsPage]:
             return (isinstance(parent, Notebook)
                     and not isinstance(parent, Logbook))
         else:
@@ -626,6 +626,14 @@ class LogbookMonth(LogbookPage):
         return self.parent.get_pages('months')
 
 
+class LogbookContents(ContentsPage):
+    """Logbook contents are built by date rather than file names."""
+    _descriptor = 'logbook contents page'
+
+    def _is_valid_parent(self, parent):
+        return isinstance(parent, Logbook)
+
+
 class Notebook(TreeItem):
     """Standard notebook object containing pages."""
     _descriptor = 'notebook'
@@ -769,6 +777,12 @@ class Logbook(Notebook):
             return LogbookMonth(page_path, parent=self)
         else:
             return LogbookPage(page_path, parent=self)
+
+    def add_contents_page(self, page_path=None):
+        """Add a contents page to a notebook."""
+        if self.get_contents_page() is not None:
+            raise ValueError('Cannot add more than one contents page.')
+        return LogbookContents(path=page_path, parent=self)
 
     def add_notebook(self, notebook_path=None):
         """Don't allow nested notebooks inside a logbook."""

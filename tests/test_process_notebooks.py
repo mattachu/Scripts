@@ -1244,6 +1244,12 @@ def is_valid_nesting(test_def):
         else:
             # Other combinations are not ok
             return False
+    elif (test_def['method_type'] != 'add'
+          and (    (test_def['object_type'] == 'contents'
+                    and test_def['parent'] == 'logbook')
+                or (test_def['object_type'] == 'logbook contents'
+                    and test_def['parent'] == 'notebook'))):
+        return False
     elif (test_def['object_type'] == 'nested'
         and test_def['path'] is not None):
         # Nested notebook fixture has a homepage at the root
@@ -1287,14 +1293,15 @@ def expectations(test_def):
         outline = 'self.test_logbook_page_outline'
         navigation = 'self.test_logbook_page_navigation'
     elif test_def['object_type'] in ['contents', 'logbook contents']:
-        expected['return type'] = 'pn.ContentsPage'
         expected['title'] = 'self.contents_descriptor'
         expected['filename'] = 'self.contents_filename'
         expected['link'] = 'self.contents_filename'
         if test_def['object_type'] == 'logbook contents':
+            expected['return type'] = 'pn.LogbookContents'
             summary = 'self.test_logbook_contents_page_summary'
             outline = 'self.test_logbook_contents_page_outline'
         else:
+            expected['return type'] = 'pn.ContentsPage'
             summary = 'self.test_contents_page_summary'
             outline = 'self.test_contents_page_outline'
         navigation = 'None'
@@ -1608,6 +1615,10 @@ def expectations(test_def):
                 expected['contents'] = get_temp_path(test_def['object_type'])
             else:
                 expected['contents'] = '[]'
+    elif method['do'] == 'add':
+        if ('contents' in test_def['object_type']
+                and test_def['parent'] == 'notebook'):
+            expected['return type'] = 'pn.ContentsPage'
     return expected
 
 
@@ -2186,10 +2197,10 @@ class TestProcessNotebooks:
             test_parent = eval(test_params['parent'])
             test_title = eval(test_params['title'])
             test_filename = eval(test_params['filename'])
-            test_page = pn.ContentsPage(path=eval(test_params['path']),
-                                        filename=test_filename,
-                                        title=test_title,
-                                        parent=test_parent)
+            test_page = pn.LogbookContents(path=eval(test_params['path']),
+                                           filename=test_filename,
+                                           title=test_title,
+                                           parent=test_parent)
             self.assert_parametric(test_page,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
@@ -2304,7 +2315,7 @@ class TestProcessNotebooks:
             tmp_logbook_contents_page):
         with eval(test_params['error condition']):
             existing_page = eval(test_params['existing'])
-            test_page = pn.ContentsPage(path=existing_page)
+            test_page = pn.LogbookContents(path=existing_page)
             test_page.load_contents(eval(test_params['path']))
             self.assert_parametric(test_page,
                                    test_params['test_type'],
@@ -2970,10 +2981,10 @@ class TestProcessNotebooks:
             test_parent = eval(test_params['parent'])
             test_title = eval(test_params['title'])
             test_filename = eval(test_params['filename'])
-            test_page = pn.ContentsPage(path=eval(test_params['path']),
-                                        filename=test_filename,
-                                        title=test_title,
-                                        parent=test_parent)
+            test_page = pn.LogbookContents(path=eval(test_params['path']),
+                                           filename=test_filename,
+                                           title=test_title,
+                                           parent=test_parent)
             result = test_page.get_navigation()
             self.assert_parametric(result,
                                    test_params['test_type'],
@@ -4787,7 +4798,7 @@ class TestProcessNotebooks:
                                    parent=test_parent)
                 pn.LogbookMonth(filename=self.extra_logbook_month,
                                 parent=test_parent)
-                pn.ContentsPage(parent=test_parent)
+                pn.LogbookContents(parent=test_parent)
             # Rebuild summary from pages
             test_page.rebuild()
             # Test result
