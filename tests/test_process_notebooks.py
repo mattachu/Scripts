@@ -27,7 +27,7 @@ test_lines = {
     'title': '# Page title',
     'subtitle': '## [Subtopic](link)',
     'bullet': '* Bullet line content including a [link][].',
-    'navigation': '[Home](link1) > [Folder](link2) > [Notebook](link3)',
+    'navigation': '[Home](link1) > [Folder](link2) > Notebook',
     'link': '[link]: https://link.com/link'}
 
 test_lines_strip_all_links = {
@@ -46,7 +46,7 @@ test_lines_strip_reference_links = {
     'title': '# Page title',
     'subtitle': '## [Subtopic](link)',
     'bullet': '* Bullet line content including a link.',
-    'navigation': '[Home](link1) > [Folder](link2) > [Notebook](link3)',
+    'navigation': '[Home](link1) > [Folder](link2) > Notebook',
     'link': ''}
 
 test_lines_strip_absolute_links = {
@@ -66,7 +66,7 @@ test_lines_title = {
     'title': '# Page title',
     'subtitle': '# [Subtopic](link)',
     'bullet': '# Bullet line content including a [link][].',
-    'navigation': '# [Home](link1) > [Folder](link2) > [Notebook](link3)',
+    'navigation': '# [Home](link1) > [Folder](link2) > Notebook',
     'link': '# [link]: https://link.com/link'}
 
 test_contents = {
