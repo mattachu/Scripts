@@ -20,6 +20,8 @@ README_FILENAME = 'Readme'
 LOGBOOK_FOLDER_NAME = 'Logbook'
 UNKNOWN_DESCRIPTOR = 'Unknown'
 ATTACHMENTS_FOLDER_NAME = 'Attachments'
+FOLDERS_DESCRIPTOR = 'Folders'
+PAGES_DESCRIPTOR = 'Pages'
 
 # Constants
 BLANK_LINE = ''
@@ -442,6 +444,54 @@ class ContentsPage(Page):
         kwargs['title'] = CONTENTS_DESCRIPTOR
         super().__init__(*args, **kwargs)
 
+    def rebuild(self):
+        """Rebuild contents by summarising relevant pages."""
+        self.contents = []
+        if self.parent is not None:
+            nav = self.get_navigation()
+            if nav is not None:
+                self.contents.append(nav)
+                self.contents.append(BLANK_LINE)
+            title = self.parent.title
+            if title is not None and title != UNKNOWN_DESCRIPTOR:
+                self.contents.append(_title(title, title_level=1))
+                self.contents.append(BLANK_LINE)
+            summary = self.parent.get_summary()
+            if summary is not None:
+                self.contents.append(summary)
+                self.contents.append(BLANK_LINE)
+                self.contents.append(BLANK_LINE)
+            folders = sorted(self.parent.get_notebooks(),
+                             key=lambda item: item.title + item.link)
+            folders = folders + self.parent.get_logbooks()
+            if len(folders) > 0:
+                self.contents.append(_title(FOLDERS_DESCRIPTOR, title_level=2))
+                self.contents.append(BLANK_LINE)
+            for folder in folders:
+                self.contents.append(_title(self.get_relative_link(folder),
+                                            title_level=3))
+                self.contents.append(BLANK_LINE)
+                summary = folder.get_summary()
+                if summary is not None:
+                    self.contents.append(summary)
+                    self.contents.append(BLANK_LINE)
+            pages = sorted(self.parent.get_pages(),
+                           key=lambda item: item.title + item.link)
+            if len(pages) > 0:
+                self.contents.append(_title(PAGES_DESCRIPTOR, title_level=2))
+                self.contents.append(BLANK_LINE)
+            for page in pages:
+                self.contents.append(_title(self.get_relative_link(page),
+                                            title_level=3))
+                self.contents.append(BLANK_LINE)
+                summary = page.get_summary()
+                if summary is not None:
+                    self.contents.append(summary)
+                    self.contents.append(BLANK_LINE)
+            while len(self.contents) > 0 and self.contents[-1] == BLANK_LINE:
+                self.contents = self.contents[:-1]
+        return self.contents
+
     def get_navigation(self):
         """Return navigation link for the notebook rather than its contents page."""
         if self.parent is not None:
@@ -629,6 +679,33 @@ class LogbookMonth(LogbookPage):
 class LogbookContents(ContentsPage):
     """Logbook contents are built by date rather than file names."""
     _descriptor = 'logbook contents page'
+
+    def rebuild(self):
+        """Rebuild contents by summarising relevant pages."""
+        self.contents = []
+        if self.parent is not None:
+            nav = self.get_navigation()
+            if nav is not None:
+                self.contents.append(nav)
+                self.contents.append(BLANK_LINE)
+            months = sorted(self.parent.get_pages(types='months'),
+                            key=lambda item: self.filename)
+            for month in months:
+                self.contents.append(_title(self.get_relative_link(month)))
+                self.contents.append(BLANK_LINE)
+                month.rebuild()
+                this_content = month.contents
+                while (len(this_content) > 0
+                        and (self._is_navigation_line(this_content[0])
+                            or self._is_title_line(this_content[0])
+                            or self._is_blank_line(this_content[0]))):
+                    this_content = this_content[1:]
+                self.contents += this_content
+                self.contents.append(BLANK_LINE)
+                self.contents.append(BLANK_LINE)
+            while len(self.contents) > 0 and self.contents[-1] == BLANK_LINE:
+                self.contents = self.contents[:-1]
+        return self.contents
 
     def _is_valid_parent(self, parent):
         return isinstance(parent, Logbook)

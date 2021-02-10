@@ -751,7 +751,14 @@ def get_object_tests(test_def):
     """Return a list of all tests for a particular object."""
     test_list = []
     for combination in get_test_combinations(test_def):
-        test_list = test_list + get_property_tests(combination)
+        if (test_def['method_type'] == 'rebuild'
+                and (  (test_def['object_type'] == 'contents'
+                        and combination['parent'] == 'logbook')
+                    or (test_def['object_type'] == 'logbook contents'
+                        and combination['parent'] == 'notebook'))):
+            continue
+        else:
+            test_list = test_list + get_property_tests(combination)
     test_list = test_list + get_io_tests(test_def)
     return test_list
 
@@ -1611,7 +1618,8 @@ def expectations(test_def):
             if (test_def['parent'] is not None
                     and is_valid_nesting(test_def)
                     and (test_def['path'] is not None
-                        or test_def['filename'] is not None)):
+                        or test_def['filename'] is not None
+                        or 'contents' in test_def['object_type'])):
                 expected['contents'] = get_temp_path(test_def['object_type'])
             else:
                 expected['contents'] = '[]'
@@ -1740,13 +1748,10 @@ class TestProcessNotebooks:
                                           '* Other work and communications: Subsection summary.']
         self.test_contents_page_outline = [self.test_contents_page_summary,
                                            '',
-                                           '* Folders',
-                                           '    - Admin: Various administrative notes and records.',
-                                           '    - Project: Notebook for a particular project.',
-                                           '    - Logbook: Logbook for this notebook scope.',
                                            '* Pages',
-                                           '    - Preparatory research: Research into the project.',
-                                           '    - Software links: Some information about software related to this notebook scope.']
+                                           '    - Page title: Page summary, including some `code` or links.',
+                                           '    - Page title: Page summary, including some `code` or links.',
+                                           '    - Page title: Page summary, including some `code` or links.']
         self.test_home_page_outline = [self.test_home_page_summary]
         self.test_readme_page_outline = [self.test_readme_page_summary]
         self.test_logbook_contents_page_outline = [self.test_logbook_contents_page_summary]
@@ -1953,15 +1958,10 @@ class TestProcessNotebooks:
             file_template = self.test_page
             contents_page = self.test_contents_page
             readme_page = self.test_readme_page
-        home_page = self.test_home_page
         for filename in file_list:
             new_file = folder_path.joinpath(filename)
             shutil.copyfile(file_template, new_file)
-        if add_home:
-            new_file = folder_path.joinpath(f'{self.homepage_filename}'
-                                            f'{self.page_suffix}')
-            shutil.copyfile(home_page, new_file)
-        if add_contents:
+        if add_contents and not add_home:
             new_file = folder_path.joinpath(f'{self.contents_filename}'
                                             f'{self.page_suffix}')
             shutil.copyfile(contents_page, new_file)
@@ -1969,6 +1969,14 @@ class TestProcessNotebooks:
             new_file = folder_path.joinpath(f'{self.readme_filename}'
                                             f'{self.page_suffix}')
             shutil.copyfile(readme_page, new_file)
+        if add_home:
+            new_file = folder_path.joinpath(f'{self.homepage_filename}'
+                                            f'{self.page_suffix}')
+            shutil.copyfile(self.test_home_page, new_file)
+        if is_logbook:
+            new_file = folder_path.joinpath(f'{self.temp_logbook_month}'
+                                            f'{self.page_suffix}')
+            shutil.copyfile(self.test_logbook_month_page, new_file)
 
 
     # Custom assertions
@@ -2014,6 +2022,9 @@ class TestProcessNotebooks:
             if isinstance(item, pn.ContentsPage):
                 self.assert_page_contents_match(
                         item.contents, self.test_logbook_contents_page)
+            elif isinstance(item, pn.LogbookMonth):
+                self.assert_page_contents_match(
+                        item.contents, self.test_logbook_month_page)
             elif isinstance(item, pn.ReadmePage):
                 self.assert_page_contents_match(
                         item.contents, self.test_logbook_readme_page)
@@ -4770,6 +4781,72 @@ class TestProcessNotebooks:
 
 
     # Building summaries
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents', 'rebuild'))
+    def test_rebuild_contents(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested, tmp_contents_page):
+        with eval(test_params['error condition']):
+            # Create parent object if set
+            test_notebook = pn.Notebook(path=tmp_nested)
+            if test_params['parent'] == 'None':
+                test_parent = None
+            elif test_params['parent'] == get_generator('notebook'):
+                test_parent = test_notebook.get_notebooks()[0]
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Get or create contents page
+            if test_parent is not None:
+                test_page = test_parent.get_contents_page()
+                test_page.path = eval(test_params['path'])
+                test_page.filename = eval(test_params['filename'])
+                test_page.title = eval(test_params['title'])
+            else:
+                test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                            filename=eval(test_params['filename']),
+                                            title=eval(test_params['title']))
+            # Clear initial contents
+            test_page.contents = []
+            # Rebuild summary from pages
+            test_page.rebuild()
+            # Test result
+            self.assert_parametric(test_page,
+                                test_params['test_type'],
+                                eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'rebuild'))
+    def test_rebuild_logbook_contents(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested, tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            # Create parent object if set
+            test_notebook = pn.Notebook(path=tmp_nested)
+            if test_params['parent'] == 'None':
+                test_parent = None
+            elif test_params['parent'] == get_generator('logbook'):
+                test_parent = test_notebook.get_logbooks()[0]
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Get or create contents page
+            if test_parent is not None:
+                test_page = test_parent.get_contents_page()
+                test_page.path = eval(test_params['path'])
+                test_page.filename = eval(test_params['filename'])
+                test_page.title = eval(test_params['title'])
+            else:
+                test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                            filename=eval(test_params['filename']),
+                                            title=eval(test_params['title']))
+            # Clear initial contents
+            test_page.contents = []
+            # Rebuild summary from pages
+            test_page.rebuild()
+            # Test result
+            self.assert_parametric(test_page,
+                                test_params['test_type'],
+                                eval(test_params['expected']))
+
     @pytest.mark.parametrize('test_params',
                              build_all_tests('logbook month', 'rebuild'))
     def test_rebuild_logbook_month(

@@ -1,29 +1,20 @@
-[Home](../Home) > [Notebook title](Contents)
+[Home](../Home) > Notebook title
+
+# Notebook title
 
 Description of notebook scope and contents.
 
 
-# Folders
+## Pages
 
-## [Admin](Admin/Contents)
+### [Page title](page1)
 
-Various administrative notes and records.
+Page summary, including some `code` or links.
 
-## [Project](Project/Contents)
+### [Page title](page2)
 
-Notebook for a particular project.
+Page summary, including some `code` or links.
 
-## [Logbook](Logbook/Contents)
+### [Page title](page3)
 
-Logbook for this notebook scope.
-
-
-# Pages
-
-## [Preparatory research](Preparatory-research)
-
-Research into the project.
-
-## [Software links](Software-links)
-
-Some information about software related to this notebook scope.
+Page summary, including some `code` or links.
