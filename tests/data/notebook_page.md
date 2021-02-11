@@ -1,4 +1,4 @@
-[< Home](../Contents)
+[Home](../Home) > [Notebook title](Contents) > Page title
 
 # Page title
 

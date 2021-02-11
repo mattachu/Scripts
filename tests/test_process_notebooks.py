@@ -752,9 +752,9 @@ def get_object_tests(test_def):
     test_list = []
     for combination in get_test_combinations(test_def):
         if (test_def['method_type'] == 'rebuild'
-                and (  (test_def['object_type'] == 'contents'
+                and (  ('logbook' not in test_def['object_type']
                         and combination['parent'] == 'logbook')
-                    or (test_def['object_type'] == 'logbook contents'
+                    or ('logbook' in test_def['object_type']
                         and combination['parent'] == 'notebook'))):
             continue
         else:
@@ -1273,6 +1273,8 @@ def error_expected(test_def):
         return True
     elif 'return type' in expected and 'Error' in expected['return type']:
         return True
+    elif 'contents' in expected and 'Error' in expected['contents']:
+        return True
     return False
 
 # Define expectations for parametric tests
@@ -1622,14 +1624,33 @@ def expectations(test_def):
             expected['result'] = f"test_lines_title['{test_def['test_object']}']"
     elif method['do'] == 'rebuild':
         if 'Error' not in expected['contents']:
-            if (test_def['parent'] is not None
-                    and is_valid_nesting(test_def)
-                    and (test_def['path'] is not None
-                        or test_def['filename'] is not None
-                        or 'contents' in test_def['object_type'])):
-                expected['contents'] = get_temp_path(test_def['object_type'])
+            expected['contents'] = '[]'
+            if test_def['object_type'] in ['home', 'readme', 'logbook readme']:
+                expected['contents'] = 'TypeError'
+                content_match = False
+            elif test_def['object_type'] == 'logbook month':
+                if (test_def['parent'] is not None
+                        and is_valid_nesting(test_def)
+                        and (test_def['path'] is not None
+                            or test_def['filename'] is not None)):
+                    content_match = True
+                else:
+                    content_match = False
+            elif 'contents' in test_def['object_type']:
+                if (test_def['parent'] is not None
+                        and is_valid_nesting(test_def)):
+                    content_match = True
+                else:
+                    content_match = False
             else:
-                expected['contents'] = '[]'
+                if (test_def['path'] is not None
+                        or (test_def['parent'] is not None
+                            and is_valid_nesting(test_def))):
+                    content_match = True
+                else:
+                    content_match = False
+            if content_match:
+                expected['contents'] = get_temp_path(test_def['object_type'])
     elif method['do'] == 'add':
         if ('contents' in test_def['object_type']
                 and test_def['parent'] == 'notebook'):
@@ -4967,7 +4988,167 @@ class TestProcessNotebooks:
                                    eval(test_params['expected']))
 
 
-    # Building summaries
+    # Rebuilding pages
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'rebuild'))
+    def test_rebuild_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested, tmp_page):
+        with eval(test_params['error condition']):
+            # Create parent object if set
+            test_notebook = pn.Notebook(path=tmp_nested)
+            if test_params['parent'] == 'None':
+                test_parent = None
+            elif test_params['parent'] == get_generator('notebook'):
+                test_parent = test_notebook.get_notebooks()[0]
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Get or create page
+            if test_parent is not None:
+                test_page = test_parent.get_pages()[0]
+            else:
+                test_page = pn.Page(path=eval(test_params['path']),
+                                    filename=eval(test_params['filename']),
+                                    title=eval(test_params['title']))
+            # Remove navigation line to test rebuild
+            if (len(test_page.contents) > 1
+                    and test_page._is_navigation_line(test_page.contents[0])):
+                test_page.contents = test_page.contents[1:]
+            # Rebuild page
+            test_page.rebuild()
+            # Parent-less pages will not have the navigation line
+            if test_parent is None:
+                with open(tmp_page, 'r') as f:
+                    lines = f.readlines()
+                with open(tmp_page, 'w') as f:
+                    f.writelines(lines[2:])
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'rebuild'))
+    def test_rebuild_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested, tmp_logbook_page):
+        with eval(test_params['error condition']):
+            # Create parent object if set
+            test_notebook = pn.Notebook(path=tmp_nested)
+            if test_params['parent'] == 'None':
+                test_parent = None
+            elif test_params['parent'] == get_generator('logbook'):
+                test_parent = test_notebook.get_logbooks()[0]
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Get or create page
+            if test_parent is not None:
+                test_page = test_parent.get_pages()[0]
+            else:
+                test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                           filename=eval(test_params['filename']),
+                                           title=eval(test_params['title']))
+            # Remove navigation line to test rebuild
+            if (len(test_page.contents) > 1
+                    and test_page._is_navigation_line(test_page.contents[0])):
+                test_page.contents = test_page.contents[1:]
+            # Rebuild page
+            test_page.rebuild()
+            # Parent-less pages will not have the navigation line
+            if test_parent is None:
+                with open(tmp_logbook_page, 'r') as f:
+                    lines = f.readlines()
+                with open(tmp_logbook_page, 'w') as f:
+                    f.writelines(lines[2:])
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('home', 'rebuild'))
+    def test_rebuild_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested, tmp_home_page):
+        with eval(test_params['error condition']):
+            # Create parent object if set
+            test_notebook = pn.Notebook(path=tmp_nested)
+            if test_params['parent'] == 'None':
+                test_parent = None
+            elif test_params['parent'] == get_generator('notebook'):
+                test_parent = test_notebook
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Get or create page
+            if test_parent is not None:
+                test_page = test_parent.get_home_page()
+            else:
+                test_page = pn.HomePage(path=eval(test_params['path']),
+                                        filename=eval(test_params['filename']),
+                                        title=eval(test_params['title']))
+            # Rebuild page
+            test_page.rebuild()
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('readme', 'rebuild'))
+    def test_rebuild_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested, tmp_readme_page):
+        with eval(test_params['error condition']):
+            # Create parent object if set
+            test_notebook = pn.Notebook(path=tmp_nested)
+            if test_params['parent'] == 'None':
+                test_parent = None
+            elif test_params['parent'] == get_generator('notebook'):
+                test_parent = test_notebook.get_notebooks()[0]
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Get or create page
+            if test_parent is not None:
+                test_page = test_parent.get_readme_page()
+            else:
+                test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                          filename=eval(test_params['filename']),
+                                          title=eval(test_params['title']))
+            # Rebuild page
+            test_page.rebuild()
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook readme', 'rebuild'))
+    def test_rebuild_logbook_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested, tmp_logbook_readme_page):
+        with eval(test_params['error condition']):
+            # Create parent object if set
+            test_notebook = pn.Notebook(path=tmp_nested)
+            if test_params['parent'] == 'None':
+                test_parent = None
+            elif test_params['parent'] == get_generator('logbook'):
+                test_parent = test_notebook.get_logbooks()[0]
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Get or create page
+            if test_parent is not None:
+                test_page = test_parent.get_readme_page()
+            else:
+                test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                          filename=eval(test_params['filename']),
+                                          title=eval(test_params['title']))
+            # Rebuild page
+            test_page.rebuild()
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
     @pytest.mark.parametrize('test_params',
                              build_all_tests('contents', 'rebuild'))
     def test_rebuild_contents(
@@ -4985,9 +5166,6 @@ class TestProcessNotebooks:
             # Get or create contents page
             if test_parent is not None:
                 test_page = test_parent.get_contents_page()
-                test_page.path = eval(test_params['path'])
-                test_page.filename = eval(test_params['filename'])
-                test_page.title = eval(test_params['title'])
             else:
                 test_page = pn.ContentsPage(path=eval(test_params['path']),
                                             filename=eval(test_params['filename']),
@@ -4998,8 +5176,8 @@ class TestProcessNotebooks:
             test_page.rebuild()
             # Test result
             self.assert_parametric(test_page,
-                                test_params['test_type'],
-                                eval(test_params['expected']))
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
     @pytest.mark.parametrize('test_params',
                              build_all_tests('logbook contents', 'rebuild'))
@@ -5018,9 +5196,6 @@ class TestProcessNotebooks:
             # Get or create contents page
             if test_parent is not None:
                 test_page = test_parent.get_contents_page()
-                test_page.path = eval(test_params['path'])
-                test_page.filename = eval(test_params['filename'])
-                test_page.title = eval(test_params['title'])
             else:
                 test_page = pn.ContentsPage(path=eval(test_params['path']),
                                             filename=eval(test_params['filename']),
@@ -5031,8 +5206,8 @@ class TestProcessNotebooks:
             test_page.rebuild()
             # Test result
             self.assert_parametric(test_page,
-                                test_params['test_type'],
-                                eval(test_params['expected']))
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
 
     @pytest.mark.parametrize('test_params',
                              build_all_tests('logbook month', 'rebuild'))
