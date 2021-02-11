@@ -261,7 +261,8 @@ class Page(TreeItem):
             return None
         subsection = self._find_first_subtitle(contents)
         if subsection is None or start_line < subsection:
-            lines = self._find_first_blank_line(contents[start_line:]) or 1
+            lines = (self._find_first_blank_line(contents[start_line:])
+                     or len(contents[start_line:]))
             summary = ' '.join(contents[start_line:start_line+lines]).strip()
             summary = self._strip_links(summary, 'reference')
             if summary.find(r': * ') > 0:
