@@ -798,7 +798,7 @@ def get_method_tests(test_def):
     expected = expectations(test_def)
     method = get_method_parameters(test_def['method_type'])
     if method['get'] in ['title', 'summary', 'outline', 'content', 'navigation',
-                         'next', 'previous', 'up', 'month']:
+                         'next', 'previous', 'up', 'month', 'modified']:
         test_list.append(get_test('result', test_def, expected))
     elif method['get'] in ['pages', 'notebooks', 'logbooks']:
         test_list.append(get_test('return type', test_def, expected))
@@ -1588,8 +1588,8 @@ def expectations(test_def):
             else:
                 expected['result'] = 'False'
     elif method['do'] == 'has':
-        if method['get'] == 'summary':
-            if not 'Error' in expected['return type']:
+        if not 'Error' in expected['return type']:
+            if method['get'] == 'summary':
                 if test_def['test_object'] is None:
                     expected['result'] = 'False'
                 elif test_def['object_type'] == 'logbook page':
@@ -1600,6 +1600,13 @@ def expectations(test_def):
                     expected['result'] = ("contents_summary['"
                                         + test_def['test_object']
                                         + "'] is not None")
+            elif method['get'] == 'modified':
+                if test_def['path'] is None:
+                    expected['result'] = 'ValueError'
+                elif test_def['test_object'] is not None:
+                    expected['result'] = 'True'
+                else:
+                    expected['result'] = 'False'
     elif method['do'] == 'read':
         if test_def['test_object'] is None:
             expected['contents'] = 'None'
@@ -3837,6 +3844,26 @@ class TestProcessNotebooks:
                                    eval(test_params['expected']))
 
     @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'has summary'))
+    def test_has_summary_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookContents(path=eval(test_params['path']),
+                                           filename=test_filename,
+                                           title=test_title,
+                                           parent=test_parent)
+            if test_params['object'] is not None:
+                test_page.contents = test_params['object']
+            result = test_page._has_summary()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
                              build_all_tests('readme', 'has summary'))
     def test_has_summary_readme(
             self, capsys, tmp_file_factory, cloned_repo, test_params,
@@ -3872,6 +3899,166 @@ class TestProcessNotebooks:
             if test_params['object'] is not None:
                 test_page.contents = test_params['object']
             result = test_page._has_summary()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'has modified'))
+    def test_has_been_modified_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            if test_params['object'] is not None:
+                test_page.contents = test_params['object']
+            result = test_page.modified()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'has modified'))
+    def test_has_been_modified_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            if test_params['object'] is not None:
+                test_page.contents = test_params['object']
+            result = test_page.modified()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'has modified'))
+    def test_has_been_modified_logbook_month(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            if test_params['object'] is not None:
+                test_page.contents = test_params['object']
+            result = test_page.modified()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('home', 'has modified'))
+    def test_has_been_modified_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.HomePage(path=eval(test_params['path']),
+                                    filename=test_filename,
+                                    title=test_title,
+                                    parent=test_parent)
+            if test_params['object'] is not None:
+                test_page.contents = test_params['object']
+            result = test_page.modified()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents', 'has modified'))
+    def test_has_been_modified_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            if test_params['object'] is not None:
+                test_page.contents = test_params['object']
+            result = test_page.modified()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'has modified'))
+    def test_has_been_modified_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookContents(path=eval(test_params['path']),
+                                           filename=test_filename,
+                                           title=test_title,
+                                           parent=test_parent)
+            if test_params['object'] is not None:
+                test_page.contents = test_params['object']
+            result = test_page.modified()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('readme', 'has modified'))
+    def test_has_been_modified_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            if test_params['object'] is not None:
+                test_page.contents = test_params['object']
+            result = test_page.modified()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook readme', 'has modified'))
+    def test_has_been_modified_logbook_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            if test_params['object'] is not None:
+                test_page.contents = test_params['object']
+            result = test_page.modified()
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))

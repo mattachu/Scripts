@@ -225,6 +225,14 @@ class Page(TreeItem):
             outline = outline[:-1]
         return outline
 
+    def modified(self):
+        """Check whether the page has been modified since loading from file."""
+        if self.path is None:
+            raise ValueError(f'Cannot compare with file as path not known.')
+        if not self._is_valid_path(self.path):
+            raise ValueError(f'Invalid path: {self.path}')
+        return not self._contents_match(self.path)
+
     def _is_valid_parent(self, parent):
         if type(self) in [Page, ContentsPage]:
             return (isinstance(parent, Notebook)
