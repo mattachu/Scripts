@@ -206,6 +206,20 @@ class Page(TreeItem):
     """Standard page in a notebook."""
     _descriptor = 'page'
 
+    def rebuild(self):
+        """Rebuild the navigation line for a standard page."""
+        old_contents = self.contents
+        while (len(old_contents) > 0
+                    and (self._is_navigation_line(old_contents[0])
+                        or self._is_blank_line(old_contents[0]))):
+            old_contents = old_contents[1:]
+        self.contents = []
+        navigation_line = self.get_navigation()
+        if navigation_line is not None:
+            self.contents.append(navigation_line)
+            self.contents.append(BLANK_LINE)
+        self.contents += old_contents
+
     def get_summary(self):
         if self._has_summary():
             return self._get_summary(self.contents)
@@ -232,20 +246,6 @@ class Page(TreeItem):
         if not self._is_valid_path(self.path):
             raise ValueError(f'Invalid path: {self.path}')
         return not self._contents_match(self.path)
-
-    def rebuild(self):
-        """Rebuild the navigation line for a standard page."""
-        old_contents = self.contents
-        while (len(old_contents) > 0
-                    and (self._is_navigation_line(old_contents[0])
-                        or self._is_blank_line(old_contents[0]))):
-            old_contents = old_contents[1:]
-        self.contents = []
-        navigation_line = self.get_navigation()
-        if navigation_line is not None:
-            self.contents.append(navigation_line)
-            self.contents.append(BLANK_LINE)
-        self.contents += old_contents
 
     def _is_valid_parent(self, parent):
         if type(self) in [Page, ContentsPage]:
@@ -439,13 +439,13 @@ class HomePage(Page):
         kwargs['title'] = HOME_DESCRIPTOR
         super().__init__(*args, **kwargs)
 
-    def get_navigation(self):
-        """Don't return any navigation as already at home page."""
-        return None
-
     def rebuild(self):
         """Home pages are manually edited, so cannot be rebuilt."""
         raise TypeError('Cannot rebuild a home page.')
+
+    def get_navigation(self):
+        """Don't return any navigation as already at home page."""
+        return None
 
     def _is_valid_parent(self, parent):
         """Home pages must be contained at the root level."""
@@ -544,13 +544,13 @@ class ReadmePage(Page):
         kwargs['filename'] = README_FILENAME
         super().__init__(*args, **kwargs)
 
-    def get_navigation(self):
-        """Don't return any navigation as readme pages should remain clean."""
-        return None
-
     def rebuild(self):
         """Readme pages are static, so cannot be rebuilt."""
         raise TypeError('Cannot rebuild a readme page.')
+
+    def get_navigation(self):
+        """Don't return any navigation as readme pages should remain clean."""
+        return None
 
     def _is_valid_path(self, page_file):
         return _is_valid_readme_page_file(page_file)
