@@ -363,7 +363,7 @@ class Page(TreeItem):
 
     def _is_link_line(self, line):
         reference = r'\[[^]]*\]\: [^\s]*'
-        descriptive = r'.*\: \[[^]]*\](\([^\)]*\)|\[[^\]]*\])'
+        descriptive = r'(\w+( \w+)?)\: \[[^]]*\](\([^\)]*\)|\[[^\]]*\])'
         if re.search(f'^({reference}|{descriptive})$', line) is not None:
             return True
         return False
