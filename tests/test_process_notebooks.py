@@ -1761,6 +1761,9 @@ class TestProcessNotebooks:
         self.temp_logbook_pages = ['2020-01-01.md',
                                    '2020-01-02.md',
                                    '2020-01-03.md']
+        self.temp_logbook_navigation = {'2020-01-01': '[January 2020](2020-01) | [2020-01-02 >](2020-01-02)',
+                                        '2020-01-02': '[< 2020-01-01](2020-01-01) | [January 2020](2020-01) | [2020-01-03 >](2020-01-03)',
+                                        '2020-01-03': '[< 2020-01-02](2020-01-02) | [January 2020](2020-01)'}
         self.extra_logbook_month = '2019-12'
         self.test_message = 'Hello world'
         self.test_page_title = 'Page title'
@@ -1980,6 +1983,9 @@ class TestProcessNotebooks:
         for filename in file_list:
             new_file = folder_path.joinpath(filename)
             shutil.copyfile(file_template, new_file)
+            if is_logbook:
+                navigation_line = self.temp_logbook_navigation[new_file.stem]
+                self.update_navigation(new_file, navigation_line)
         if add_contents and not add_home:
             new_file = folder_path.joinpath(f'{self.contents_filename}'
                                             f'{self.page_suffix}')
@@ -1997,6 +2003,14 @@ class TestProcessNotebooks:
                                             f'{self.page_suffix}')
             shutil.copyfile(self.test_logbook_month_page, new_file)
 
+    def update_navigation(self, logbook_page_file, navigation_line):
+        """The navigation line for each logbook page needs to be unique."""
+        with open(logbook_page_file, 'r') as f:
+            page_contents = f.readlines()
+        with open(logbook_page_file, 'w') as f:
+            f.write(navigation_line + '\n')
+            f.writelines(page_contents[1:])
+
 
     # Custom assertions
     def assert_repo_unchanged(self, cloned_repo):
@@ -2007,7 +2021,7 @@ class TestProcessNotebooks:
 
     def assert_page_contents_match(self, test_contents, generator_page):
         """Assert that page contents match the generator page file."""
-        with open(generator_page, 'r')  as f:
+        with open(generator_page, 'r') as f:
             file_contents = [line.strip() for line in f.readlines()]
         assert test_contents == file_contents
 
@@ -2017,37 +2031,20 @@ class TestProcessNotebooks:
             assert this_file.stem in [item.filename for item in notebook_contents
                                       if isinstance(item, pn.Page)]
         for item in notebook_contents:
-            if not isinstance(item, pn.Page):
-                continue
-            if isinstance(item, pn.HomePage):
-                self.assert_page_contents_match(item.contents, self.test_home_page)
-            elif isinstance(item, pn.ContentsPage):
-                self.assert_page_contents_match(item.contents, self.test_contents_page)
-            elif isinstance(item, pn.ReadmePage):
-                self.assert_page_contents_match(item.contents, self.test_readme_page)
-            else:
-                self.assert_page_contents_match(item.contents, self.test_page)
+            if isinstance(item, pn.Page):
+                self.assert_page_contents_match(
+                    item.contents,
+                    tmp_notebook.joinpath(item.filename + self.page_suffix))
 
     def assert_logbook_contents_match(self, logbook_contents, tmp_logbook):
         """Assert that logbook contents match the generator folder."""
         for this_file in tmp_logbook.glob('*.*'):
             assert this_file.stem in [page.filename for page in logbook_contents]
         for item in logbook_contents:
-            if not isinstance(item, pn.Page):
-                continue
-            if isinstance(item, pn.ContentsPage):
+            if isinstance(item, pn.Page):
                 self.assert_page_contents_match(
-                        item.contents, self.test_logbook_contents_page)
-            elif isinstance(item, pn.LogbookMonth):
-                self.assert_page_contents_match(
-                        item.contents, self.test_logbook_month_page)
-            elif isinstance(item, pn.ReadmePage):
-                self.assert_page_contents_match(
-                        item.contents, self.test_logbook_readme_page)
-            else:
-                assert isinstance(item, pn.LogbookPage)
-                self.assert_page_contents_match(
-                        item.contents, self.test_logbook_page)
+                        item.contents,
+                        tmp_logbook.joinpath(item.filename + self.page_suffix))
 
     def assert_contents_match(self, test_object, expected):
         """Select correct assertion based on object type."""
