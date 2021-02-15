@@ -1151,8 +1151,13 @@ def get_line_error_type(line_type):
 
 def get_title_from_filename(filename, object_type):
     """Work out what the generated filename should be."""
-    if object_type in ['logbook page', 'logbook month']:
+    if object_type == 'logbook page':
         return filename
+    elif object_type == 'logbook month':
+        if filename == 'existing_page.stem':
+            return "'January 2001'"
+        else:
+            return 'self.test_logbook_month_title'
     else:
         return f"{filename}.replace('_', ' ').replace('-', ' ').strip()"
 
@@ -1378,7 +1383,10 @@ def expectations(test_def):
         expected['title'] = get_title_from_filename(
             test_def['filename'], test_def['object_type'])
     if test_def['title'] is not None:
-        expected['title'] = test_def['title']
+        if test_def['object_type'] == 'logbook month':
+            expected['title'] = expected['title'] or test_def['title']
+        else:
+            expected['title'] = test_def['title']
     if test_def['method_type'] == 'overwrite':
         existing_object, *_ = get_existing_object(test_def['object_type'])
         expected['path'] = existing_object

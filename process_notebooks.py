@@ -8,6 +8,7 @@ Usage:
 from docopt import docopt
 import pathlib
 import re
+import calendar
 
 # Settings
 PAGE_SUFFIX = '.md'
@@ -707,6 +708,18 @@ class LogbookMonth(LogbookPage):
 
     def _get_siblings(self):
         return self.parent.get_pages('months')
+
+    def _get_title_from_filename(self):
+        if (self.filename is not None
+                and len(self.filename) >= 7
+                and self.filename[:4].isnumeric()
+                and self.filename[4:5] == '-'
+                and self.filename[5:7].isnumeric()):
+            year = int(self.filename[:4])
+            month = int(self.filename[5:7])
+            new_title = f'{calendar.month_name[month]} {year}'
+            if self._is_valid_title(new_title):
+                return new_title
 
 
 class LogbookContents(ContentsPage):
