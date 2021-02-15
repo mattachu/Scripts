@@ -325,8 +325,9 @@ class Page(TreeItem):
                 summary = summary.replace('\n', '')
                 text = f'{text}: {summary}'
             bullets = [text]
-            for subsection in self._get_sections(section):
-                bullets = bullets + self._get_bullets(subsection, next_bullet)
+            if next_bullet is not None:
+                for subsection in self._get_sections(section):
+                    bullets = bullets + self._get_bullets(subsection, next_bullet)
             return bullets
 
     def _has_summary(self):
