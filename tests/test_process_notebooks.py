@@ -1932,23 +1932,6 @@ class TestProcessNotebooks:
         shutil.rmtree(logbook_folder)
 
     @pytest.fixture
-    def tmp_notebook_without_readme(self, tmp_path):
-        """Create a temporary notebook folder and add some pages."""
-        notebook_folder = tmp_path.joinpath(self.temp_notebook)
-        self.create_and_fill_folder(notebook_folder, add_readme=False)
-        yield notebook_folder
-        shutil.rmtree(notebook_folder)
-
-    @pytest.fixture
-    def tmp_logbook_without_readme(self, tmp_path):
-        """Create a temporary logbook folder and add some pages."""
-        logbook_folder = tmp_path.joinpath(self.temp_logbook)
-        self.create_and_fill_folder(
-            logbook_folder, is_logbook=True, add_readme=False)
-        yield logbook_folder
-        shutil.rmtree(logbook_folder)
-
-    @pytest.fixture
     def tmp_nested(self, tmp_path):
         """Create a temporary notebook folder and add pages and subfolders."""
         notebook_folder = tmp_path.joinpath(self.temp_notebook)
@@ -2022,10 +2005,9 @@ class TestProcessNotebooks:
 
     def assert_notebook_contents_match(self, notebook_contents, tmp_notebook):
         """Assert that notebook contents match the generator folder."""
-        for filename in self.temp_pages:
-            this_path = tmp_notebook.joinpath(filename)
-            assert this_path in [item.path for item in notebook_contents
-                                 if isinstance(item, pn.Page)]
+        for this_file in tmp_notebook.glob('*.*'):
+            assert this_file.stem in [item.filename for item in notebook_contents
+                                      if isinstance(item, pn.Page)]
         for item in notebook_contents:
             if not isinstance(item, pn.Page):
                 continue
@@ -2040,10 +2022,8 @@ class TestProcessNotebooks:
 
     def assert_logbook_contents_match(self, logbook_contents, tmp_logbook):
         """Assert that logbook contents match the generator folder."""
-        for filename in self.temp_logbook_pages:
-            this_path = tmp_logbook.joinpath(filename)
-            assert this_path in [item.path for item in logbook_contents
-                                 if isinstance(item, pn.Page)]
+        for this_file in tmp_logbook.glob('*.*'):
+            assert this_file.stem in [page.filename for page in logbook_contents]
         for item in logbook_contents:
             if not isinstance(item, pn.Page):
                 continue
@@ -4483,6 +4463,11 @@ class TestProcessNotebooks:
                                         title=test_title,
                                         parent=test_parent)
             result = test_notebook.get_pages()
+            # remove non-standard page files from folder for comparison
+            for filename in [self.readme_filename, self.contents_filename]:
+                this_file = tmp_notebook.joinpath(filename + self.page_suffix)
+                if this_file.is_file():
+                    this_file.unlink()
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
@@ -4501,6 +4486,11 @@ class TestProcessNotebooks:
                                       title=test_title,
                                       parent=test_parent)
             result = test_logbook.get_pages()
+            # remove non-standard page files from folder for comparison
+            for filename in [self.readme_filename, self.contents_filename]:
+                this_file = tmp_logbook.joinpath(filename + self.page_suffix)
+                if this_file.is_file():
+                    this_file.unlink()
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
@@ -4519,6 +4509,11 @@ class TestProcessNotebooks:
                                         title=test_title,
                                         parent=test_parent)
             result = test_notebook.get_pages()
+            # remove non-standard page files from folder for comparison
+            for filename in [self.readme_filename, self.homepage_filename]:
+                this_file = tmp_nested.joinpath(filename + self.page_suffix)
+                if this_file.is_file():
+                    this_file.unlink()
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
