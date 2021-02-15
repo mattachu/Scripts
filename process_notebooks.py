@@ -768,6 +768,20 @@ class Notebook(TreeItem):
         else:
             self.link = CONTENTS_FILENAME
 
+    def rebuild(self):
+        """Rebuild pages and nested notebooks within the notebook."""
+        for notebook in self.get_notebooks():
+            notebook.rebuild()
+        for logbook in self.get_logbooks():
+            logbook.rebuild()
+        for page in self.get_pages():
+            page.rebuild()
+        if self.get_root() != self and len(self.contents) > 0:
+            contents = self.get_contents_page()
+            if contents is None:
+                contents = self.add_contents_page()
+            contents.rebuild()
+
     def add_page(self, page_path=None):
         """Add a page to a notebook."""
         return Page(page_path, parent=self)
@@ -894,6 +908,27 @@ class Notebook(TreeItem):
 class Logbook(Notebook):
     """Special notebook object for logbooks, containing logbook pages."""
     _descriptor = 'logbook'
+
+    def rebuild(self):
+        """Rebuild logbook pages and monthly/overall summaries."""
+        days = self.get_pages(types='days')
+        months = self.get_pages(types='months')
+        months_needed = {day_page.get_month() for day_page in days}
+        for month_page in months:
+            if month_page.get_month() not in months_needed:
+                self.contents.remove(month_page)
+            else:
+                month_page.rebuild()
+        for month in months_needed - {page.get_month() for page in months}:
+            month_page = LogbookMonth(parent=self, filename=month)
+            month_page.rebuild()
+        for day_page in days:
+            day_page.rebuild()
+        if len(self.contents) > 0:
+            contents = self.get_contents_page()
+            if contents is None:
+                contents = self.add_contents_page()
+            contents.rebuild()
 
     def add_page(self, page_path=None):
         """Add a page to a logbook."""

@@ -755,7 +755,9 @@ def get_object_tests(test_def):
                 and (  ('logbook' not in test_def['object_type']
                         and combination['parent'] == 'logbook')
                     or ('logbook' in test_def['object_type']
-                        and combination['parent'] == 'notebook'))):
+                        and combination['parent'] == 'notebook')
+                    or (test_def['object_type'] == 'nested'
+                        and combination['parent'] is not None))):
             continue
         else:
             test_list = test_list + get_property_tests(combination)
@@ -1805,6 +1807,7 @@ class TestProcessNotebooks:
         self.logbook_folder_name = 'Logbook'
         self.unknown_descriptor = 'Unknown'
         self.test_page_navigation = self.test_page_title
+        self.test_notebook_page_navigation = '[Home](Home) > Page title'
         self.test_logbook_page_navigation = '[< 2019-01-01](2019-01-01) | [January 2020](2020-01) | [2021-01-01 >](2021-01-01)'
         self.test_logbook_month_page_navigation = '[< 2019-01](2019-01) | [Home](Home) | [2021-01 >](2021-01)'
         self.test_notebook_navigation = self.test_notebook_title
@@ -1947,6 +1950,10 @@ class TestProcessNotebooks:
         """Create a temporary notebook folder and add pages and subfolders."""
         notebook_folder = tmp_path.joinpath(self.temp_notebook)
         self.create_and_fill_folder(notebook_folder, add_home=True)
+        for filename in self.temp_pages:
+            self.update_navigation(
+                notebook_folder.joinpath(filename),
+                self.test_notebook_page_navigation)
         subfolder1 = notebook_folder.joinpath(self.temp_notebook)
         self.create_and_fill_folder(subfolder1)
         subfolder2 = notebook_folder.joinpath(self.temp_logbook)
@@ -2035,6 +2042,14 @@ class TestProcessNotebooks:
                 self.assert_page_contents_match(
                     item.contents,
                     tmp_notebook.joinpath(item.filename + self.page_suffix))
+            elif isinstance(item, pn.Notebook):
+                self.assert_notebook_contents_match(
+                    item.contents,
+                    tmp_notebook.joinpath(item.filename))
+            elif isinstance(item, pn.Logbook):
+                self.assert_logbook_contents_match(
+                    item.contents,
+                    tmp_notebook.joinpath(item.filename))
 
     def assert_logbook_contents_match(self, logbook_contents, tmp_logbook):
         """Assert that logbook contents match the generator folder."""
@@ -5242,5 +5257,133 @@ class TestProcessNotebooks:
             test_page.rebuild()
             # Test result
             self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+
+    # Rebuilding notebooks
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('notebook', 'rebuild'))
+    def test_rebuild_notebook(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            # Save location of notebook folder on disk for comparison
+            tmp_notebook = tmp_nested.joinpath(self.temp_notebook)
+            # Create parent object if set
+            if test_params['parent'] == 'None':
+                test_parent = None
+            elif test_params['parent'] == get_generator('notebook'):
+                test_parent = pn.Notebook(path=tmp_nested)
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Get or create notebook
+            if test_parent is not None:
+                test_notebook = test_parent.get_notebooks()[0]
+            else:
+                test_parent = pn.Notebook()
+                test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                            filename=eval(test_params['filename']),
+                                            title=eval(test_params['title']),
+                                            parent=test_parent)
+            # Mess up notebook to test rebuild functionality
+            for this_page in test_notebook.get_pages():
+                this_page.contents = this_page.contents[1:]
+            contents_page = test_notebook.get_contents_page()
+            if contents_page is not None:
+                test_notebook.contents.remove(contents_page)
+            # Rebuild notebook
+            test_notebook.rebuild()
+            # Test result
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook', 'rebuild'))
+    def test_rebuild_logbook(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            # Save location of logbook folder on disk for comparison
+            tmp_logbook = tmp_nested.joinpath(self.temp_logbook)
+            # Update navigation line for month page due to nesting
+            self.update_navigation(
+                tmp_logbook.joinpath(self.temp_logbook_month + self.page_suffix),
+                f'[{self.contents_descriptor}]({self.contents_filename})')
+            # Create parent object if set
+            if test_params['parent'] == 'None':
+                test_parent = None
+            elif test_params['parent'] == get_generator('notebook'):
+                test_parent = pn.Notebook(path=tmp_nested)
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Get or create logbook
+            if test_parent is not None:
+                test_logbook = test_parent.get_logbooks()[0]
+            else:
+                test_parent = pn.Notebook()
+                test_logbook = pn.Logbook(path=eval(test_params['path']),
+                                          filename=eval(test_params['filename']),
+                                          title=eval(test_params['title']),
+                                          parent=test_parent)
+            # Mess up logbook to test rebuild functionality
+            for this_page in test_logbook.get_pages('days'):
+                this_page.contents = this_page.contents[1:]
+            for this_page in test_logbook.get_pages('months'):
+                test_logbook.contents.remove(this_page)
+            contents_page = test_logbook.get_contents_page()
+            if contents_page is not None:
+                test_logbook.contents.remove(contents_page)
+            extra_page = pn.LogbookMonth(filename='2050-01',
+                                         parent=test_logbook)
+            # Rebuild logbook
+            test_logbook.rebuild()
+            # Test result
+            self.assert_parametric(test_logbook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'rebuild'))
+    def test_rebuild_nested(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            # Save location of notebook folders on disk for comparison
+            tmp_notebook = tmp_nested.joinpath(self.temp_notebook)
+            tmp_logbook = tmp_nested.joinpath(self.temp_logbook)
+            # Update navigation line for logbook month page due to nesting
+            self.update_navigation(
+                tmp_logbook.joinpath(self.temp_logbook_month + self.page_suffix),
+                f'[{self.contents_descriptor}]({self.contents_filename})')
+            # Check parent object
+            if test_params['parent'] == 'None':
+                test_parent = None
+            else:
+                raise ValueError(f"Invalid parent: {test_params['parent']}")
+            # Create notebook object
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=eval(test_params['filename']),
+                                        title=eval(test_params['title']),
+                                        parent=test_parent)
+            # Mess up notebooks to test rebuild functionality
+            if test_params['path'] != 'None':
+                sub_notebook = test_notebook.get_notebooks()[0]
+                sub_logbook = test_notebook.get_logbooks()[0]
+                for this_page in (test_notebook.get_pages()
+                                    + sub_notebook.get_pages()
+                                    + sub_logbook.get_pages()):
+                    this_page.contents = this_page.contents[1:]
+                for this_month in sub_logbook.get_pages(types='months'):
+                    sub_logbook.contents.remove(this_month)
+                for subfolder in [sub_notebook, sub_logbook]:
+                    contents_page = subfolder.get_contents_page()
+                    if contents_page is not None:
+                        subfolder.contents.remove(contents_page)
+            # Rebuild notebook
+            test_notebook.rebuild()
+            # Test result
+            self.assert_parametric(test_notebook,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
