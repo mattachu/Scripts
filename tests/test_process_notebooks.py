@@ -5824,3 +5824,267 @@ class TestProcessNotebooks:
             self.assert_parametric(test_notebook,
                                    test_params['test_type'],
                                    eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'save'))
+    def test_save_rebuilt_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params, tmp_page):
+        with eval(test_params['error condition']):
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            # Set up parent
+            if test_params['test_type'] == 'no changes':
+                root_path = pathlib.Path(cloned_repo.working_dir)
+                root = pn.Notebook(root_path)
+                test_parent = pn.Notebook(
+                    parent=root,
+                    path=root_path.joinpath(self.cloned_nested_notebook))
+            else:
+                test_parent = eval(test_params['parent'])
+            # Create page
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            # Remove existing file
+            tmp_page.unlink()
+            # Rebuild and save page file
+            test_page.rebuild()
+            test_page.save()
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'save'))
+    def test_save_rebuilt_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            # Set up parent
+            if test_params['test_type'] == 'no changes':
+                root_path = pathlib.Path(cloned_repo.working_dir)
+                root = pn.Notebook(root_path)
+                nb = pn.Notebook(
+                    parent=root,
+                    path=root_path.joinpath(self.cloned_nested_notebook))
+                test_parent = pn.Logbook(
+                    parent=nb,
+                    path=root_path.joinpath(self.cloned_logbook))
+            else:
+                test_parent = eval(test_params['parent'])
+            # Create page
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            # Remove existing file
+            tmp_logbook_page.unlink()
+            # Rebuild and save page file
+            test_page.rebuild()
+            test_page.save()
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents', 'save'))
+    def test_save_rebuilt_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            # Set up parent
+            if test_params['test_type'] == 'no changes':
+                root_path = pathlib.Path(cloned_repo.working_dir)
+                root = pn.Notebook(root_path)
+                test_parent = pn.Notebook(
+                    parent=root,
+                    path=root_path.joinpath(self.cloned_nested_notebook))
+            else:
+                test_parent = eval(test_params['parent'])
+            # Create page
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            # Remove existing file
+            tmp_contents_page.unlink()
+            # Rebuild and save page file
+            test_page.rebuild()
+            test_page.save()
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'save'))
+    def test_save_rebuilt_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            # Set up parent
+            if test_params['test_type'] == 'no changes':
+                root_path = pathlib.Path(cloned_repo.working_dir)
+                root = pn.Notebook(root_path)
+                nb = pn.Notebook(
+                    parent=root,
+                    path=root_path.joinpath(self.cloned_nested_notebook))
+                test_parent = pn.Logbook(
+                    parent=nb,
+                    path=root_path.joinpath(self.cloned_logbook))
+            else:
+                test_parent = eval(test_params['parent'])
+            # Create page
+            test_page = pn.LogbookContents(path=eval(test_params['path']),
+                                           filename=test_filename,
+                                           title=test_title,
+                                           parent=test_parent)
+            # Remove existing file
+            tmp_logbook_contents_page.unlink()
+            # Rebuild and save page file
+            test_page.rebuild()
+            test_page.save()
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'save'))
+    def test_save_rebuilt_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            # Set up parent
+            if test_params['test_type'] == 'no changes':
+                root_path = pathlib.Path(cloned_repo.working_dir)
+                root = pn.Notebook(root_path)
+                nb = pn.Notebook(
+                    parent=root,
+                    path=root_path.joinpath(self.cloned_nested_notebook))
+                test_parent = pn.Logbook(
+                    parent=nb,
+                    path=root_path.joinpath(self.cloned_logbook))
+            else:
+                test_parent = eval(test_params['parent'])
+            # Create page
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            # Remove existing file
+            tmp_logbook_month_page.unlink()
+            # Rebuild and save page file
+            test_page.rebuild()
+            test_page.save()
+            # Test result
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('notebook', 'save'))
+    def test_save_rebuilt_notebook(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            # Set up parent
+            if test_params['test_type'] == 'no changes':
+                root_path = pathlib.Path(cloned_repo.working_dir)
+                test_parent = pn.Notebook(root_path)
+            else:
+                test_parent = eval(test_params['parent'])
+            # Create notebook
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            # Remove existing files
+            for page_file in tmp_notebook.glob('*.*'):
+                page_file.unlink()
+            # Rebuild and save notebook
+            test_notebook.rebuild()
+            test_notebook.save()
+            # Test result
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook', 'save'))
+    def test_save_rebuilt_logbook(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            # Set up parent
+            if test_params['test_type'] == 'no changes':
+                root_path = pathlib.Path(cloned_repo.working_dir)
+                root = pn.Notebook(root_path)
+                test_parent = pn.Notebook(
+                    parent=root,
+                    path=root_path.joinpath(self.cloned_nested_notebook))
+            else:
+                test_parent = eval(test_params['parent'])
+            # Create notebook
+            test_notebook = pn.Logbook(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            # Remove existing files
+            for page_file in tmp_logbook.glob('*.*'):
+                page_file.unlink()
+            # Rebuild and save notebook
+            test_notebook.rebuild()
+            test_notebook.save()
+            # Test result
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'save'))
+    def test_save_rebuilt_nested(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            # Set up parent
+            if test_params['test_type'] == 'no changes':
+                root_path = pathlib.Path(cloned_repo.working_dir)
+                test_parent = pn.Notebook(root_path)
+            else:
+                test_parent = eval(test_params['parent'])
+            # Create notebook
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            # Remove existing files
+            for page_file in tmp_nested.glob('*.*'):
+                page_file.unlink()
+            for folder in tmp_nested.glob('*'):
+                for page_file in folder.glob('*.*'):
+                    page_file.unlink()
+            # Rebuild and save notebook
+            test_notebook.rebuild()
+            test_notebook.save()
+            # Test result
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
