@@ -624,6 +624,11 @@ def build_test_params(test_type, test_def, expected):
             params['object'] = None
     elif method['do'] == 'match':
         params['object'] = test_def['test_object']
+    elif method['do'] == 'get' and method['get'] == 'path':
+        if test_def['parent'] is not None:
+            params['object'] = get_temp_path(test_def['parent'])
+        else:
+            params['object'] = None
     return params
 
 def build_test_string(test_type, test_def, expected):
@@ -800,7 +805,7 @@ def get_method_tests(test_def):
     expected = expectations(test_def)
     method = get_method_parameters(test_def['method_type'])
     if method['get'] in ['title', 'summary', 'outline', 'content', 'navigation',
-                         'next', 'previous', 'up', 'month', 'modified']:
+                         'path', 'next', 'previous', 'up', 'month', 'modified']:
         test_list.append(get_test('result', test_def, expected))
     elif method['get'] in ['pages', 'notebooks', 'logbooks']:
         test_list.append(get_test('return type', test_def, expected))
@@ -1497,6 +1502,37 @@ def expectations(test_def):
                         expected['result'] = expected_result
                     else:
                         expected['result'] = 'None'
+                elif method['get'] == 'path':
+                    if test_def['object_type'] in ['notebook', 'logbook', 'nested']:
+                        suffix = ''
+                    else:
+                        suffix = ' + self.page_suffix'
+                    expected['result'] = 'None'
+                    if test_def['path'] is not None:
+                        if test_def['parent'] is not None:
+                            expected['result'] = 'ValueError'
+                        else:
+                            if test_def['filename'] is not None:
+                                expected['result'] = (
+                                    f"eval(test_params['path']).parent"
+                                    f".joinpath(test_filename{suffix})")
+                            else:
+                                expected['result'] = (
+                                    "eval(test_params['path'])")
+                    elif test_def['parent'] is not None:
+                        if test_def['filename'] is not None:
+                            filename = 'test_filename' + suffix
+                        elif test_def['object_type'] == 'home':
+                            filename = 'self.homepage_filename' + suffix
+                        elif 'contents' in test_def['object_type']:
+                            filename = 'self.contents_filename' + suffix
+                        elif 'readme' in test_def['object_type']:
+                            filename = 'self.readme_filename' + suffix
+                        else:
+                            filename = None
+                        if filename is not None:
+                            expected['result'] = (
+                                f'test_parent.path.joinpath({filename})')
                 elif method['get'] == 'navigation':
                     if navigation != 'None' and test_def['parent'] is not None:
                         if test_def['path'] is None and test_def['title'] is None:
@@ -2584,6 +2620,166 @@ class TestProcessNotebooks:
                                       title=test_title,
                                       parent=test_parent)
             result = test_page._get_title_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'get path'))
+    def test_get_path_from_filename_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params, tmp_page,
+            tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            if test_parent is not None:
+                test_parent.path = eval(test_params['object'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._get_path_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'get path'))
+    def test_get_path_from_filename_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            if test_parent is not None:
+                test_parent.path = eval(test_params['object'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            result = test_page._get_path_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('home', 'get path'))
+    def test_get_path_from_filename_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            if test_parent is not None:
+                test_parent.path = eval(test_params['object'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.HomePage(path=eval(test_params['path']),
+                                    filename=test_filename,
+                                    title=test_title,
+                                    parent=test_parent)
+            result = test_page._get_path_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents', 'get path'))
+    def test_get_path_from_filename_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            if test_parent is not None:
+                test_parent.path = eval(test_params['object'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_page._get_path_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'get path'))
+    def test_get_path_from_filename_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            if test_parent is not None:
+                test_parent.path = eval(test_params['object'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookContents(path=eval(test_params['path']),
+                                           filename=test_filename,
+                                           title=test_title,
+                                           parent=test_parent)
+            result = test_page._get_path_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'get path'))
+    def test_get_path_from_filename_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            if test_parent is not None:
+                test_parent.path = eval(test_params['object'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            result = test_page._get_path_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('readme', 'get path'))
+    def test_get_path_from_filename_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            if test_parent is not None:
+                test_parent.path = eval(test_params['object'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            result = test_page._get_path_from_filename()
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook readme', 'get path'))
+    def test_get_path_from_filename_logbook_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_readme_page, tmp_notebook, tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            if test_parent is not None:
+                test_parent.path = eval(test_params['object'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            result = test_page._get_path_from_filename()
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))

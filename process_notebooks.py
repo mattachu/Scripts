@@ -31,6 +31,7 @@ BLANK_LINE = ''
 class TreeItem():
     """Base class for all objects that can be held in a tree."""
     _descriptor = 'base class'
+    _suffix = ''
     def __init__(self, path=None, filename=None, title=None, parent=None):
         self.parent = None
         self.filename = None
@@ -202,10 +203,29 @@ class TreeItem():
     def _get_title_from_contents(self):
         raise NotImplementedError
 
+    def _get_path_from_filename(self):
+        if (self.filename is not None
+                and self._is_valid_filename(self.filename)
+                and self.filename != UNKNOWN_DESCRIPTOR):
+            if self.path is not None:
+                if (self.parent is not None
+                        and self.parent.path is not None
+                        and self.path.parent != self.parent.path):
+                    raise ValueError(f'Path conflict: '
+                                     f'parent path is {self.parent.path} '
+                                     f'but child path is {self.path}')
+                return self.path.parent.joinpath(self.filename + self._suffix)
+            elif self.parent is not None:
+                parent_path = (self.parent.path
+                            or self.parent._get_path_from_filename())
+                if parent_path is not None:
+                    return parent_path.joinpath(self.filename + self._suffix)
+
 
 class Page(TreeItem):
     """Standard page in a notebook."""
     _descriptor = 'page'
+    _suffix = PAGE_SUFFIX
 
     def rebuild(self):
         """Rebuild the navigation line for a standard page."""
