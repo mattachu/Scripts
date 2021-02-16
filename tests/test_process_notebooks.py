@@ -681,12 +681,12 @@ def get_tests(object_type, method_type):
     method = get_method_parameters(method_type)
     tmp_path = get_temp_path(object_type)
     test_list = []
-    if method['do'] in ['create', 'add', 'load', 'overwrite', 'rebuild']:
+    if method['do'] in ['create', 'add', 'load', 'overwrite', 'rebuild', 'save']:
         test_list = test_list + get_object_tests(test_def)
         if 'path' in parameter_list:
             path_def = modify_test_def(test_def, path=tmp_path)
             test_list = test_list + get_object_tests(path_def)
-        if method['do'] != 'rebuild':
+        if method['do'] not in ['rebuild', 'save']:
             test_list = test_list + get_invalid_input_tests(test_def)
         if method['do'] == 'load':
             test_list = test_list + get_tests(object_type, 'overwrite')
@@ -773,13 +773,11 @@ def get_property_tests(test_def):
     """Return a list of tests of page/notebook object properties."""
     expected = expectations(test_def)
     method = get_method_parameters(test_def['method_type'])
-    if method['do'] == 'rebuild':
-        test_list = [get_test('contents', test_def, expected)]
-    else:
-        test_list = []
-        test_list.append(get_test('return type', test_def, expected))
+    test_list = [get_test('contents', test_def, expected)]
+    if method['do'] != 'rebuild':
         test_list.append(get_test('path', test_def, expected))
-        test_list.append(get_test('contents', test_def, expected))
+    if method['do'] not in ['rebuild', 'save']:
+        test_list.append(get_test('return type', test_def, expected))
         test_list.append(get_test('title', test_def, expected))
         test_list.append(get_test('filename', test_def, expected))
         test_list.append(get_test('link', test_def, expected))
@@ -958,7 +956,7 @@ def get_test_combinations(test_def):
 def get_parameter_list(method_type):
     """Return list of the parameters to be tested for different methods."""
     method = get_method_parameters(method_type)
-    if method['do'] in ['create', 'rebuild']:
+    if method['do'] in ['create', 'rebuild', 'save']:
         return ['path', 'title', 'filename', 'parent']
     elif method['do'] in ['add', 'multiple']:
         return ['path', 'parent']
@@ -1406,7 +1404,7 @@ def expectations(test_def):
                 expected['filename'], test_def['object_type'])
             expected['link'] = expected['filename']
     if test_def['path'] is not None:
-        if test_def['method_type'] in ['create', 'add']:
+        if test_def['method_type'] in ['create', 'add', 'save']:
             expected['path'] = test_def['path']
             expected['title'] = title_from_path or expected['title']
             expected['filename'] = str(test_def['path'])+'.stem'
@@ -1701,6 +1699,11 @@ def expectations(test_def):
         if ('contents' in test_def['object_type']
                 and test_def['parent'] == 'notebook'):
             expected['return type'] = 'pn.ContentsPage'
+    elif method['do'] == 'save':
+        if 'Error' not in expected['contents']:
+            if test_def['path'] is None:
+                expected['contents'] = 'ValueError'
+                expected['path'] = 'ValueError'
     return expected
 
 
@@ -5580,6 +5583,244 @@ class TestProcessNotebooks:
             # Rebuild notebook
             test_notebook.rebuild()
             # Test result
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+
+    # Writing changes to disk
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('page', 'save'))
+    def test_save_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params, tmp_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            # Remove existing file
+            tmp_page.unlink()
+            # Save page file
+            test_page.save()
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook page', 'save'))
+    def test_save_logbook_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookPage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            # Remove existing file
+            tmp_logbook_page.unlink()
+            # Save page file
+            test_page.save()
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('home', 'save'))
+    def test_save_home_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_home_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.HomePage(path=eval(test_params['path']),
+                                    filename=test_filename,
+                                    title=test_title,
+                                    parent=test_parent)
+            # Remove existing file
+            tmp_home_page.unlink()
+            # Save page file
+            test_page.save()
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('contents', 'save'))
+    def test_save_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ContentsPage(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            # Remove existing file
+            tmp_contents_page.unlink()
+            # Save page file
+            test_page.save()
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook contents', 'save'))
+    def test_save_logbook_contents_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_contents_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookContents(path=eval(test_params['path']),
+                                           filename=test_filename,
+                                           title=test_title,
+                                           parent=test_parent)
+            # Remove existing file
+            tmp_logbook_contents_page.unlink()
+            # Save page file
+            test_page.save()
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook month', 'save'))
+    def test_save_logbook_month_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_month_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.LogbookMonth(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            # Remove existing file
+            tmp_logbook_month_page.unlink()
+            # Save page file
+            test_page.save()
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('readme', 'save'))
+    def test_save_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            # Remove existing file
+            tmp_readme_page.unlink()
+            # Save page file
+            test_page.save()
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook readme', 'save'))
+    def test_save_logbook_readme_page(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook_readme_page):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.ReadmePage(path=eval(test_params['path']),
+                                      filename=test_filename,
+                                      title=test_title,
+                                      parent=test_parent)
+            # Remove existing file
+            tmp_logbook_readme_page.unlink()
+            # Save page file
+            test_page.save()
+            self.assert_parametric(test_page,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('notebook', 'save'))
+    def test_save_notebook(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_notebook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            # Remove existing files
+            for page_file in tmp_notebook.glob('*.*'):
+                page_file.unlink()
+            # Save notebook
+            test_notebook.save()
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('logbook', 'save'))
+    def test_save_logbook(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_logbook):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Logbook(path=eval(test_params['path']),
+                                       filename=test_filename,
+                                       title=test_title,
+                                       parent=test_parent)
+            # Remove existing files
+            for page_file in tmp_logbook.glob('*.*'):
+                page_file.unlink()
+            # Save notebook
+            test_notebook.save()
+            self.assert_parametric(test_notebook,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('nested', 'save'))
+    def test_save_nested(
+            self, capsys, tmp_file_factory, cloned_repo, test_params,
+            tmp_nested):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_notebook = pn.Notebook(path=eval(test_params['path']),
+                                        filename=test_filename,
+                                        title=test_title,
+                                        parent=test_parent)
+            # Remove existing files
+            for page_file in tmp_nested.glob('*.*'):
+                page_file.unlink()
+            for folder in tmp_nested.glob('*'):
+                for page_file in folder.glob('*.*'):
+                    page_file.unlink()
+            # Save notebook
+            test_notebook.save()
             self.assert_parametric(test_notebook,
                                    test_params['test_type'],
                                    eval(test_params['expected']))

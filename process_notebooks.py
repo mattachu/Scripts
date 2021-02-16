@@ -241,6 +241,16 @@ class Page(TreeItem):
             self.contents.append(BLANK_LINE)
         self.contents += old_contents
 
+    def save(self):
+        """Write page contents to disk."""
+        if self.path is None:
+            self.path = self._get_path_from_filename()
+            if self.path is None:
+                raise ValueError('Cannot save page data without setting path.')
+        if not self.path.is_file() or self.modified():
+            with open(self.path, 'w') as f:
+                f.writelines([line + '\n' for line in self.contents])
+
     def get_summary(self):
         if self._has_summary():
             return self._get_summary(self.contents)
@@ -801,6 +811,15 @@ class Notebook(TreeItem):
             if contents is None:
                 contents = self.add_contents_page()
             contents.rebuild()
+
+    def save(self):
+        """Write notebook contents to disk, including pages and subfolders."""
+        if self.path is None:
+            self.path = self._get_path_from_filename()
+            if self.path is None:
+                raise ValueError('Cannot save page data without setting path.')
+        for item in self.contents:
+            item.save()
 
     def add_page(self, page_path=None):
         """Add a page to a notebook."""
