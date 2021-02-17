@@ -1119,7 +1119,15 @@ def _title(text, title_level=1):
 # Processing procedures
 def process_all(arguments):
     """Create notebook object and process all contents."""
-    pass
+    if arguments['<folder>'] is not None:
+        path = pathlib.Path(arguments['<folder>'])
+    else:
+        path = pathlib.Path.cwd()
+    if not path.is_dir():
+        raise ValueError(f'Invalid notebook path: {path}')
+    nb = Notebook(path)
+    nb.rebuild()
+    nb.save()
 
 
 # What to do when run as a script
