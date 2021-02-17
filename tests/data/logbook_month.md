@@ -1,4 +1,4 @@
-[< 2019-12](2019-12) | [Contents](Home)
+[< December 2019](2019-12) | [Contents](Home)
 
 # January 2020
 

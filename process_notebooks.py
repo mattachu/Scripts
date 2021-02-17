@@ -612,7 +612,7 @@ class LogbookPage(Page):
         up = self.get_up()
         links = []
         if left is not None:
-            links.append(f'[< {left.filename}]({self.get_relative_path(left)})')
+            links.append(f'[< {left.title}]({self.get_relative_path(left)})')
         if up is not None:
             if isinstance(up, Logbook):
                 if up.get_home_page() is not None:
@@ -625,7 +625,7 @@ class LogbookPage(Page):
                 title = up.title
             links.append(f'[{title}]({self.get_relative_path(up)})')
         if right is not None:
-            links.append(f'[{right.filename} >]({self.get_relative_path(right)})')
+            links.append(f'[{right.title} >]({self.get_relative_path(right)})')
         if len(links) > 0:
             return ' | '.join(links)
 
