@@ -2068,7 +2068,7 @@ class TestProcessNotebooks:
     def assert_page_contents_match(self, test_contents, generator_page):
         """Assert that page contents match the generator page file."""
         with open(generator_page, 'r') as f:
-            file_contents = [line.strip() for line in f.readlines()]
+            file_contents = f.read().splitlines()
         assert test_contents == file_contents
 
     def assert_notebook_contents_match(self, notebook_contents, tmp_notebook):

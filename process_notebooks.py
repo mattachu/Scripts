@@ -1093,7 +1093,7 @@ def _load_file(filename):
     if not filename.is_file():
         raise ValueError(f'Invalid file to load as text: {filename}')
     with open(filename, 'r') as f:
-        return [line.strip() for line in f.readlines()]
+        return f.read().splitlines()
 
 def _title(text, title_level=1):
     if not isinstance(text, str):
