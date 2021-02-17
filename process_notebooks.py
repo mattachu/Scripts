@@ -765,7 +765,7 @@ class LogbookContents(ContentsPage):
                 self.contents.append(nav)
                 self.contents.append(BLANK_LINE)
             months = sorted(self.parent.get_pages(types='months'),
-                            key=lambda item: self.filename)
+                            key=lambda item: item.filename)
             for month in months:
                 self.contents.append(_title(self.get_relative_link(month)))
                 self.contents.append(BLANK_LINE)
