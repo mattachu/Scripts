@@ -28,7 +28,8 @@ test_lines = {
     'subtitle': '## [Subtopic](link)',
     'bullet': '* Bullet line content including a [link][].',
     'navigation': '[Home](link1) > [Folder](link2) > Notebook',
-    'link': '[link]: https://link.com/link'}
+    'link': '[link]: https://link.com/link',
+    'image': '![Description](filename.png)'}
 
 test_lines_strip_all_links = {
     'blank': '',
@@ -37,7 +38,8 @@ test_lines_strip_all_links = {
     'subtitle': '## Subtopic',
     'bullet': '* Bullet line content including a link.',
     'navigation': 'Home > Folder > Notebook',
-    'link': ''}
+    'link': '',
+    'image': 'Description'}
 
 test_lines_strip_reference_links = {
     'blank': '',
@@ -47,7 +49,8 @@ test_lines_strip_reference_links = {
     'subtitle': '## [Subtopic](link)',
     'bullet': '* Bullet line content including a link.',
     'navigation': '[Home](link1) > [Folder](link2) > Notebook',
-    'link': ''}
+    'link': '',
+    'image': '![Description](filename.png)'}
 
 test_lines_strip_absolute_links = {
     'blank': '',
@@ -57,7 +60,8 @@ test_lines_strip_absolute_links = {
     'subtitle': '## Subtopic',
     'bullet': '* Bullet line content including a [link][].',
     'navigation': 'Home > Folder > Notebook',
-    'link': '[link]: https://link.com/link'}
+    'link': '[link]: https://link.com/link',
+    'image': 'Description'}
 
 test_lines_title = {
     'blank': 'ValueError',
@@ -67,7 +71,8 @@ test_lines_title = {
     'subtitle': '# [Subtopic](link)',
     'bullet': '# Bullet line content including a [link][].',
     'navigation': '# [Home](link1) > [Folder](link2) > Notebook',
-    'link': '# [link]: https://link.com/link'}
+    'link': '# [link]: https://link.com/link',
+    'image': '# ![Description](filename.png)'}
 
 test_contents = {
     'empty': [],
@@ -1147,7 +1152,7 @@ def get_parent_error_type(method_type):
 
 def get_line_error_type(line_type):
     """Different methods can cause different error types."""
-    if line_type in ['navigation', 'link']:
+    if line_type in ['navigation', 'link', 'image']:
         return 'TypeError'
     elif line_type == 'text':
         return 'ValueError'
@@ -3406,6 +3411,22 @@ class TestProcessNotebooks:
                                 title=test_title,
                                 parent=test_parent)
             result = test_page._is_link_line(eval(test_params['object']))
+            self.assert_parametric(result,
+                                   test_params['test_type'],
+                                   eval(test_params['expected']))
+
+    @pytest.mark.parametrize('test_params',
+                             build_all_tests('function', 'valid line image'))
+    def test_is_image_line(self, capsys, test_params):
+        with eval(test_params['error condition']):
+            test_parent = eval(test_params['parent'])
+            test_title = eval(test_params['title'])
+            test_filename = eval(test_params['filename'])
+            test_page = pn.Page(path=eval(test_params['path']),
+                                filename=test_filename,
+                                title=test_title,
+                                parent=test_parent)
+            result = test_page._is_image_line(eval(test_params['object']))
             self.assert_parametric(result,
                                    test_params['test_type'],
                                    eval(test_params['expected']))

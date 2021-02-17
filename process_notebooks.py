@@ -399,6 +399,11 @@ class Page(TreeItem):
             return True
         return False
 
+    def _is_image_line(self, line):
+        if re.search(r'^\!\[([^\]]*)\]\([^\)]*\)$', line) is not None:
+            return True
+        return False
+
     def _is_text_line(self, line):
         if not isinstance(line, str):
             raise ValueError(f'Not a valid content line: {line}')
@@ -413,6 +418,8 @@ class Page(TreeItem):
         elif self._is_navigation_line(line):
             return False
         elif self._is_bullet_line(line):
+            return False
+        elif self._is_image_line(line):
             return False
         else:
             return True
@@ -452,7 +459,7 @@ class Page(TreeItem):
         return re.sub(r'\[([^\]]*)\]\[[^\]]*\]', r'\1', line)
 
     def _strip_absolute_links(self, line):
-        return re.sub(r'\[([^\]]*)\]\([^\)]*\)', r'\1', line)
+        return re.sub(r'\!?\[([^\]]*)\]\([^\)]*\)', r'\1', line)
 
 
 class HomePage(Page):
