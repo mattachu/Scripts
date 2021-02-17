@@ -1,8 +1,11 @@
 """Process a set of notebooks to include internal links and contents pages.
 
 Usage:
-  process_notebooks.py [<folder>]
+  process_notebooks.py [options] [<folder>]
   process_notebooks.py --help
+
+Options:
+  --verbose -v      Verbose mode: list any file changes.
 """
 
 from docopt import docopt
@@ -241,13 +244,15 @@ class Page(TreeItem):
             self.contents.append(BLANK_LINE)
         self.contents += old_contents
 
-    def save(self):
+    def save(self, verbose=False):
         """Write page contents to disk."""
         if self.path is None:
             self.path = self._get_path_from_filename()
             if self.path is None:
                 raise ValueError('Cannot save page data without setting path.')
         if not self.path.is_file() or self.modified():
+            if verbose:
+                print(f'Writing {self.path}')
             with open(self.path, 'w') as f:
                 f.writelines([line + '\n' for line in self.contents])
 
@@ -819,14 +824,16 @@ class Notebook(TreeItem):
                 contents = self.add_contents_page()
             contents.rebuild()
 
-    def save(self):
+    def save(self, verbose=False):
         """Write notebook contents to disk, including pages and subfolders."""
+        if verbose:
+            print(f'Checking {self.title}')
         if self.path is None:
             self.path = self._get_path_from_filename()
             if self.path is None:
                 raise ValueError('Cannot save page data without setting path.')
         for item in self.contents:
-            item.save()
+            item.save(verbose)
 
     def add_page(self, page_path=None):
         """Add a page to a notebook."""
@@ -1127,7 +1134,7 @@ def process_all(arguments):
         raise ValueError(f'Invalid notebook path: {path}')
     nb = Notebook(path)
     nb.rebuild()
-    nb.save()
+    nb.save(verbose=arguments['--verbose'])
 
 
 # What to do when run as a script
