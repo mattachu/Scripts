@@ -373,7 +373,7 @@ class Page(TreeItem):
 
     def _is_navigation_line(self, line):
         link = r'\[[^]]*\]\([^\)]*\)'
-        text = r'[A-Za-z0-9 ]*'
+        text = r'[A-Za-z0-9-.:` ]*'
         separator = r'[\|>]'
         pattern = f'^{link}(( {separator} {link})* {separator} ({link}|{text}))?$'
         if re.search(pattern, line) is not None:
