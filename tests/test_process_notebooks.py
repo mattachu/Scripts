@@ -2036,7 +2036,7 @@ class TestProcessNotebooks:
             shutil.copyfile(file_template, new_file)
             if is_logbook:
                 navigation_line = self.temp_logbook_navigation[new_file.stem]
-                self.update_navigation(new_file, navigation_line)
+                self.update_navigation(new_file, navigation_line, is_logbook)
         if add_contents and not add_home:
             new_file = folder_path.joinpath(f'{self.contents_filename}'
                                             f'{self.page_suffix}')
@@ -2054,13 +2054,17 @@ class TestProcessNotebooks:
                                             f'{self.page_suffix}')
             shutil.copyfile(self.test_logbook_month_page, new_file)
 
-    def update_navigation(self, logbook_page_file, navigation_line):
-        """The navigation line for each logbook page needs to be unique."""
-        with open(logbook_page_file, 'r') as f:
+    def update_navigation(self, page_file, navigation_line, is_logbook=False):
+        """Update the navigation line to match given contents."""
+        if is_logbook:
+            nav_line = 2
+        else:
+            nav_line = 0
+        with open(page_file, 'r') as f:
             page_contents = f.readlines()
-        with open(logbook_page_file, 'w') as f:
-            f.write(navigation_line + '\n')
-            f.writelines(page_contents[1:])
+        page_contents[nav_line] = navigation_line + '\n'
+        with open(page_file, 'w') as f:
+            f.writelines(page_contents)
 
 
     # Custom assertions
@@ -5289,12 +5293,12 @@ class TestProcessNotebooks:
                 test_page.contents = test_page.contents[1:]
             # Rebuild page
             test_page.rebuild()
-            # Parent-less pages will not have the navigation line
+            # Parent-less pages will not have the navigation lines
             if test_parent is None:
                 with open(tmp_logbook_page, 'r') as f:
                     lines = f.readlines()
                 with open(tmp_logbook_page, 'w') as f:
-                    f.writelines(lines[2:])
+                    f.writelines(lines[4:])
             # Test result
             self.assert_parametric(test_page,
                                    test_params['test_type'],
@@ -5450,8 +5454,14 @@ class TestProcessNotebooks:
             self, capsys, tmp_file_factory, cloned_repo, test_params,
             tmp_logbook_month_page, tmp_logbook):
         with eval(test_params['error condition']):
-            # Create page
+            # Create parent
             test_parent = eval(test_params['parent'])
+            if test_parent is not None:
+                notebook = pn.Notebook()
+                test_parent.parent = notebook
+                test_parent.title = 'Logbook'
+                test_parent.filename = 'Logbook'
+            # Create page
             test_title = eval(test_params['title'])
             test_filename = eval(test_params['filename'])
             test_page = pn.LogbookMonth(path=eval(test_params['path']),
@@ -5530,7 +5540,8 @@ class TestProcessNotebooks:
             # Update navigation line for month page due to nesting
             self.update_navigation(
                 tmp_logbook.joinpath(self.temp_logbook_month + self.page_suffix),
-                f'[{self.contents_descriptor}]({self.contents_filename})')
+                f'[{self.contents_descriptor}]({self.contents_filename})',
+                is_logbook=True)
             # Create parent object if set
             if test_params['parent'] == 'None':
                 test_parent = None
@@ -5576,7 +5587,8 @@ class TestProcessNotebooks:
             # Update navigation line for logbook month page due to nesting
             self.update_navigation(
                 tmp_logbook.joinpath(self.temp_logbook_month + self.page_suffix),
-                f'[{self.contents_descriptor}]({self.contents_filename})')
+                f'[{self.contents_descriptor}]({self.contents_filename})',
+                is_logbook=True)
             # Check parent object
             if test_params['parent'] == 'None':
                 test_parent = None
