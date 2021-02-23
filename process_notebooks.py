@@ -610,6 +610,25 @@ class LogbookPage(Page):
     def __gt__(self, other):
         return(self.filename > other.filename)
 
+    def rebuild(self):
+        """Rebuild the navigation lines for a logbook page."""
+        old_contents = self.contents
+        while (len(old_contents) > 0
+                    and (self._is_navigation_line(old_contents[0])
+                        or self._is_blank_line(old_contents[0]))):
+            old_contents = old_contents[1:]
+        self.contents = []
+        if self.parent is not None:
+            parent_navigation_line = self.parent.get_navigation()
+            if parent_navigation_line is not None:
+                self.contents.append(parent_navigation_line)
+                self.contents.append(BLANK_LINE)
+        navigation_line = self.get_navigation()
+        if navigation_line is not None:
+            self.contents.append(navigation_line)
+            self.contents.append(BLANK_LINE)
+        self.contents += old_contents
+
     def get_month(self):
         if len(self.filename) >= 7:
             if (self.filename[:4].isnumeric()
@@ -715,6 +734,11 @@ class LogbookMonth(LogbookPage):
         pages = self.get_pages()
         if len(pages) == 0:
             return None
+        if self.parent is not None:
+            parent_navigation_line = self.parent.get_navigation()
+            if parent_navigation_line is not None:
+                self.contents.append(parent_navigation_line)
+                self.contents.append(BLANK_LINE)
         self.contents.append(self.get_navigation())
         self.contents.append(BLANK_LINE)
         self.contents.append(_title(self.title))

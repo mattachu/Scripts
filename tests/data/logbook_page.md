@@ -1,3 +1,5 @@
+[Home](../Home) > Logbook
+
 [< 2020-01-02](2020-01-02) | [January 2020](2020-01)
 
 Page *summary*, including some `code` or [links][].
