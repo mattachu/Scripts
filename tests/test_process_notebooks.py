@@ -6113,6 +6113,7 @@ class TestProcessNotebooks:
 
     # Test entire process
     def test_process_all(self, capsys, tmp_file_factory, cloned_repo):
-        arguments = {'<folder>': cloned_repo.working_dir}
+        arguments = {'<folder>': cloned_repo.working_dir,
+                     '--verbose': False}
         pn.process_all(arguments)
         self.assert_repo_unchanged(cloned_repo)
