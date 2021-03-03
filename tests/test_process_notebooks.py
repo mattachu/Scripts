@@ -1397,7 +1397,7 @@ def expectations(test_def):
             expected['title'] = expected['title'] or test_def['title']
         else:
             expected['title'] = test_def['title']
-    if test_def['method_type'] == 'overwrite':
+    if method['do'] == 'overwrite':
         existing_object, *_ = get_existing_object(test_def['object_type'])
         expected['path'] = existing_object
         expected['filename'] = f'{existing_object}.stem'
@@ -1409,7 +1409,7 @@ def expectations(test_def):
                 expected['filename'], test_def['object_type'])
             expected['link'] = expected['filename']
     if test_def['path'] is not None:
-        if test_def['method_type'] in ['create', 'add', 'save']:
+        if method['do'] in ['create', 'add', 'save', 'get']:
             expected['path'] = test_def['path']
             expected['title'] = title_from_path or expected['title']
             expected['filename'] = str(test_def['path'])+'.stem'
@@ -1420,7 +1420,7 @@ def expectations(test_def):
         expected['contents'] = test_def['path']
         expected['title'] = title_from_contents or expected['title']
     else:
-        if test_def['method_type'] == 'overwrite':
+        if method['do'] == 'overwrite':
             expected['contents'] = existing_object
         else:
             expected['path'] = 'None'
@@ -1436,7 +1436,7 @@ def expectations(test_def):
                     and test_def['parent'] == 'notebook'):
                 expected['return type'] = 'pn.Page'
                 if test_def['path'] is not None:
-                    expected['title'] = expected['title'] + ".replace('-', ' ')"
+                    expected['title'] = expected['filename'] + ".replace('-', ' ')"
             elif (test_def['object_type'] == 'logbook month'
                     and test_def['path'] is None):
                 expected['return type'] = 'pn.LogbookPage'
@@ -1550,7 +1550,7 @@ def expectations(test_def):
                         if (test_def['object_type'] == 'logbook month'
                                 and test_def['path'] is None
                                 and test_def['title'] is None):
-                            expected['result'] = 'self.navigation_home_pages'
+                            expected['result'] = 'None'
                         elif test_def['object_type'] in ['logbook page',
                                                          'logbook month']:
                             expected['result'] = navigation
@@ -1563,6 +1563,11 @@ def expectations(test_def):
                             expected['result'] = ("self.navigation_home_pages + "
                                                 + "self.navigation_separator + "
                                                 + navigation)
+                    elif (test_def['parent'] is None
+                            and test_def['object_type'] in ['logbook page',
+                                                            'logbook month']
+                            and expected['title'] != 'self.unknown_descriptor'):
+                        expected['result'] = expected['title']
                     else:
                         expected['result'] = 'None'
                 elif method['get'] in ['pages', 'notebooks', 'logbooks']:
@@ -1807,9 +1812,9 @@ class TestProcessNotebooks:
         self.temp_logbook_pages = ['2020-01-01.md',
                                    '2020-01-02.md',
                                    '2020-01-03.md']
-        self.temp_logbook_navigation = {'2020-01-01': '[January 2020](2020-01) | [2020-01-02 >](2020-01-02)',
-                                        '2020-01-02': '[< 2020-01-01](2020-01-01) | [January 2020](2020-01) | [2020-01-03 >](2020-01-03)',
-                                        '2020-01-03': '[< 2020-01-02](2020-01-02) | [January 2020](2020-01)'}
+        self.temp_logbook_navigation = {'2020-01-01': '2020-01-01 | [2020-01-02 >](2020-01-02)',
+                                        '2020-01-02': '[< 2020-01-01](2020-01-01) | 2020-01-02 | [2020-01-03 >](2020-01-03)',
+                                        '2020-01-03': '[< 2020-01-02](2020-01-02) | 2020-01-03'}
         self.extra_logbook_month = '2019-12'
         self.test_message = 'Hello world'
         self.test_page_title = 'Page title'
@@ -1852,8 +1857,8 @@ class TestProcessNotebooks:
         self.unknown_descriptor = 'Unknown'
         self.test_page_navigation = self.test_page_title
         self.test_notebook_page_navigation = '[Home](Home) > Page title'
-        self.test_logbook_page_navigation = '[< 2019-01-01](2019-01-01) | [January 2020](2020-01) | [2021-01-01 >](2021-01-01)'
-        self.test_logbook_month_page_navigation = '[< 2019-01](2019-01) | [Home](Home) | [2021-01 >](2021-01)'
+        self.test_logbook_page_navigation = '[< 2019-01-01](2019-01-01) | 2020-01-01 | [2021-01-01 >](2021-01-01)'
+        self.test_logbook_month_page_navigation = '[< January 2019](2019-01) | January 2020 | [January 2021 >](2021-01)'
         self.test_notebook_navigation = self.test_notebook_title
         self.test_logbook_navigation = self.temp_logbook
         self.navigation_home_pages = f'[{self.homepage_descriptor}]({self.homepage_filename})'
@@ -3255,12 +3260,14 @@ class TestProcessNotebooks:
                 if test_page.filename == self.temp_logbook_month:
                     this_date = self.temp_logbook_month
                     early_date = str(int(this_date[:4]) - 1) + '-01'
+                    early_title = 'January ' + str(int(this_date[:4]) - 1)
                     later_date = str(int(this_date[:4]) + 1) + '-01'
+                    later_title = 'January ' + str(int(this_date[:4]) + 1)
                     early_page = pn.LogbookMonth(filename=early_date,
-                                                title=early_date,
+                                                title=early_title,
                                                 parent=test_parent)
                     later_page = pn.LogbookMonth(filename=later_date,
-                                                title=later_date,
+                                                title=later_title,
                                                 parent=test_parent)
             result = test_page.get_navigation()
             self.assert_parametric(result,
@@ -5282,7 +5289,7 @@ class TestProcessNotebooks:
                 raise ValueError(f"Invalid parent: {test_params['parent']}")
             # Get or create page
             if test_parent is not None:
-                test_page = test_parent.get_pages()[0]
+                test_page = sorted(test_parent.get_pages(types='days'))[0]
             else:
                 test_page = pn.LogbookPage(path=eval(test_params['path']),
                                            filename=eval(test_params['filename']),
@@ -5293,11 +5300,12 @@ class TestProcessNotebooks:
                 test_page.contents = test_page.contents[1:]
             # Rebuild page
             test_page.rebuild()
-            # Parent-less pages will not have the navigation lines
+            # Parent-less pages will not have the parent navigation line
             if test_parent is None:
                 with open(tmp_logbook_page, 'r') as f:
                     lines = f.readlines()
                 with open(tmp_logbook_page, 'w') as f:
+                    f.writelines([test_page.title + '\n', '\n'])
                     f.writelines(lines[4:])
             # Test result
             self.assert_parametric(test_page,
@@ -5455,12 +5463,13 @@ class TestProcessNotebooks:
             tmp_logbook_month_page, tmp_logbook):
         with eval(test_params['error condition']):
             # Create parent
-            test_parent = eval(test_params['parent'])
-            if test_parent is not None:
+            if test_params['parent'] == 'pn.Logbook()':
                 notebook = pn.Notebook()
-                test_parent.parent = notebook
-                test_parent.title = 'Logbook'
-                test_parent.filename = 'Logbook'
+                test_parent = pn.Logbook(parent=notebook,
+                                         title=self.logbook_folder_name,
+                                         filename=self.logbook_folder_name)
+            else:
+                test_parent = None
             # Create page
             test_title = eval(test_params['title'])
             test_filename = eval(test_params['filename'])
@@ -5540,7 +5549,7 @@ class TestProcessNotebooks:
             # Update navigation line for month page due to nesting
             self.update_navigation(
                 tmp_logbook.joinpath(self.temp_logbook_month + self.page_suffix),
-                f'[{self.contents_descriptor}]({self.contents_filename})',
+                self.test_logbook_month_title,
                 is_logbook=True)
             # Create parent object if set
             if test_params['parent'] == 'None':
@@ -5587,7 +5596,7 @@ class TestProcessNotebooks:
             # Update navigation line for logbook month page due to nesting
             self.update_navigation(
                 tmp_logbook.joinpath(self.temp_logbook_month + self.page_suffix),
-                f'[{self.contents_descriptor}]({self.contents_filename})',
+                self.test_logbook_month_title,
                 is_logbook=True)
             # Check parent object
             if test_params['parent'] == 'None':

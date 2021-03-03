@@ -1,6 +1,6 @@
-[Home](../Home) > Logbook
+[Home](../Home) > [Logbook](Contents)
 
-[< December 2019](2019-12) | [Contents](Home)
+[< December 2019](2019-12) | January 2020
 
 # January 2020
 
