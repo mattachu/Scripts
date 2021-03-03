@@ -232,17 +232,18 @@ class Page(TreeItem):
 
     def rebuild(self):
         """Rebuild the navigation line for a standard page."""
-        old_contents = self.contents
-        while (len(old_contents) > 0
-                    and (self._is_navigation_line(old_contents[0])
-                        or self._is_blank_line(old_contents[0]))):
-            old_contents = old_contents[1:]
-        self.contents = []
-        navigation_line = self.get_navigation()
-        if navigation_line is not None:
-            self.contents.append(navigation_line)
-            self.contents.append(BLANK_LINE)
-        self.contents += old_contents
+        if len(self.contents) > 0:
+            old_contents = self.contents
+            while (len(old_contents) > 0
+                        and (self._is_navigation_line(old_contents[0])
+                            or self._is_blank_line(old_contents[0]))):
+                old_contents = old_contents[1:]
+            self.contents = []
+            navigation_line = self.get_navigation()
+            if navigation_line is not None:
+                self.contents.append(navigation_line)
+                self.contents.append(BLANK_LINE)
+            self.contents += old_contents
 
     def save(self, verbose=False):
         """Write page contents to disk."""
@@ -379,7 +380,7 @@ class Page(TreeItem):
     def _is_navigation_line(self, line):
         link = r'\[[^]]*\]\([^\)]*\)'
         text = r'[A-Za-z0-9-.:` ]*'
-        separator = r'[\|>]'
+        separator = r'>'
         pattern = f'^{link}(( {separator} {link})* {separator} ({link}|{text}))?$'
         if re.search(pattern, line) is not None:
             return True
@@ -612,22 +613,22 @@ class LogbookPage(Page):
 
     def rebuild(self):
         """Rebuild the navigation lines for a logbook page."""
-        old_contents = self.contents
-        while (len(old_contents) > 0
-                    and (self._is_navigation_line(old_contents[0])
-                        or self._is_blank_line(old_contents[0]))):
-            old_contents = old_contents[1:]
-        self.contents = []
-        if self.parent is not None:
-            parent_navigation_line = self.parent.get_navigation()
+        if len(self.contents) > 0:
+            old_contents = self.contents
+            while (len(old_contents) > 0
+                        and (self._is_navigation_line(old_contents[0])
+                            or self._is_blank_line(old_contents[0]))):
+                old_contents = old_contents[1:]
+            self.contents = []
+            parent_navigation_line = self.get_parent_navigation()
             if parent_navigation_line is not None:
                 self.contents.append(parent_navigation_line)
                 self.contents.append(BLANK_LINE)
-        navigation_line = self.get_navigation()
-        if navigation_line is not None:
-            self.contents.append(navigation_line)
-            self.contents.append(BLANK_LINE)
-        self.contents += old_contents
+            navigation_line = self.get_navigation()
+            if navigation_line is not None:
+                self.contents.append(navigation_line)
+                self.contents.append(BLANK_LINE)
+            self.contents += old_contents
 
     def get_month(self):
         if len(self.filename) >= 7:
@@ -640,25 +641,27 @@ class LogbookPage(Page):
         """Return links to surrounding pages."""
         left = self.get_previous()
         right = self.get_next()
-        up = self.get_up()
         links = []
         if left is not None:
             links.append(f'[< {left.title}]({self.get_relative_path(left)})')
-        if up is not None:
-            if isinstance(up, Logbook):
-                if up.get_home_page() is not None:
-                    title = up.get_home_page().title
-                elif up.get_contents_page() is not None:
-                    title = up.get_contents_page().title
-                else:
-                    title = up.title
-            else:
-                title = up.title
-            links.append(f'[{title}]({self.get_relative_path(up)})')
+        if self.title is not None and self.title != UNKNOWN_DESCRIPTOR:
+            links.append(self.title)
         if right is not None:
             links.append(f'[{right.title} >]({self.get_relative_path(right)})')
         if len(links) > 0:
             return ' | '.join(links)
+
+    def get_parent_navigation(self):
+        if self.parent is not None:
+            navigation = self.parent.get_navigation()
+            if navigation is not None:
+                navigation = navigation.replace(
+                    self.parent.title, self.get_relative_link(self.parent))
+                up = self.get_up()
+                if up is not None and up != self.parent:
+                    navigation = ' > '.join([navigation,
+                                             self.get_relative_link(up)])
+                return navigation
 
     def get_up(self):
         if self.parent is not None:
@@ -723,6 +726,20 @@ class LogbookPage(Page):
                 return False
         return super()._has_summary()
 
+    def _get_date_pattern(self):
+        return r'[0-9]{4}-[0-9]{2}-[0-9]{2}'
+
+    def _is_navigation_line(self, line):
+        if super()._is_navigation_line(line):
+            return True
+        link = r'\[[^]]*\]\([^\)]*\)'
+        text = self._get_date_pattern()
+        separator = r'\|'
+        pattern = f'^({link}|{text})( {separator} ({link}|{text}))?( {separator} ({link}|{text}))?$'
+        if re.search(pattern, line) is not None:
+            return True
+        return False
+
 
 class LogbookMonth(LogbookPage):
     """Special page in a notebook that summarises the month's entries."""
@@ -734,11 +751,10 @@ class LogbookMonth(LogbookPage):
         pages = self.get_pages()
         if len(pages) == 0:
             return None
-        if self.parent is not None:
-            parent_navigation_line = self.parent.get_navigation()
-            if parent_navigation_line is not None:
-                self.contents.append(parent_navigation_line)
-                self.contents.append(BLANK_LINE)
+        parent_navigation_line = self.get_parent_navigation()
+        if parent_navigation_line is not None:
+            self.contents.append(parent_navigation_line)
+            self.contents.append(BLANK_LINE)
         self.contents.append(self.get_navigation())
         self.contents.append(BLANK_LINE)
         self.contents.append(_title(self.title))
@@ -787,6 +803,11 @@ class LogbookMonth(LogbookPage):
             if self._is_valid_title(new_title):
                 return new_title
 
+    def _get_date_pattern(self):
+        month = '(January|February|March|April|May|June|July|August|September|October|November|December)'
+        year = r'[0-9]{4}'
+        return f'{month} {year}'
+
 
 class LogbookContents(ContentsPage):
     """Logbook contents are built by date rather than file names."""
@@ -808,9 +829,9 @@ class LogbookContents(ContentsPage):
                 month.rebuild()
                 this_content = month.contents
                 while (len(this_content) > 0
-                        and (self._is_navigation_line(this_content[0])
-                            or self._is_title_line(this_content[0])
-                            or self._is_blank_line(this_content[0]))):
+                        and (month._is_navigation_line(this_content[0])
+                            or month._is_title_line(this_content[0])
+                            or month._is_blank_line(this_content[0]))):
                     this_content = this_content[1:]
                 self.contents += this_content
                 self.contents.append(BLANK_LINE)
