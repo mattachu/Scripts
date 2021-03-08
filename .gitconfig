@@ -1,6 +1,8 @@
 [user]
 	email = github@matteaston.net
 	name = mattachu
+[core]
+	excludesfile = ~/.gitignore_global
 [push]
 	default = simple
 [filter "lfs"]
