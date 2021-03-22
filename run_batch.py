@@ -302,7 +302,6 @@ def get_results_branch(repo, given_results_branch):
 def get_commit_files(settings, parameters):
     """Get a list of files to commit to the results branch"""
     patterns = list()
-    patterns.append('reproduce-*.log')
     patterns.append(settings['logfile'])
     return patterns
 

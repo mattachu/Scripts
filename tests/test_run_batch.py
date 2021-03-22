@@ -695,11 +695,11 @@ class TestRunBatch:
         captured = capsys.readouterr()
         assert len(captured.out) == 0
 
-    def test_get_commit_files_contains_logs(self, cloned_repo, tmp_archive):
+    def test_get_commit_files_no_logs(self, cloned_repo, tmp_archive):
         filelist = run_batch.get_commit_files(
             self.get_settings(cloned_repo, tmp_archive), self.single_run)
         assert self.get_settings(cloned_repo, tmp_archive)['logfile'] in filelist
-        assert 'reproduce-*.log' in filelist
+        assert 'reproduce-*.log' not in filelist
 
     def test_get_commit_files_impact(self, cloned_repo, tmp_archive):
         test_run = self.single_run.copy()
@@ -707,7 +707,7 @@ class TestRunBatch:
         filelist = run_batch.get_commit_files(
             self.get_settings(cloned_repo, tmp_archive), self.single_run)
         assert self.get_settings(cloned_repo, tmp_archive)['logfile'] in filelist
-        assert 'reproduce-*.log' in filelist
+        assert 'reproduce-*.log' not in filelist
 
     def test_get_commit_files_invalid_input(self, cloned_repo, tmp_archive):
         with pytest.raises(TypeError):
