@@ -2,6 +2,7 @@
 import sys
 import contextlib
 import time
+import traceback
 
 # %% Define Tee object that duplicates output to file and screen
 class Tee(object):
@@ -40,6 +41,12 @@ def capture_output(logfile, mode, capture='both'):
         sys.stderr = new_stderr
     try:
         yield None
+    except Exception as e:
+        with open(logfile, 'a') as f:
+            for line in traceback.format_exception(type(e), e, e.__traceback__):
+                if not 'logger.py' in line and not 'yield None' in line:
+                    f.write(line)
+        raise(e)
     finally:
         if capture in ['out', 'both']:
             new_stdout.close()
