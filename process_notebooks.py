@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Process a set of notebooks to include internal links and contents pages.
 
 Usage:
