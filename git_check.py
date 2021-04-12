@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Check current _Git_ status
 
 import sys
