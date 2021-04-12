@@ -6,8 +6,8 @@ source "${HOME}/.locations"
 # Shortcuts for common actions
 alias beep="echo -e '\a'"
 alias sync-usb="unison -fat -rsrc false $SYNC_FOLDER/ $USB_FOLDER/"
-alias git-check="python3 $SCRIPTS_FOLDER/git_check.py ."
-alias git-check-all="python3 $SCRIPTS_FOLDER/git_check.py"
+alias git-check="PYENV_VERSION=scripts $SCRIPTS_FOLDER/git_check.py ."
+alias git-check-all="PYENV_VERSION=scripts $SCRIPTS_FOLDER/git_check.py"
 
 # Load certain environments (machine specific)
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -34,14 +34,14 @@ case ${computer_name} in
 esac
 
 # Shortcuts for Impact-T
-alias ImpactGUI="$CODE_FOLDER/Impact/GUI/ImpactGUI.py"
-alias impactgui="$CODE_FOLDER/Impact/GUI/ImpactGUI.py"
+alias ImpactGUI="PYENV_VERSION=impactgui $CODE_FOLDER/Impact/GUI/ImpactGUI.py"
+alias impactgui="PYENV_VERSION=impactgui $CODE_FOLDER/Impact/GUI/ImpactGUI.py"
 
 # Shortcuts for Reproducible
 alias reproduce="$CODE_FOLDER/Reproducible/reproduce"
 
 # Shortcut to run_batch.py
-alias run_batch="python3 $SCRIPTS_FOLDER/run_batch.py"
+alias run_batch="PYENV_VERSION=scripts $SCRIPTS_FOLDER/run_batch.py"
 
 # Shortcuts for BDSIM
 alias load-bdsim="source $SCRIPTS_FOLDER/bdsim.sh"
