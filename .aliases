@@ -38,7 +38,7 @@ alias ImpactGUI="PYENV_VERSION=impactgui $CODE_FOLDER/Impact/GUI/ImpactGUI.py"
 alias impactgui="PYENV_VERSION=impactgui $CODE_FOLDER/Impact/GUI/ImpactGUI.py"
 
 # Shortcuts for Reproducible
-alias reproduce="$CODE_FOLDER/Reproducible/reproduce"
+alias reproduce="PYENV_VERSION=reproducible $CODE_FOLDER/Reproducible/reproduce"
 
 # Shortcut to run_batch.py
 alias run_batch="PYENV_VERSION=scripts $SCRIPTS_FOLDER/run_batch.py"
