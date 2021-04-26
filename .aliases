@@ -3,11 +3,12 @@
 # Load machine-specific locations
 source "${HOME}/.locations"
 
-# Shortcuts for common actions
+# Shortcuts for common actions and scripts
 alias beep="echo -e '\a'"
 alias sync-usb="unison -fat -rsrc false $SYNC_FOLDER/ $USB_FOLDER/"
 alias git-check="PYENV_VERSION=scripts $SCRIPTS_FOLDER/git_check.py ."
 alias git-check-all="PYENV_VERSION=scripts $SCRIPTS_FOLDER/git_check.py"
+alias pn="PYENV_VERSION=scripts $SCRIPTS_FOLDER/process_notebooks.py"
 
 # Load certain environments (machine specific)
 if [[ "$(uname)" == "Darwin" ]]; then
