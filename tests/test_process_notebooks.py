@@ -4,6 +4,7 @@ import pytest
 import pathlib
 import git
 import shutil
+import os
 from contextlib import nullcontext as does_not_raise
 
 import process_notebooks as pn
@@ -1775,8 +1776,13 @@ class TestProcessNotebooks:
     # Setup before testing
     def setup_class(self):
         """Settings and variables shared for all tests."""
-        self.notebook_path = (pathlib.Path.home()
-                              .joinpath('OneDrive/Documents/Notebooks'))
+        if 'CODE_FOLDER' in os.environ:
+            code_folder = pathlib.Path(os.environ['CODE_FOLDER'])
+        else:
+            code_folder = pathlib.Path.home().joinpath('Code')
+        if not code_folder.is_dir():
+            raise OSError('Cannot find root Code folder')
+        self.notebook_path = code_folder.joinpath('Git/Notebooks.git')
         self.test_page = (pathlib.Path(__file__).parent
                           .joinpath('data/notebook_page.md'))
         self.test_logbook_page = (pathlib.Path(__file__).parent
