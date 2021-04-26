@@ -112,5 +112,11 @@
     "git.allowForcePush": true,
     "python.terminal.activateEnvironment": false,
     "jupyter.askForKernelRestart": false,
+    "workbench.editorAssociations": [
+        {
+            "viewType": "jupyter.notebook.ipynb",
+            "filenamePattern": "*.ipynb"
+        }
+    ],
     "workbench.colorTheme": "Default Light+"
 }
