@@ -3,19 +3,6 @@
 #
 # Based on the default Oh My ZSH script, with additions based on my .bashrc
 
-# Add environment and path for pyenv
-if [ -r "$HOME/.pyenv" ]; then
-    export PYENV_ROOT="$HOME/.pyenv"
-fi
-if [ -r "$PYENV_ROOT/bin" ]; then
-    export PATH="$PYENV_ROOT/bin:$PATH"
-fi
-
-# Add user bin folder to path
-if [ -r "$HOME/.local/bin" ]; then
-    export PATH="$HOME/.local/bin:$PATH"
-fi
-
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
