@@ -148,6 +148,9 @@ if [ -d "$CODE_FOLDER" ]; then
     export PYTHONPATH="$PYTHONPATH:$CODE_FOLDER"
 fi
 
+# Remove duplicates in path environment variable
+typeset -U PATH path
+
 # Show greeting
 if [ -r "$HOME/.greeting" ] ; then
     source "$HOME/.greeting"

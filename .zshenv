@@ -3,7 +3,7 @@
 # Locations:
 #  - User versions of bin, man, info
 if [ -d "${HOME}/bin" ]; then
-    PATH="${HOME}/bin:${PATH}"
+    path=(~/bin $path)
 fi
 if [ -d "${HOME}/man" ]; then
     MANPATH="${HOME}/man:${MANPATH}"
@@ -13,7 +13,7 @@ if [ -d "${HOME}/info" ]; then
 fi
 #  - User .local versions of bin, man, info
 if [ -d "${HOME}/.local/bin" ]; then
-    PATH="${HOME}/.local/bin:${PATH}"
+    path=(~/.local/bin $path)
 fi
 if [ -d "${HOME}/.local/man" ]; then
     MANPATH="${HOME}/.local/man:${MANPATH}"
@@ -26,8 +26,10 @@ if [ -r "$HOME/.pyenv" ]; then
     export PYENV_ROOT="$HOME/.pyenv"
 fi
 if [ -r "$PYENV_ROOT/bin" ]; then
-    export PATH="$PYENV_ROOT/bin:$PATH"
+    path=("$PYENV_ROOT/bin" $path)
 fi
 if command -v pyenv 1>/dev/null 2>&1; then
     eval "$(pyenv init --path)"
 fi
+# - remove duplicates
+typeset -U PATH path
