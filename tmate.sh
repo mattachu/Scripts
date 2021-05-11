@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 #  tmate.sh
 #  Scripts for working with tmate.io for remote connections
 #
