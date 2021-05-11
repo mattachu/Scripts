@@ -1,4 +1,4 @@
-# .zshenv - set up environment for zsh
+# .zprofile - set up environment for zsh login sessions
 
 # Locations:
 #  - User versions of bin, man, info
