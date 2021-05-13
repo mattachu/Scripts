@@ -118,5 +118,8 @@
             "filenamePattern": "*.ipynb"
         }
     ],
+    "r.bracketedPaste": true,
+    "r.rpath.mac": "/usr/local/bin/R",
+    "r.rterm.mac": "/Users/matt/.pyenv/versions/general/bin/radian",
     "workbench.colorTheme": "Default Light+"
 }
