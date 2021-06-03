@@ -357,7 +357,7 @@ def get_move_list(simulation_class, is_full_archive):
     """Get list of file patterns to move for a particular simulation type"""
     move_list = ['*.png', '*.eps', '*.ps', '*.jpg', '*.log']
     if simulation_class == 'impact':
-        move_list.extend(['*.dst', '*.plt'])
+        move_list.extend(['*.dst', '*.plt', '*.T7out'])
         if is_full_archive:
             move_list.append('fort.*')
     elif simulation_class == 'bdsim':
