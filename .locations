@@ -15,7 +15,7 @@ case ${COMPUTER_NAME} in
         export PKU_FOLDER="${HOME}/OneDrive/Documents"
         export RUN_FOLDER="${HOME}/Simulations/Current"
         export SYNC_FOLDER="${HOME}/OneDrive/Documents"
-        export USB_FOLDER="/Volumes/MJEASTON/Documents/Work/PKU"
+        export USB_FOLDER="/Volumes/MJEASTON/Work/PKU"
         ;;
     "Farrah’s MacBook Pro"|"FarrahBook"|"FarrahBook.local")
         export CODE_FOLDER="${HOME}/Code"
@@ -23,7 +23,7 @@ case ${COMPUTER_NAME} in
         export PKU_FOLDER="${HOME}/OneDrive/Documents"
         export RUN_FOLDER="${HOME}/Code/CurrentSimulation"
         export SYNC_FOLDER="${HOME}/OneDrive/Documents"
-        export USB_FOLDER="/Volumes/MJEASTON/Documents/Work/PKU"
+        export USB_FOLDER="/Volumes/MJEASTON/Work/PKU"
         export STOW_FOLDER="/usr/local/stow"
         ;;
     "MJEaston")
@@ -38,6 +38,6 @@ case ${COMPUTER_NAME} in
         export PKU_FOLDER="${HOME}/Documents"
         export RUN_FOLDER="${HOME}/Simulations/Current"
         export SYNC_FOLDER="${HOME}/OneDrive/Documents"
-        export USB_FOLDER="/media/matt/MJEASTON/Documents/Work/PKU"
+        export USB_FOLDER="/media/matt/MJEASTON/Work/PKU"
         ;;
 esac
