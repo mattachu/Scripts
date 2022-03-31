@@ -110,6 +110,7 @@
     "gitlens.views.lineHistory.location": "gitlens",
     "gitlens.views.compare.location": "gitlens",
     "gitlens.views.search.location": "gitlens",
+    "gitlens.hovers.currentLine.over": "line",
     "git.allowForcePush": true,
     "python.terminal.activateEnvironment": false,
     "jupyter.askForKernelRestart": false,
