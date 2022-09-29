@@ -3,9 +3,9 @@ dkundel.vscode-new-file
 donjayamanne.githistory
 eamodio.gitlens
 ekibun.fortranbreaker
+fortran-lang.linter-gfortran
 goessner.mdmath
 James-Yu.latex-workshop
-krvajalm.linter-gfortran
 MS-CEINTL.vscode-language-pack-en-GB
 MS-CEINTL.vscode-language-pack-zh-hans
 ms-python.python
