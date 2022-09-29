@@ -255,7 +255,7 @@ class Page(TreeItem):
         if not self.path.is_file() or self.modified():
             if verbose:
                 print(f'Writing {self.path}')
-            with open(self.path, 'w') as f:
+            with open(self.path, 'w', encoding='UTF-8') as f:
                 f.writelines([line + '\n' for line in self.contents])
 
     def get_summary(self):
@@ -1152,7 +1152,7 @@ def _is_valid_logbook_folder(folder_path):
 def _load_file(filename):
     if not filename.is_file():
         raise ValueError(f'Invalid file to load as text: {filename}')
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding='utf-8') as f:
         return f.read().splitlines()
 
 def _title(text, title_level=1):
