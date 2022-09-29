@@ -124,6 +124,5 @@
         "default": "right",
         "jupyter-notebook": "left"
     },
-    "terminal.integrated.defaultProfile.windows": "Git Bash",
-    "workbench.colorTheme": "Default Light+"
+    "terminal.integrated.defaultProfile.windows": "Git Bash"
 }
