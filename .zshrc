@@ -135,12 +135,14 @@ if [ -r "$HOME/.aliases" ]; then
 fi
 
 # Setup Python environments
-if command -v pyenv 1>/dev/null 2>&1; then
-    eval "$(pyenv init -)"
-fi
-if which pyenv-virtualenv-init > /dev/null; then
-    eval "$(pyenv virtualenv-init -)"
-    export PYENV_VIRTUALENV_DISABLE_PROMPT=1
+if [[ $OSTYPE -ne "msys" ]]; then
+    if command -v pyenv 1>/dev/null 2>&1; then
+        eval "$(pyenv init -)"
+    fi
+    if which pyenv-virtualenv-init > /dev/null; then
+        eval "$(pyenv virtualenv-init -)"
+        export PYENV_VIRTUALENV_DISABLE_PROMPT=1
+    fi
 fi
 if [ -d "$CODE_FOLDER" ]; then
     export PYTHONPATH="$PYTHONPATH:$CODE_FOLDER"
