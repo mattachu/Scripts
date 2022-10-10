@@ -18,7 +18,7 @@
     "copyOnSelect": false,
 
     // If enabled, formatted data is also copied to your clipboard
-    "copyFormatting": true,
+    "copyFormatting": "all",
 
     // A profile specifies a command to execute paired with information about how it should look and feel.
     // Each one of them will appear in the 'New Tab' dropdown,
@@ -30,9 +30,12 @@
         {
             // Put settings here that you want to apply to all profiles.
             "colorScheme": "Solarized Dark",
-            "fontFace":  "SourceCodePro+Powerline+Awesome Regular",
+            "font": { "face": "SourceCodePro+Powerline+Awesome Regular" },
+            "startingDirectory": "%USERPROFILE%",
+            "bellStyle": [ "audible", "window", "taskbar" ],
+            "closeOnExit": "graceful",
             "useAcrylic": true,
-            "acrylicOpacity": 0.8
+            "opacity": 80
         },
         "list":
         [
@@ -58,6 +61,7 @@
                 "guid": "{b2ec3fa5-ffb9-4443-a007-ad7c0153ba7f}",
                 "name": "Git Bash",
                 "commandline": "C:\\Program Files\\Git\\bin\\bash.exe",
+                "icon": "C:\\Users\\Matt\\Code\\Scripts\\.wt\\Git-Icon-1788C.png",
                 "hidden": false
             },
             {
@@ -328,7 +332,7 @@
         // Copy and paste are bound to Ctrl+Shift+C and Ctrl+Shift+V in your defaults.json.
         // These two lines additionally bind them to Ctrl+C and Ctrl+V.
         // To learn more about selection, visit https://aka.ms/terminal-selection
-        { "command": {"action": "copy", "singleLine": false }, "keys": "ctrl+c" },
+        { "command": { "action": "copy", "singleLine": false }, "keys": "ctrl+c" },
         { "command": "paste", "keys": "ctrl+v" },
 
         // Press Ctrl+Shift+F to open the search box
