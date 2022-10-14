@@ -9,7 +9,7 @@
     "$help": "https://aka.ms/terminal-documentation",
     "$schema": "https://aka.ms/terminal-profiles-schema",
 
-    "defaultProfile": "{b2ec3fa5-ffb9-4443-a007-ad7c0153ba7f}",
+    "defaultProfile": "{2234cc64-a237-4eb8-a58d-96a6e58f0cd9}",
 
     // You can add more global application settings here.
     // To learn more about global settings, visit https://aka.ms/terminal-global-settings
@@ -58,10 +58,10 @@
             // },
             {
                 // Make changes here to the Git Bash profile.
-                "guid": "{b2ec3fa5-ffb9-4443-a007-ad7c0153ba7f}",
-                "name": "Git Bash",
-                "commandline": "C:\\Program Files\\Git\\bin\\bash.exe",
-                "icon": "C:\\Users\\Matt\\Code\\Scripts\\.wt\\Git-Icon-1788C.png",
+                "guid": "{2234cc64-a237-4eb8-a58d-96a6e58f0cd9}",
+                "name": "MSYS2",
+                "commandline": "C:\\MSYS64\\msys2_shell.cmd -defterm -here -no-start -mingw64",
+                "icon": "C:\\MSYS64\\msys2.ico",
                 "hidden": false
             },
             {
