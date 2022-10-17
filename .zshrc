@@ -3,6 +3,9 @@
 #
 # Based on the default Oh My ZSH script, with additions based on my .bashrc
 
+# Allow symbolic links on MSYS2 or Git for Windows
+export MSYS=winsymlinks:nativestrict
+
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
