@@ -148,7 +148,11 @@ if [[ $OSTYPE -ne "msys" ]]; then
     fi
 fi
 if [ -d "$CODE_FOLDER" ]; then
-    export PYTHONPATH="$PYTHONPATH:$CODE_FOLDER"
+    if [[ -v "PYTHONPATH" ]]; then
+        export PYTHONPATH="$PYTHONPATH:$CODE_FOLDER"
+    else
+        export PYTHONPATH="$CODE_FOLDER"
+    fi
 fi
 
 # Remove duplicates in path environment variable
