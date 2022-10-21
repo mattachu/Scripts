@@ -10,3 +10,9 @@
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
+[safe]
+        directory = C:/Users/Matt/OneDrive/Documents/Notebooks
+        directory = C:/Users/Matt/OneDrive/Documents/Editing
+        directory = C:/Users/Matt/OneDrive/Documents/Manuscripts
+        directory = C:/Users/Matt/OneDrive/Documents/Presentations
+        directory = C:/Users/Matt/OneDrive/Documents/Projects
