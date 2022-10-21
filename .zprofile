@@ -28,8 +28,14 @@ fi
 if [ -r "$PYENV_ROOT/bin" ]; then
     path=("$PYENV_ROOT/bin" $path)
 fi
-if command -v pyenv 1>/dev/null 2>&1; then
-    eval "$(pyenv init --path)"
+if [[ "$OSTYPE" != "msys" ]]; then
+    if command -v pyenv 1>/dev/null 2>&1; then
+        eval "$(pyenv init --path)"
+    fi
+else
+    # MSYS adds some paths at the front of the path list,
+    # so we need to move the .pyenv paths back to the front
+    path=(~/.pyenv/pyenv-win/bin ~/.pyenv/pyenv-win/shims $path)
 fi
 # - remove duplicates
 typeset -U PATH path
