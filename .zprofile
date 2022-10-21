@@ -28,8 +28,8 @@ fi
 if [ -r "$PYENV_ROOT/bin" ]; then
     path=("$PYENV_ROOT/bin" $path)
 fi
-if [[ $OSTYPE -ne "msys" ]]; then
-    if command -v pyenv 1>/dev/null 2>/dev/null; then
+if [[ "$OSTYPE" != "msys" ]]; then
+    if command -v pyenv 1>/dev/null 2>&1; then
         eval "$(pyenv init --path)"
     fi
 else
