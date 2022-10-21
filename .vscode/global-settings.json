@@ -10,10 +10,29 @@
     "explorer.confirmDelete": false,
     "window.autoDetectColorScheme": true,
     "window.title": "${rootName}${separator}${activeEditorShort}",
-    "terminal.integrated.shell.osx": "/bin/zsh",
-    "terminal.integrated.shell.windows": "cmd.exe",
     "terminal.integrated.fontFamily": "'SourceCodePro+Powerline+Awesome Regular', Furamono Nerd Font, MesloLGS NF, monospace",
     "terminal.external.osxExec": "iTerm.app",
+    "terminal.external.windowsExec": "C:\\Users\\Matt\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe",
+    "terminal.integrated.defaultProfile.windows": "MSYS2",
+    "terminal.integrated.profiles.windows": {
+        "MSYS2": {
+            "path": "C:\\MSYS64\\msys2_shell.cmd",
+            "args": ["-mingw64", "-defterm", "-here", "-no-start"],
+            "icon": "terminal-bash"
+        },
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell"
+        },
+        "Command Prompt": {
+            "path": [
+                "${env:windir}\\Sysnative\\cmd.exe",
+                "${env:windir}\\System32\\cmd.exe"
+            ],
+            "args": [],
+            "icon": "terminal-cmd"
+        }
+    },
     "shellLauncher.shells.osx": [
         {
             "shell": "/bin/zsh",
@@ -56,24 +75,17 @@
     ],
     "shellLauncher.shells.windows": [
         {
-            "shell": "C:\\Windows\\System32\\cmd.exe",
-            "label": "cmd"
+            "label": "MSYS2",
+            "shell": "C:\\MSYS64\\msys2_shell.cmd",
+            "args": ["-mingw64", "-defterm", "-here", "-no-start"]
         },
         {
-            "shell": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-            "label": "PowerShell"
+            "label": "PowerShell",
+            "shell": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
         },
         {
-            "shell": "C:\\Program Files\\Git\\bin\\bash.exe",
-            "label": "Git bash"
-        },
-        {
-            "shell": "C:\\Windows\\System32\\wsl.exe",
-            "label": "WSL"
-        },
-        {
-            "shell": "C:\\Windows\\System32\\bash.exe",
-            "label": "WSL bash"
+            "label": "cmd",
+            "shell": "C:\\Windows\\System32\\cmd.exe"
         }
     ],
     "git.autofetch": true,
@@ -123,6 +135,5 @@
     "notebook.cellToolbarLocation": {
         "default": "right",
         "jupyter-notebook": "left"
-    },
-    "workbench.colorTheme": "Default Light+"
+    }
 }
