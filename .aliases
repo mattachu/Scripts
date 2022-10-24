@@ -27,6 +27,12 @@ do
       git reset --hard origin/$branch
 done'
 
+# Workaround for `tmux` on Windows:
+tmux-win () {
+    TMUX="command tmux ${@}"
+    script -qO /dev/null -c "eval $TMUX";
+}
+
 # Load certain environments (machine specific)
 if [[ "$(uname)" == "Darwin" ]]; then
     computer_name=$(scutil --get ComputerName)
