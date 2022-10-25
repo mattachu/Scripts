@@ -8,13 +8,13 @@
 #
 
 # Variables
-TMATE_FOLDER="/tmp/tmate-1000"                              # holds temp tmate items
-TMATE_MAIN_SESSION="main"                                   # main session name
-TMATE_MAIN_SOCKET="${TMATE_FOLDER}/tmate-main.sock"         # main socket
-TMATE_BACKUP_SESSION="backup"                               # backup session name
-TMATE_BACKUP_SOCKET="${TMATE_FOLDER}/tmate-backup.sock"     # backup socket
-TMATE_TMUX_SESSION="${TMATE_FOLDER}/tmate-tmux-session"     # default TMUX location
-TMATE_URL_FILE="${HOME}/Documents/Filing/tmate.txt"         # (synced) file with URLs
+TMATE_FOLDER="/tmp/tmate-1000"                                    # holds temp tmate items
+TMATE_MAIN_SESSION="main"                                         # main session name
+TMATE_MAIN_SOCKET="${TMATE_FOLDER}/tmate-main.sock"               # main socket
+TMATE_BACKUP_SESSION="backup"                                     # backup session name
+TMATE_BACKUP_SOCKET="${TMATE_FOLDER}/tmate-backup.sock"           # backup socket
+TMATE_TMUX_SESSION="${TMATE_FOLDER}/tmate-tmux-session"           # default TMUX location
+TMATE_URL_FILE="${HOME}/OneDrive/Transfer/tmate-$(hostname).txt"  # (synced) file with URLs
 
 # Get current tmate connection url.
 # If a session name is given as an argument, it looks for this session,
