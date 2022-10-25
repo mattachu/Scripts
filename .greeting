@@ -27,7 +27,9 @@ case ${COMPUTER_NAME} in
     "Farrah’s MacBook Pro"|"FarrahBook"|"FarrahBook.local")
         export COMPUTER_FULLNAME="FarrahBook: Farrah’s 2014 MacBook Pro" ;;
     "MJEaston")
-        export COMPUTER_FULLNAME="MJEaston: Matt’s Work PC" ;;
+        export COMPUTER_FULLNAME="MJEaston: Matt’s Work PC @ PKU" ;;
+    "Gandalf")
+        export COMPUTER_FULLNAME="Gandalf: Matt’s Work PC @ GLAPA" ;;
     "ubuntu42")
         export COMPUTER_FULLNAME="ubuntu42: Matt’s Work PC" ;;
 esac
