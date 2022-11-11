@@ -5,10 +5,8 @@ import sys
 import os
 import git
 import pathlib
-import socket
 import tabulate
 import termcolor
-import colorama
 import configparser
 
 # Coloured messages
@@ -350,7 +348,7 @@ def overview():
 
 # What to do when run as a script
 if __name__ == '__main__':
-    colorama.init()
+    os.environ['FORCE_COLOR'] = '1'
     if len(sys.argv) > 1:
         try:
             repo = git.Repo(sys.argv[1])
