@@ -10,7 +10,7 @@
     "explorer.confirmDelete": false,
     "window.autoDetectColorScheme": true,
     "window.title": "${rootName}${separator}${activeEditorShort}",
-    "terminal.integrated.fontFamily": "'SourceCodePro+Powerline+Awesome Regular', Furamono Nerd Font, MesloLGS NF, monospace",
+    "terminal.integrated.fontFamily": "MesloLGS Nerd Font, MesloLGS NF, 'SourceCodePro+Powerline+Awesome Regular', Furamono Nerd Font, monospace",
     "terminal.external.osxExec": "iTerm.app",
     "terminal.external.windowsExec": "C:\\Users\\Matt\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe",
     "terminal.integrated.defaultProfile.windows": "MSYS2",
@@ -33,61 +33,6 @@
             "icon": "terminal-cmd"
         }
     },
-    "shellLauncher.shells.osx": [
-        {
-            "shell": "/bin/zsh",
-            "label": "zsh"
-        },
-        {
-            "shell": "/bin/bash",
-            "label": "bash"
-        },
-        {
-            "shell": "/bin/zsh",
-            "args": ["-l"],
-            "label": "zsh login shell"
-        },
-        {
-            "shell": "/bin/bash",
-            "args": ["-l"],
-            "label": "bash login shell"
-        }
-    ],
-    "shellLauncher.shells.linux": [
-        {
-            "shell": "/bin/zsh",
-            "label": "zsh"
-        },
-        {
-            "shell": "/bin/bash",
-            "label": "bash"
-        },
-        {
-            "shell": "/bin/zsh",
-            "args": ["-l"],
-            "label": "zsh login shell"
-        },
-        {
-            "shell": "/bin/bash",
-            "args": ["-l"],
-            "label": "bash login shell"
-        }
-    ],
-    "shellLauncher.shells.windows": [
-        {
-            "label": "MSYS2",
-            "shell": "C:\\MSYS64\\msys2_shell.cmd",
-            "args": ["-mingw64", "-defterm", "-here", "-no-start"]
-        },
-        {
-            "label": "PowerShell",
-            "shell": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
-        },
-        {
-            "label": "cmd",
-            "shell": "C:\\Windows\\System32\\cmd.exe"
-        }
-    ],
     "git.autofetch": true,
     "git.confirmSync": false,
     "[markdown]": {
@@ -117,11 +62,6 @@
     ],
     "gitlens.defaultDateFormat": "D MMMM YYYY h:mma",
     "gitlens.defaultDateShortFormat": "YYYY-MM-DD",
-    "gitlens.views.repositories.location": "gitlens",
-    "gitlens.views.fileHistory.location": "gitlens",
-    "gitlens.views.lineHistory.location": "gitlens",
-    "gitlens.views.compare.location": "gitlens",
-    "gitlens.views.search.location": "gitlens",
     "gitlens.hovers.currentLine.over": "line",
     "git.allowForcePush": true,
     "python.terminal.activateEnvironment": false,
