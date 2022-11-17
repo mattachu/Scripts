@@ -22,7 +22,7 @@ class TestGitCheck:
         scripts_dir = '/Users/matt/Code/Scripts'
     elif 'MacBook' in hostname:
         scripts_dir = '/Users/matt/Code/Scripts'
-    elif hostname == 'ubuntu42':
+    elif hostname in ['ubuntu42', 'Mithrandir']:
         scripts_dir = '/home/matt/Code/Scripts'
 
     # Setup before testing
