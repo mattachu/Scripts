@@ -10,7 +10,7 @@
     "explorer.confirmDelete": false,
     "window.autoDetectColorScheme": true,
     "window.title": "${rootName}${separator}${activeEditorShort}",
-    "terminal.integrated.fontFamily": "'SourceCodePro+Powerline+Awesome Regular', Furamono Nerd Font, MesloLGS NF, monospace",
+    "terminal.integrated.fontFamily": "MesloLGS Nerd Font, MesloLGS NF, 'SourceCodePro+Powerline+Awesome Regular', Furamono Nerd Font, monospace",
     "terminal.external.osxExec": "iTerm.app",
     "terminal.external.windowsExec": "C:\\Users\\Matt\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe",
     "terminal.integrated.defaultProfile.windows": "MSYS2",
