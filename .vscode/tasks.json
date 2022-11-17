@@ -15,32 +15,13 @@
                     }
                 }
             },
-            "linux": {
-                "options": {
-                    "shell": {
-                        "executable": "cmd.exe",
-                        "args": ["/d", "/c" ]
-                    }
-                }
-            },
             "problemMatcher": []
         },
         {
             "label": "Install extensions from list",
             "type": "shell",
-            "osx": {
-                "command": "cat .vscode/extensions.txt | xargs -L1 code --install-extension"
-            },
+            "command": "cat .vscode/extensions.txt | xargs -L1 code --install-extension",
             "windows": {
-                "options": {
-                    "shell": {
-                        "executable": "cmd.exe",
-                        "args": ["/d", "/c" ]
-                    }
-                },
-                "command": "FOR /F %x IN (.vscode/extensions.txt) DO code --install-extension %x"
-            },
-            "linux": {
                 "options": {
                     "shell": {
                         "executable": "cmd.exe",
