@@ -16,6 +16,11 @@ TMATE_BACKUP_SOCKET="${TMATE_FOLDER}/tmate-backup.sock"           # backup socke
 TMATE_TMUX_SESSION="${TMATE_FOLDER}/tmate-tmux-session"           # default TMUX location
 TMATE_URL_FILE="${HOME}/OneDrive/Transfer/tmate-$(hostname).txt"  # (synced) file with URLs
 
+# Make sure folder exists
+if [ ! -d "${TMATE_FOLDER}" ]; then
+    mkdir -p ${TMATE_FOLDER}
+fi
+
 # Get current tmate connection url.
 # If a session name is given as an argument, it looks for this session,
 #   otherwise the main session is used.
@@ -111,13 +116,28 @@ tmate_connect() {
 
 # Start main and backup sessions and record urls
 tmate_start() {
-    if ! tmate -S "${TMATE_MAIN_SOCKET}" has-session -t "${TMATE_MAIN_SESSION}"; then
-        tmate_unpair "${TMATE_MAIN_SESSION}"
-        sleep 1
-    fi
     tmate_pair "${TMATE_MAIN_SESSION}"
     tmate_url "${TMATE_MAIN_SESSION}" > "${TMATE_URL_FILE}"
-    tmate_unpair "${TMATE_BACKUP_SESSION}"; sleep 1
     tmate_pair "${TMATE_BACKUP_SESSION}"
     tmate_url "${TMATE_BACKUP_SESSION}" >> "${TMATE_URL_FILE}"
 }
+
+# Stop both sessions
+tmate_stop() {
+    tmate_unpair ${TMATE_MAIN_SESSION}
+    tmate_unpair ${TMATE_BACKUP_SESSION}
+}
+
+# The script can be called with parameter 'start', 'stop' or 'refresh'
+if [ "x-$1" = 'x-start' ]; then
+    tmate_stop; sleep 1
+    tmate_start
+elif [ "x-$1" = 'x-refresh' ]; then
+    if ! tmate -S "${TMATE_MAIN_SOCKET}" has-session -t "${TMATE_MAIN_SESSION}"; then
+        tmate_unpair "${TMATE_MAIN_SESSION}"
+    fi
+    tmate_unpair "${TMATE_BACKUP_SESSION}"; sleep 1
+    tmate_start
+elif [ "x-$1" = 'x-stop' ]; then
+    tmate_stop
+fi
