@@ -29,7 +29,9 @@ case ${COMPUTER_NAME} in
     "MJEaston")
         export COMPUTER_FULLNAME="MJEaston: Matt’s Work PC @ PKU" ;;
     "Gandalf")
-        export COMPUTER_FULLNAME="Gandalf: Matt’s Work PC @ GLAPA" ;;
+        export COMPUTER_FULLNAME="Gandalf: Matt’s Work PC @ GLAPA (Windows)" ;;
+    "Mithrandir")
+        export COMPUTER_FULLNAME="Mithrandir: Matt’s Work PC @ GLAPA (Linux)" ;;
     "ubuntu42")
         export COMPUTER_FULLNAME="ubuntu42: Matt’s Work PC" ;;
 esac
