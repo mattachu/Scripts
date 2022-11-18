@@ -33,6 +33,8 @@ def get_repo_path_list(config_file=None):
         elif sys.platform.startswith('win'):
             config_path = pathlib.Path(os.getenv('APPDATA'))
             config_path = config_path.joinpath('Scripts')
+        elif sys.platform.startswith('linux'):
+            config_path = pathlib.Path.home().joinpath('.config')
         else:
             config_path = pathlib.Path.home()
         config_file = str(config_path.joinpath('paths.ini'))
