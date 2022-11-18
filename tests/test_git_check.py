@@ -11,7 +11,7 @@ class TestGitCheck:
 
     # Set paths
     hostname = socket.gethostname()
-    if hostname == 'MJEaston':
+    if hostname == 'Elrond':
         if sys.platform.startswith('linux'):
             scripts_dir = '/home/matt/Code/Scripts'
         else:
