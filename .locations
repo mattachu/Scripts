@@ -26,7 +26,7 @@ case ${COMPUTER_NAME} in
         export USB_FOLDER="/Volumes/MJEASTON/Work"
         export STOW_FOLDER="/usr/local/stow"
         ;;
-    "MJEaston"|"Gandalf"|"Mithrandir")
+    "Elrond"|"Gandalf"|"Mithrandir")
         export CODE_FOLDER="${HOME}/Code"
         export SCRIPTS_FOLDER="${HOME}/Code/Scripts"
         export WORK_FOLDER="${HOME}/Documents"
