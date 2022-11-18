@@ -77,8 +77,8 @@ HIST_STAMPS="yyyy-mm-dd"
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
 
-# Don't check permissions on WorkPC (using WSL)
-if [[ "$(hostname)" == "MJEaston" ]]; then
+# Don't check permissions on PKU Work PC (using WSL)
+if [[ "$(hostname)" == "Elrond" ]]; then
     ZSH_DISABLE_COMPFIX="true"
 fi
 

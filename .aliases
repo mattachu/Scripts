@@ -47,7 +47,7 @@ case ${computer_name} in
         alias load-geant4="source /usr/local/bin/geant4.sh"
         alias load-opal="source /opt/OPAL-1.4.0-1/etc/profile.d/opal.sh"
         ;;
-    "MJEaston")
+    "Elrond")
         alias load-root="source /opt/root/bin/thisroot.sh"
         alias load-geant4="source /usr/local/bin/geant4.sh"
         alias load-opal="source /opt/OPAL-2.0.0rc2/etc/profile.d/opal.sh"
