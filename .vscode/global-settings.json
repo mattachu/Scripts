@@ -75,5 +75,10 @@
     "notebook.cellToolbarLocation": {
         "default": "right",
         "jupyter-notebook": "left"
-    }
+    },
+    "editor.accessibilitySupport": "off",
+    "cmake.configureOnOpen": true,
+    "fortran.fortls.path": "/usr/local/bin/fortls",
+    "diffEditor.ignoreTrimWhitespace": false,
+    "editor.renderWhitespace": "none"
 }
