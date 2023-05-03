@@ -1,15 +1,18 @@
 {
     "telemetry.enableTelemetry": false,
+    "window.autoDetectColorScheme": true,
+    "window.title": "${rootName}${separator}${activeEditorShort}",
     "editor.wordWrap": "off",
+    "editor.renderWhitespace": "none",
     "editor.rulers": [
         80
     ],
+    "editor.accessibilitySupport": "off",
+    "diffEditor.ignoreTrimWhitespace": false,
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
     "explorer.confirmDelete": false,
-    "window.autoDetectColorScheme": true,
-    "window.title": "${rootName}${separator}${activeEditorShort}",
     "terminal.integrated.fontFamily": "MesloLGS Nerd Font, MesloLGS NF, 'SourceCodePro+Powerline+Awesome Regular', Furamono Nerd Font, monospace",
     "terminal.external.osxExec": "iTerm.app",
     "terminal.external.windowsExec": "C:\\Users\\Matt\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe",
@@ -33,8 +36,26 @@
             "icon": "terminal-cmd"
         }
     },
+    "workbench.editorAssociations": {
+        "*.ipynb": "jupyter-notebook"
+    },
     "git.autofetch": true,
     "git.confirmSync": false,
+    "git.allowForcePush": true,
+    "gitlens.defaultDateFormat": "D MMMM YYYY h:mma",
+    "gitlens.defaultDateShortFormat": "YYYY-MM-DD",
+    "gitlens.hovers.currentLine.over": "line",
+    "python.terminal.activateEnvironment": false,
+    "jupyter.askForKernelRestart": false,
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    },
+    "r.bracketedPaste": true,
+    "r.rpath.mac": "/usr/local/bin/R",
+    "r.rterm.mac": "/Users/matt/.pyenv/versions/general/bin/radian",
+    "cmake.configureOnOpen": true,
+    "fortran.fortls.path": "/usr/local/bin/fortls",
     "[markdown]": {
         "editor.wordWrap": "off",
         "files.trimTrailingWhitespace": false
@@ -59,26 +80,5 @@
         "quadrupoles",
         "underway",
         "unphysical"
-    ],
-    "gitlens.defaultDateFormat": "D MMMM YYYY h:mma",
-    "gitlens.defaultDateShortFormat": "YYYY-MM-DD",
-    "gitlens.hovers.currentLine.over": "line",
-    "git.allowForcePush": true,
-    "python.terminal.activateEnvironment": false,
-    "jupyter.askForKernelRestart": false,
-    "workbench.editorAssociations": {
-        "*.ipynb": "jupyter-notebook"
-    },
-    "r.bracketedPaste": true,
-    "r.rpath.mac": "/usr/local/bin/R",
-    "r.rterm.mac": "/Users/matt/.pyenv/versions/general/bin/radian",
-    "notebook.cellToolbarLocation": {
-        "default": "right",
-        "jupyter-notebook": "left"
-    },
-    "editor.accessibilitySupport": "off",
-    "cmake.configureOnOpen": true,
-    "fortran.fortls.path": "/usr/local/bin/fortls",
-    "diffEditor.ignoreTrimWhitespace": false,
-    "editor.renderWhitespace": "none"
+    ]
 }
